@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "fba": {
+      "source": "fastapi-practices/skills",
+      "sourceType": "github",
+      "computedHash": "e0e4996c72b3479582b6f65979950c4ccccbb849978908ded31024444b5b8491"
+    }
+  }
+}
