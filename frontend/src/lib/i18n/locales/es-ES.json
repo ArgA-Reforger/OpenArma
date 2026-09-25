@@ -345,10 +345,18 @@
     "newPassword": "Nueva contraseña",
     "confirmResetPassword": "¿Restablecer la contraseña de {name}?",
     "passwordResetSuccess": "Contraseña restablecida",
-    "confirmDelete": "¿Eliminar al usuario {name}?",
+    "confirmDelete": "¿Eliminar al usuario {name}? Esta acción no se puede deshacer.",
     "userCreated": "Usuario creado",
     "userUpdated": "Usuario actualizado",
-    "userDeleted": "Usuario eliminado"
+    "userDeleted": "Usuario eliminado",
+    "username": "Nombre de usuario",
+    "password": "Contraseña",
+    "lastLogin": "Último acceso",
+    "selectDept": "Seleccione un departamento",
+    "creating": "Creando...",
+    "resetPasswordFor": "Restablecer contraseña - {name}",
+    "resetting": "Restableciendo...",
+    "confirmReset": "Confirmar restablecimiento"
   },
   "role": {
     "title": "Gestión de roles",
@@ -356,11 +364,14 @@
     "createRole": "Crear rol",
     "roleName": "Nombre del rol",
     "menuPermission": "Permisos de menú",
-    "confirmBatchDelete": "¿Eliminar los {count} roles seleccionados?",
+    "confirmBatchDelete": "¿Eliminar los {count} roles seleccionados? Esta acción no se puede deshacer.",
     "roleCreated": "Rol creado",
     "roleUpdated": "Rol actualizado",
     "roleDeleted": "Roles eliminados",
-    "permissionUpdated": "Permisos actualizados"
+    "permissionUpdated": "Permisos actualizados",
+    "dataFilter": "Filtro de datos",
+    "editRole": "Editar rol",
+    "menuPermissionFor": "Permisos de menú - {name}"
   },
   "dept": {
     "title": "Gestión de departamentos",
@@ -401,6 +412,7 @@
     "typeLink": "Enlace",
     "show": "Mostrar",
     "hide": "Ocultar",
+    "none": "Ninguno",
     "noParent": "Ninguno (nivel superior)",
     "menuCreated": "Menú creado",
     "menuUpdated": "Menú actualizado",
@@ -504,7 +516,14 @@
     "typeCreated": "Tipo de diccionario creado",
     "typeUpdated": "Tipo de diccionario actualizado",
     "dataCreated": "Dato de diccionario creado",
-    "dataUpdated": "Dato de diccionario actualizado"
+    "dataUpdated": "Dato de diccionario actualizado",
+    "typeDeleted": "Tipo de diccionario eliminado",
+    "dataDeleted": "Dato de diccionario eliminado",
+    "dataOfType": "{name} - Datos del diccionario",
+    "createType": "Nuevo tipo de diccionario",
+    "editType": "Editar tipo de diccionario",
+    "createData": "Nuevo dato de diccionario",
+    "editData": "Editar dato de diccionario"
   },
   "notice": {
     "title": "Gestión de notificaciones",
@@ -550,7 +569,10 @@
     "taskUpdated": "Tarea actualizada",
     "taskDeleted": "Tarea eliminada",
     "taskExecuted": "Ejecución de tarea activada",
-    "confirmDelete": "¿Eliminar la tarea {name}?"
+    "confirmDelete": "¿Eliminar la tarea {name}?",
+    "searchTask": "Buscar nombre de tarea...",
+    "expression": "Expresión",
+    "selectTask": "Seleccione una tarea"
   },
   "dataPermission": {
     "title": "Permisos de datos",
@@ -567,7 +589,11 @@
     "scopeCreated": "Ámbito creado",
     "scopeUpdated": "Ámbito actualizado",
     "ruleCreated": "Regla creada",
-    "ruleUpdated": "Regla actualizada"
+    "ruleUpdated": "Regla actualizada",
+    "scopeDeleted": "Ámbito eliminado",
+    "ruleDeleted": "Regla eliminada",
+    "value": "Valor",
+    "selectModel": "Seleccione un modelo"
   },
   "profile": {
     "title": "Perfil",

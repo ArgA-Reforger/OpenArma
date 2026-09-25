@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -45,6 +46,7 @@ interface PageData<T> {
 export default function DictPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t } = useI18n()
   const [selectedType, setSelectedType] = useState<DictType | null>(null)
   const [typeFormOpen, setTypeFormOpen] = useState(false)
   const [editType, setEditType] = useState<DictType | null>(null)
@@ -67,83 +69,83 @@ export default function DictPage() {
 
   const createTypeMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post('/sys/dict-types', body),
-    onSuccess: () => { toast.success('字典类型创建成功'); qc.invalidateQueries({ queryKey: ['admin-dict-types'] }); setTypeFormOpen(false) },
+    onSuccess: () => { toast.success(t('dict.typeCreated')); qc.invalidateQueries({ queryKey: ['admin-dict-types'] }); setTypeFormOpen(false) },
     onError: (e: Error) => toast.error(e.message),
   })
 
   const updateTypeMutation = useMutation({
     mutationFn: ({ pk, body }: { pk: number; body: Record<string, unknown> }) => api.put(`/sys/dict-types/${pk}`, body),
-    onSuccess: () => { toast.success('字典类型更新成功'); qc.invalidateQueries({ queryKey: ['admin-dict-types'] }); setEditType(null); setTypeFormOpen(false) },
+    onSuccess: () => { toast.success(t('dict.typeUpdated')); qc.invalidateQueries({ queryKey: ['admin-dict-types'] }); setEditType(null); setTypeFormOpen(false) },
     onError: (e: Error) => toast.error(e.message),
   })
 
   const deleteTypeMutation = useMutation({
     mutationFn: (pks: number[]) => api.delete('/sys/dict-types', { pks }),
-    onSuccess: () => { toast.success('已删除'); qc.invalidateQueries({ queryKey: ['admin-dict-types'] }); if (selectedType) setSelectedType(null) },
+    onSuccess: () => { toast.success(t('dict.typeDeleted')); qc.invalidateQueries({ queryKey: ['admin-dict-types'] }); if (selectedType) setSelectedType(null) },
     onError: (e: Error) => toast.error(e.message),
   })
 
   const createDataMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post('/sys/dict-datas', body),
-    onSuccess: () => { toast.success('字典数据创建成功'); qc.invalidateQueries({ queryKey: ['admin-dict-data'] }); setDataFormOpen(false) },
+    onSuccess: () => { toast.success(t('dict.dataCreated')); qc.invalidateQueries({ queryKey: ['admin-dict-data'] }); setDataFormOpen(false) },
     onError: (e: Error) => toast.error(e.message),
   })
 
   const updateDataMutation = useMutation({
     mutationFn: ({ pk, body }: { pk: number; body: Record<string, unknown> }) => api.put(`/sys/dict-datas/${pk}`, body),
-    onSuccess: () => { toast.success('字典数据更新成功'); qc.invalidateQueries({ queryKey: ['admin-dict-data'] }); setEditData(null); setDataFormOpen(false) },
+    onSuccess: () => { toast.success(t('dict.dataUpdated')); qc.invalidateQueries({ queryKey: ['admin-dict-data'] }); setEditData(null); setDataFormOpen(false) },
     onError: (e: Error) => toast.error(e.message),
   })
 
   const deleteDataMutation = useMutation({
     mutationFn: (pks: number[]) => api.delete('/sys/dict-datas', { pks }),
-    onSuccess: () => { toast.success('已删除'); qc.invalidateQueries({ queryKey: ['admin-dict-data'] }) },
+    onSuccess: () => { toast.success(t('dict.dataDeleted')); qc.invalidateQueries({ queryKey: ['admin-dict-data'] }) },
     onError: (e: Error) => toast.error(e.message),
   })
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">字典管理</h1>
+      <h1 className="text-2xl font-bold">{t('dict.title')}</h1>
 
       <div className="grid grid-cols-5 gap-6">
         {/* Left: Dict Types */}
         <div className="col-span-2 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">字典类型</h2>
-            <Button size="sm" onClick={() => { setEditType(null); setTypeFormOpen(true) }}>新增</Button>
+            <h2 className="text-lg font-semibold">{t('dict.dictType')}</h2>
+            <Button size="sm" onClick={() => { setEditType(null); setTypeFormOpen(true) }}>{t('common.add')}</Button>
           </div>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>名称</TableHead>
-                  <TableHead>编码</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead>{t('common.name')}</TableHead>
+                  <TableHead>{t('dict.code')}</TableHead>
+                  <TableHead>{t('common.status')}</TableHead>
+                  <TableHead className="text-right">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {typesLoading ? (
-                  <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">加载中...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">{t('common.loading')}</TableCell></TableRow>
                 ) : !types?.items?.length ? (
-                  <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">暂无数据</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">{t('common.noData')}</TableCell></TableRow>
                 ) : (
-                  types.items.map((t) => (
+                  types.items.map((dt) => (
                     <TableRow
-                      key={t.id}
-                      className={`cursor-pointer ${selectedType?.id === t.id ? 'bg-accent' : ''}`}
-                      onClick={() => { setSelectedType(t); setDataPage(1) }}
+                      key={dt.id}
+                      className={`cursor-pointer ${selectedType?.id === dt.id ? 'bg-accent' : ''}`}
+                      onClick={() => { setSelectedType(dt); setDataPage(1) }}
                     >
-                      <TableCell className="font-medium">{t.name}</TableCell>
-                      <TableCell><code className="text-xs bg-muted px-1 rounded">{t.code}</code></TableCell>
+                      <TableCell className="font-medium">{dt.name}</TableCell>
+                      <TableCell><code className="text-xs bg-muted px-1 rounded">{dt.code}</code></TableCell>
                       <TableCell>
-                        <Badge variant={t.status === 1 ? 'default' : 'destructive'} className="text-xs">
-                          {t.status === 1 ? '启用' : '禁用'}
+                        <Badge variant={dt.status === 1 ? 'default' : 'destructive'} className="text-xs">
+                          {dt.status === 1 ? t('common.enabled') : t('common.disabled')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditType(t); setTypeFormOpen(true) }}>编辑</Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={(e) => { e.stopPropagation(); deleteTypeMutation.mutate([t.id]) }}>删除</Button>
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditType(dt); setTypeFormOpen(true) }}>{t('common.edit')}</Button>
+                        <Button variant="ghost" size="sm" className="text-destructive" onClick={(e) => { e.stopPropagation(); deleteTypeMutation.mutate([dt.id]) }}>{t('common.delete')}</Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -153,8 +155,8 @@ export default function DictPage() {
           </div>
           {types && types.total_pages > 1 && (
             <div className="flex gap-2 justify-center">
-              <Button variant="outline" size="sm" disabled={typePage <= 1} onClick={() => setTypePage((p) => p - 1)}>上一页</Button>
-              <Button variant="outline" size="sm" disabled={typePage >= types.total_pages} onClick={() => setTypePage((p) => p + 1)}>下一页</Button>
+              <Button variant="outline" size="sm" disabled={typePage <= 1} onClick={() => setTypePage((p) => p - 1)}>{t('common.prevPage')}</Button>
+              <Button variant="outline" size="sm" disabled={typePage >= types.total_pages} onClick={() => setTypePage((p) => p + 1)}>{t('common.nextPage')}</Button>
             </div>
           )}
         </div>
@@ -163,10 +165,10 @@ export default function DictPage() {
         <div className="col-span-3 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">
-              {selectedType ? `${selectedType.name} - 字典数据` : '请选择字典类型'}
+              {selectedType ? t('dict.dataOfType', { name: selectedType.name }) : t('dict.selectType')}
             </h2>
             {selectedType && (
-              <Button size="sm" onClick={() => { setEditData(null); setDataFormOpen(true) }}>新增</Button>
+              <Button size="sm" onClick={() => { setEditData(null); setDataFormOpen(true) }}>{t('common.add')}</Button>
             )}
           </div>
           {selectedType ? (
@@ -175,18 +177,18 @@ export default function DictPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>标签</TableHead>
-                      <TableHead>值</TableHead>
-                      <TableHead>排序</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
+                      <TableHead>{t('dict.label')}</TableHead>
+                      <TableHead>{t('dict.value')}</TableHead>
+                      <TableHead>{t('dict.sort')}</TableHead>
+                      <TableHead>{t('common.status')}</TableHead>
+                      <TableHead className="text-right">{t('common.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {dataLoading ? (
-                      <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">加载中...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">{t('common.loading')}</TableCell></TableRow>
                     ) : !dictData?.items?.length ? (
-                      <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">暂无数据</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">{t('common.noData')}</TableCell></TableRow>
                     ) : (
                       dictData.items.map((d) => (
                         <TableRow key={d.id}>
@@ -195,12 +197,12 @@ export default function DictPage() {
                           <TableCell>{d.sort}</TableCell>
                           <TableCell>
                             <Badge variant={d.status === 1 ? 'default' : 'destructive'} className="text-xs">
-                              {d.status === 1 ? '启用' : '禁用'}
+                              {d.status === 1 ? t('common.enabled') : t('common.disabled')}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => { setEditData(d); setDataFormOpen(true) }}>编辑</Button>
-                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteDataMutation.mutate([d.id])}>删除</Button>
+                            <Button variant="ghost" size="sm" onClick={() => { setEditData(d); setDataFormOpen(true) }}>{t('common.edit')}</Button>
+                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteDataMutation.mutate([d.id])}>{t('common.delete')}</Button>
                           </TableCell>
                         </TableRow>
                       ))
@@ -210,13 +212,13 @@ export default function DictPage() {
               </div>
               {dictData && dictData.total_pages > 1 && (
                 <div className="flex gap-2 justify-center">
-                  <Button variant="outline" size="sm" disabled={dataPage <= 1} onClick={() => setDataPage((p) => p - 1)}>上一页</Button>
-                  <Button variant="outline" size="sm" disabled={dataPage >= dictData.total_pages} onClick={() => setDataPage((p) => p + 1)}>下一页</Button>
+                  <Button variant="outline" size="sm" disabled={dataPage <= 1} onClick={() => setDataPage((p) => p - 1)}>{t('common.prevPage')}</Button>
+                  <Button variant="outline" size="sm" disabled={dataPage >= dictData.total_pages} onClick={() => setDataPage((p) => p + 1)}>{t('common.nextPage')}</Button>
                 </div>
               )}
             </>
           ) : (
-            <div className="rounded-md border p-12 text-center text-muted-foreground">点击左侧字典类型查看数据</div>
+            <div className="rounded-md border p-12 text-center text-muted-foreground">{t('dict.clickToView')}</div>
           )}
         </div>
       </div>
@@ -224,22 +226,22 @@ export default function DictPage() {
       {/* Type Form */}
       <Dialog open={typeFormOpen} onOpenChange={setTypeFormOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editType ? '编辑字典类型' : '新增字典类型'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editType ? t('dict.editType') : t('dict.createType')}</DialogTitle></DialogHeader>
           <form onSubmit={(e) => {
             e.preventDefault()
             const fd = new FormData(e.currentTarget)
             const body = { name: fd.get('name'), code: fd.get('code'), status: Number(fd.get('status')), remark: fd.get('remark') || undefined }
             editType ? updateTypeMutation.mutate({ pk: editType.id, body }) : createTypeMutation.mutate(body)
           }} className="space-y-4">
-            <div className="space-y-2"><Label>名称 *</Label><Input name="name" required defaultValue={editType?.name ?? ''} /></div>
-            <div className="space-y-2"><Label>编码 *</Label><Input name="code" required defaultValue={editType?.code ?? ''} pattern="^[A-Z_]+$" title="仅大写字母和下划线" /></div>
-            <div className="space-y-2"><Label>状态</Label>
+            <div className="space-y-2"><Label>{t('common.name')} *</Label><Input name="name" required defaultValue={editType?.name ?? ''} /></div>
+            <div className="space-y-2"><Label>{t('dict.code')} *</Label><Input name="code" required defaultValue={editType?.code ?? ''} pattern="^[A-Z_]+$" title={t('dict.codePattern')} /></div>
+            <div className="space-y-2"><Label>{t('common.status')}</Label>
               <select name="status" defaultValue={editType?.status ?? 1} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                <option value={1}>启用</option><option value={0}>禁用</option>
+                <option value={1}>{t('common.enabled')}</option><option value={0}>{t('common.disabled')}</option>
               </select>
             </div>
-            <div className="space-y-2"><Label>备注</Label><Input name="remark" defaultValue={editType?.remark ?? ''} /></div>
-            <DialogFooter><Button type="submit">保存</Button></DialogFooter>
+            <div className="space-y-2"><Label>{t('common.remark')}</Label><Input name="remark" defaultValue={editType?.remark ?? ''} /></div>
+            <DialogFooter><Button type="submit">{t('common.save')}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -247,7 +249,7 @@ export default function DictPage() {
       {/* Data Form */}
       <Dialog open={dataFormOpen} onOpenChange={setDataFormOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editData ? '编辑字典数据' : '新增字典数据'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editData ? t('dict.editData') : t('dict.createData')}</DialogTitle></DialogHeader>
           <form onSubmit={(e) => {
             e.preventDefault()
             const fd = new FormData(e.currentTarget)
@@ -261,16 +263,16 @@ export default function DictPage() {
             }
             editData ? updateDataMutation.mutate({ pk: editData.id, body }) : createDataMutation.mutate(body)
           }} className="space-y-4">
-            <div className="space-y-2"><Label>标签 *</Label><Input name="label" required defaultValue={editData?.label ?? ''} /></div>
-            <div className="space-y-2"><Label>值 *</Label><Input name="value" required defaultValue={editData?.value ?? ''} /></div>
-            <div className="space-y-2"><Label>排序</Label><Input name="sort" type="number" defaultValue={editData?.sort ?? 0} /></div>
-            <div className="space-y-2"><Label>状态</Label>
+            <div className="space-y-2"><Label>{t('dict.label')} *</Label><Input name="label" required defaultValue={editData?.label ?? ''} /></div>
+            <div className="space-y-2"><Label>{t('dict.value')} *</Label><Input name="value" required defaultValue={editData?.value ?? ''} /></div>
+            <div className="space-y-2"><Label>{t('dict.sort')}</Label><Input name="sort" type="number" defaultValue={editData?.sort ?? 0} /></div>
+            <div className="space-y-2"><Label>{t('common.status')}</Label>
               <select name="status" defaultValue={editData?.status ?? 1} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                <option value={1}>启用</option><option value={0}>禁用</option>
+                <option value={1}>{t('common.enabled')}</option><option value={0}>{t('common.disabled')}</option>
               </select>
             </div>
-            <div className="space-y-2"><Label>备注</Label><Input name="remark" defaultValue={editData?.remark ?? ''} /></div>
-            <DialogFooter><Button type="submit">保存</Button></DialogFooter>
+            <div className="space-y-2"><Label>{t('common.remark')}</Label><Input name="remark" defaultValue={editData?.remark ?? ''} /></div>
+            <DialogFooter><Button type="submit">{t('common.save')}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

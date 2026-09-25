@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,7 +34,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 
-const MENU_TYPES = ['目录', '菜单', '按钮', '内嵌', '链接'] as const
+// Menu type labels are translated at render time via getMenuTypeLabels(t)
+function getMenuTypeLabels(t: (key: string) => string): readonly string[] {
+  return [t('menu.typeDirectory'), t('menu.typeMenu'), t('menu.typeButton'), t('menu.typeEmbed'), t('menu.typeLink')] as const
+}
 const MENU_TYPE_VARIANTS: Record<number, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   0: 'default',
   1: 'secondary',
@@ -65,6 +69,7 @@ interface MenuNode {
 export default function MenusPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t } = useI18n()
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editMenu, setEditMenu] = useState<MenuNode | null>(null)
@@ -82,7 +87,7 @@ export default function MenusPage() {
   const createMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post('/sys/menus', body),
     onSuccess: () => {
-      toast.success('菜单创建成功')
+      toast.success(t('menu.menuCreated'))
       qc.invalidateQueries({ queryKey: ['admin-menus'] })
       setFormOpen(false)
     },
@@ -93,7 +98,7 @@ export default function MenusPage() {
     mutationFn: ({ pk, body }: { pk: number; body: Record<string, unknown> }) =>
       api.put(`/sys/menus/${pk}`, body),
     onSuccess: () => {
-      toast.success('菜单更新成功')
+      toast.success(t('menu.menuUpdated'))
       qc.invalidateQueries({ queryKey: ['admin-menus'] })
       setEditMenu(null)
       setFormOpen(false)
@@ -104,7 +109,7 @@ export default function MenusPage() {
   const deleteMutation = useMutation({
     mutationFn: (pk: number) => api.delete(`/sys/menus/${pk}`),
     onSuccess: () => {
-      toast.success('菜单已删除')
+      toast.success(t('menu.menuDeleted'))
       qc.invalidateQueries({ queryKey: ['admin-menus'] })
       setDeleteMenu(null)
     },
@@ -126,13 +131,13 @@ export default function MenusPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">菜单管理</h1>
-        <Button onClick={() => openCreate()}>创建菜单</Button>
+        <h1 className="text-2xl font-bold">{t('menu.title')}</h1>
+        <Button onClick={() => openCreate()}>{t('menu.createMenu')}</Button>
       </div>
 
       <div className="flex gap-2">
         <Input
-          placeholder="搜索菜单标题..."
+          placeholder={t('menu.searchMenu')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-xs"
@@ -141,9 +146,9 @@ export default function MenusPage() {
 
       <div className="rounded-md border">
         {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">加载中...</div>
+          <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
         ) : !menuTree?.length ? (
-          <div className="text-center py-8 text-muted-foreground">暂无数据</div>
+          <div className="text-center py-8 text-muted-foreground">{t('common.noData')}</div>
         ) : (
           <div className="divide-y">
             {menuTree.map((node) => (
@@ -177,15 +182,15 @@ export default function MenusPage() {
       <AlertDialog open={!!deleteMenu} onOpenChange={(open) => !open && setDeleteMenu(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除菜单 <strong>{deleteMenu?.title}</strong> 吗？
+              {t('menu.confirmDelete', { name: deleteMenu?.title ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => deleteMenu && deleteMutation.mutate(deleteMenu.id)}>
-              删除
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -207,8 +212,10 @@ function MenuTreeRow({
   onDelete: (menu: MenuNode) => void
   onAddChild: (pid: number) => void
 }) {
+  const { t } = useI18n()
   const [expanded, setExpanded] = useState(depth < 2)
   const hasChildren = !!node.children?.length
+  const menuTypes = getMenuTypeLabels(t)
 
   return (
     <>
@@ -225,7 +232,7 @@ function MenuTreeRow({
         </button>
         <span className="font-medium text-sm">{node.title}</span>
         <Badge variant={MENU_TYPE_VARIANTS[node.type] ?? 'outline'} className="text-xs">
-          {MENU_TYPES[node.type] ?? node.type}
+          {menuTypes[node.type] ?? node.type}
         </Badge>
         {node.perms && (
           <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{node.perms}</code>
@@ -235,19 +242,19 @@ function MenuTreeRow({
           <span className="text-xs text-muted-foreground">{node.path}</span>
         )}
         <Badge variant={node.status === 1 ? 'default' : 'destructive'} className="text-xs">
-          {node.status === 1 ? '启用' : '禁用'}
+          {node.status === 1 ? t('common.enabled') : t('common.disabled')}
         </Badge>
         <div className="flex gap-1 ml-2">
           {node.type === 0 && (
             <Button variant="ghost" size="sm" onClick={() => onAddChild(node.id)}>
-              添加子项
+              {t('menu.addChild')}
             </Button>
           )}
           <Button variant="ghost" size="sm" onClick={() => onEdit(node)}>
-            编辑
+            {t('common.edit')}
           </Button>
           <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(node)}>
-            删除
+            {t('common.delete')}
           </Button>
         </div>
       </div>
@@ -283,7 +290,9 @@ function MenuFormDialog({
   onSubmit: (body: Record<string, unknown>) => void
   loading: boolean
 }) {
+  const { t } = useI18n()
   const [menuType, setMenuType] = useState(menu?.type ?? 0)
+  const menuTypes = getMenuTypeLabels(t)
 
   useEffect(() => {
     if (open) setMenuType(menu?.type ?? 0)
@@ -315,20 +324,20 @@ function MenuFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{menu ? '编辑菜单' : '创建菜单'}</DialogTitle>
+          <DialogTitle>{menu ? t('menu.editMenu') : t('menu.createMenu')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>标题 *</Label>
+              <Label>{t('menu.menuTitle')} *</Label>
               <Input name="title" required defaultValue={menu?.title ?? ''} />
             </div>
             <div className="space-y-2">
-              <Label>名称 *</Label>
+              <Label>{t('menu.menuName')} *</Label>
               <Input name="name" required defaultValue={menu?.name ?? ''} />
             </div>
             <div className="space-y-2">
-              <Label>类型 *</Label>
+              <Label>{t('menu.menuType')} *</Label>
               <Select
                 value={String(menuType)}
                 onValueChange={(v) => setMenuType(Number(v))}
@@ -337,7 +346,7 @@ function MenuFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {MENU_TYPES.map((label, i) => (
+                  {menuTypes.map((label, i) => (
                     <SelectItem key={i} value={String(i)}>
                       {label}
                     </SelectItem>
@@ -346,13 +355,13 @@ function MenuFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>上级菜单</Label>
+              <Label>{t('menu.parentMenu')}</Label>
               <Select name="parent_id" defaultValue={String(parentId ?? menu?.parent_id ?? 0)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="无" />
+                  <SelectValue placeholder={t('menu.none')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">无（顶级）</SelectItem>
+                  <SelectItem value="0">{t('menu.noParent')}</SelectItem>
                   {menus.map((m) => (
                     <SelectItem key={m.id} value={String(m.id)}>
                       {'　'.repeat(m.depth)}{m.title}
@@ -364,76 +373,76 @@ function MenuFormDialog({
             {(menuType === 1 || menuType === 3) && (
               <>
                 <div className="space-y-2">
-                  <Label>路径</Label>
+                  <Label>{t('menu.path')}</Label>
                   <Input name="path" defaultValue={menu?.path ?? ''} />
                 </div>
                 <div className="space-y-2">
-                  <Label>组件</Label>
+                  <Label>{t('menu.component')}</Label>
                   <Input name="component" defaultValue={menu?.component ?? ''} />
                 </div>
               </>
             )}
             {menuType === 2 && (
               <div className="space-y-2 col-span-2">
-                <Label>权限标识</Label>
+                <Label>{t('menu.perms')}</Label>
                 <Input name="perms" defaultValue={menu?.perms ?? ''} placeholder="sys:user:add" />
               </div>
             )}
             {menuType === 4 && (
               <div className="space-y-2 col-span-2">
-                <Label>链接地址</Label>
+                <Label>{t('menu.link')}</Label>
                 <Input name="link" defaultValue={menu?.link ?? ''} />
               </div>
             )}
             <div className="space-y-2">
-              <Label>图标</Label>
+              <Label>{t('menu.icon')}</Label>
               <Input name="icon" defaultValue={menu?.icon ?? ''} />
             </div>
             <div className="space-y-2">
-              <Label>排序</Label>
+              <Label>{t('menu.sort')}</Label>
               <Input name="sort" type="number" defaultValue={menu?.sort ?? 0} />
             </div>
             <div className="space-y-2">
-              <Label>状态</Label>
+              <Label>{t('common.status')}</Label>
               <select
                 name="status"
                 defaultValue={menu?.status ?? 1}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               >
-                <option value={1}>启用</option>
-                <option value={0}>禁用</option>
+                <option value={1}>{t('common.enabled')}</option>
+                <option value={0}>{t('common.disabled')}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <Label>显示</Label>
+              <Label>{t('menu.display')}</Label>
               <select
                 name="display"
                 defaultValue={menu?.display ?? 1}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               >
-                <option value={1}>显示</option>
-                <option value={0}>隐藏</option>
+                <option value={1}>{t('menu.show')}</option>
+                <option value={0}>{t('menu.hide')}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <Label>缓存</Label>
+              <Label>{t('menu.cache')}</Label>
               <select
                 name="cache"
                 defaultValue={menu?.cache ?? 1}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               >
-                <option value={1}>是</option>
-                <option value={0}>否</option>
+                <option value={1}>{t('common.yes')}</option>
+                <option value={0}>{t('common.no')}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <Label>备注</Label>
+              <Label>{t('common.remark')}</Label>
               <Input name="remark" defaultValue={menu?.remark ?? ''} />
             </div>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? '保存中...' : '保存'}
+              {loading ? t('common.saving') : t('common.save')}
             </Button>
           </DialogFooter>
         </form>
