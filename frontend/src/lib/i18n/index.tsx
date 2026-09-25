@@ -1,13 +1,13 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
-import zhCN from './locales/zh-CN.json'
+import esES from './locales/es-ES.json'
 import enUS from './locales/en-US.json'
 
-export type Locale = 'zh-CN' | 'en-US'
+export type Locale = 'es-ES' | 'en-US'
 
 const locales: Record<Locale, Record<string, unknown>> = {
-  'zh-CN': zhCN as Record<string, unknown>,
+  'es-ES': esES as Record<string, unknown>,
   'en-US': enUS as Record<string, unknown>,
 }
 
@@ -40,7 +40,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem('locale') as Locale | null
       if (saved && saved in locales) return saved
     }
-    return 'zh-CN'
+    return 'es-ES'
   })
 
   const setLocale = useCallback((newLocale: Locale) => {
