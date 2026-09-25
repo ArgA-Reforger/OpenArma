@@ -253,7 +253,7 @@ class Settings(BaseSettings):
     OPERA_LOG_QUEUE_TIMEOUT: int = 60  # 1 分钟
 
     # Plugin 配置
-    PLUGIN_PIP_CHINA: bool = True
+    PLUGIN_PIP_CHINA: bool = False  # When True, plugin installs use PLUGIN_PIP_INDEX_URL as the package index
     PLUGIN_PIP_INDEX_URL: str = 'https://pypi.org/simple/'
     PLUGIN_PIP_MAX_RETRY: int = 3
     PLUGIN_REDIS_PREFIX: str = 'fba:plugin'
