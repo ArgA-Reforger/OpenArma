@@ -259,7 +259,7 @@ class Settings(BaseSettings):
     PLUGIN_REDIS_PREFIX: str = 'fba:plugin'
 
     # I18n 配置
-    I18N_DEFAULT_LANGUAGE: str = 'zh-CN'
+    I18N_DEFAULT_LANGUAGE: str = 'es-ES'
 
     # Grafana
     GRAFANA_METRICS_ENABLE: bool = False
