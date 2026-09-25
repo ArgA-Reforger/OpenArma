@@ -173,6 +173,7 @@ class Settings(BaseSettings):
         'http://127.0.0.1',
         'http://localhost:3000',
         'http://localhost:23000',
+        'http://127.0.0.1:23000',
         'http://localhost:5173',
         'https://openarma.com',
         'http://openarma.com',
