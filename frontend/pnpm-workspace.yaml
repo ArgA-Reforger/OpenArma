@@ -1,0 +1,6 @@
+allowBuilds:
+  # Only copies the MSW worker when package.json sets msw.workerDirectory (not used here).
+  msw: false
+  # Install scripts only verify/fetch native binaries; prebuilt platform packages are installed.
+  sharp: false
+  unrs-resolver: false

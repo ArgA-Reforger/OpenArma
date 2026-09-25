@@ -11,3 +11,19 @@ venv/
 .serena/
 .agents/
 .logs/
+
+# VSC
+.history
+*.code-workspace
+acme.json
+
+# Pycharm
+.idea
+.qodo/
+
+# Environment
+.env
+
+# Local AI runtime state
+.atl/
+.codegraph/

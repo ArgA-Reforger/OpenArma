@@ -5,8 +5,7 @@ ARG SERVER_TYPE=fba_server
 FROM ghcr.io/astral-sh/uv:python3.10-bookworm-slim AS builder
 
 # Used for build Python packages
-RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources \
-    && apt-get update \
+RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,8 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # === Runtime base server image ===
 FROM python:3.10-slim-bookworm AS base_server
 
-RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources \
-    && apt-get update \
+RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates supervisor \
     && rm -rf /var/lib/apt/lists/*
 

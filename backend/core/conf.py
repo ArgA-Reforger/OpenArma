@@ -172,6 +172,7 @@ class Settings(BaseSettings):
     CORS_ALLOWED_ORIGINS: list[str] = [  # 末尾不带斜杠
         'http://127.0.0.1',
         'http://localhost:3000',
+        'http://localhost:23000',
         'http://localhost:5173',
         'https://openarma.com',
         'http://openarma.com',
@@ -252,7 +253,7 @@ class Settings(BaseSettings):
 
     # Plugin 配置
     PLUGIN_PIP_CHINA: bool = True
-    PLUGIN_PIP_INDEX_URL: str = 'https://mirrors.cloud.tencent.com/pypi/simple/'
+    PLUGIN_PIP_INDEX_URL: str = 'https://pypi.org/simple/'
     PLUGIN_PIP_MAX_RETRY: int = 3
     PLUGIN_REDIS_PREFIX: str = 'fba:plugin'
 

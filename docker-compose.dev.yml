@@ -1,0 +1,75 @@
+# Support services for local development.
+# Backend and frontend run natively on the host (uv run fba run / pnpm dev).
+# Credentials match the defaults in backend/core/conf.py.
+# Host ports are the container port + 20000 to avoid clashing with local services,
+# so backend/.env must set them explicitly:
+#   DATABASE_PORT=25432  REDIS_PORT=26379  QDRANT_PORT=26333
+#   MINIO_ENDPOINT=127.0.0.1:29000  CELERY_RABBITMQ_PORT=25672
+# RabbitMQ management UI: http://127.0.0.1:35672  MinIO console: http://127.0.0.1:29001
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   docker compose -f docker-compose.dev.yml --profile rabbit up -d   # include RabbitMQ
+
+name: openarma-dev
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "127.0.0.1:25432:5432"
+    environment:
+      POSTGRES_DB: openarma
+      POSTGRES_PASSWORD: openarma123
+      TZ: America/Argentina/Buenos_Aires
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    ports:
+      - "127.0.0.1:26379:6379"
+    command: redis-server --requirepass openarma123
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "127.0.0.1:26333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  # minio/minio was removed from Docker Hub; pgsty/minio is a maintained drop-in fork.
+  minio:
+    image: pgsty/minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "127.0.0.1:29000:9000"
+      - "127.0.0.1:29001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  # Optional in dev: CELERY_BROKER defaults to redis unless ENVIRONMENT=prod.
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    profiles: [rabbit]
+    ports:
+      - "127.0.0.1:25672:5672"
+      - "127.0.0.1:35672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: openarma
+      RABBITMQ_DEFAULT_PASS: openarma123
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  redis_data:
+  qdrant_data:
+  minio_data:
