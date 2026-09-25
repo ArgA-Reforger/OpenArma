@@ -1,6 +1,11 @@
 # Support services for local development.
 # Backend and frontend run natively on the host (uv run fba run / pnpm dev).
 # Credentials match the defaults in backend/core/conf.py.
+# Host ports are the container port + 20000 to avoid clashing with local services,
+# so backend/.env must set them explicitly:
+#   DATABASE_PORT=25432  REDIS_PORT=26379  QDRANT_PORT=26333
+#   MINIO_ENDPOINT=127.0.0.1:29000  CELERY_RABBITMQ_PORT=25672
+# RabbitMQ management UI: http://127.0.0.1:35672  MinIO console: http://127.0.0.1:29001
 #
 #   docker compose -f docker-compose.dev.yml up -d
 #   docker compose -f docker-compose.dev.yml --profile rabbit up -d   # include RabbitMQ
@@ -11,7 +16,7 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:25432:5432"
     environment:
       POSTGRES_DB: openarma
       POSTGRES_PASSWORD: openarma123
@@ -23,7 +28,7 @@ services:
   redis:
     image: redis:7
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:26379:6379"
     command: redis-server --requirepass openarma123
     volumes:
       - redis_data:/data
@@ -32,7 +37,7 @@ services:
   qdrant:
     image: qdrant/qdrant
     ports:
-      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:26333:6333"
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
@@ -42,8 +47,8 @@ services:
     image: pgsty/minio
     command: server /data --console-address ":9001"
     ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
+      - "127.0.0.1:29000:9000"
+      - "127.0.0.1:29001:9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -56,8 +61,8 @@ services:
     image: rabbitmq:3.13-management
     profiles: [rabbit]
     ports:
-      - "127.0.0.1:5672:5672"
-      - "127.0.0.1:15672:15672"
+      - "127.0.0.1:25672:5672"
+      - "127.0.0.1:35672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: openarma
       RABBITMQ_DEFAULT_PASS: openarma123
