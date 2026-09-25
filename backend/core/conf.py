@@ -252,7 +252,7 @@ class Settings(BaseSettings):
 
     # Plugin 配置
     PLUGIN_PIP_CHINA: bool = True
-    PLUGIN_PIP_INDEX_URL: str = 'https://mirrors.cloud.tencent.com/pypi/simple/'
+    PLUGIN_PIP_INDEX_URL: str = 'https://pypi.org/simple/'
     PLUGIN_PIP_MAX_RETRY: int = 3
     PLUGIN_REDIS_PREFIX: str = 'fba:plugin'
 
