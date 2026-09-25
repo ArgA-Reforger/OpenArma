@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -54,6 +55,7 @@ interface PageData<T> {
 export default function SchedulerPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t, locale } = useI18n()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
@@ -73,13 +75,13 @@ export default function SchedulerPage() {
 
   const createMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post('/schedulers', body),
-    onSuccess: () => { toast.success('任务创建成功'); qc.invalidateQueries({ queryKey: ['admin-scheduler'] }); setFormOpen(false) },
+    onSuccess: () => { toast.success(t('scheduler.taskCreated')); qc.invalidateQueries({ queryKey: ['admin-scheduler'] }); setFormOpen(false) },
     onError: (e: Error) => toast.error(e.message),
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ pk, body }: { pk: number; body: Record<string, unknown> }) => api.put(`/schedulers/${pk}`, body),
-    onSuccess: () => { toast.success('任务更新成功'); qc.invalidateQueries({ queryKey: ['admin-scheduler'] }); setEditTask(null); setFormOpen(false) },
+    onSuccess: () => { toast.success(t('scheduler.taskUpdated')); qc.invalidateQueries({ queryKey: ['admin-scheduler'] }); setEditTask(null); setFormOpen(false) },
     onError: (e: Error) => toast.error(e.message),
   })
 
@@ -91,72 +93,72 @@ export default function SchedulerPage() {
 
   const executeMutation = useMutation({
     mutationFn: (pk: number) => api.post(`/schedulers/${pk}/execute`),
-    onSuccess: () => toast.success('任务已触发执行'),
+    onSuccess: () => toast.success(t('scheduler.taskExecuted')),
     onError: (e: Error) => toast.error(e.message),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (pk: number) => api.delete(`/schedulers/${pk}`),
-    onSuccess: () => { toast.success('任务已删除'); qc.invalidateQueries({ queryKey: ['admin-scheduler'] }); setDeleteTask(null) },
+    onSuccess: () => { toast.success(t('scheduler.taskDeleted')); qc.invalidateQueries({ queryKey: ['admin-scheduler'] }); setDeleteTask(null) },
     onError: (e: Error) => toast.error(e.message),
   })
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">任务调度</h1>
-        <Button onClick={() => { setEditTask(null); setFormOpen(true) }}>创建任务</Button>
+        <h1 className="text-2xl font-bold">{t('scheduler.title')}</h1>
+        <Button onClick={() => { setEditTask(null); setFormOpen(true) }}>{t('scheduler.createTask')}</Button>
       </div>
 
-      <Input placeholder="搜索任务名..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} className="max-w-xs" />
+      <Input placeholder={t('scheduler.searchTask')} value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} className="max-w-xs" />
 
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>任务名</TableHead>
-              <TableHead>触发器</TableHead>
-              <TableHead>表达式</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>执行次数</TableHead>
-              <TableHead>下次执行</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t('scheduler.taskName')}</TableHead>
+              <TableHead>{t('scheduler.trigger')}</TableHead>
+              <TableHead>{t('scheduler.expression')}</TableHead>
+              <TableHead>{t('common.status')}</TableHead>
+              <TableHead>{t('scheduler.runCount')}</TableHead>
+              <TableHead>{t('scheduler.nextRun')}</TableHead>
+              <TableHead className="text-right">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">加载中...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t('common.loading')}</TableCell></TableRow>
             ) : !data?.items?.length ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">暂无数据</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t('common.noData')}</TableCell></TableRow>
             ) : (
-              data.items.map((t) => (
-                <TableRow key={t.id}>
+              data.items.map((task) => (
+                <TableRow key={task.id}>
                   <TableCell>
                     <div>
-                      <span className="font-medium">{t.name}</span>
-                      <p className="text-xs text-muted-foreground">{t.module}.{t.func}</p>
+                      <span className="font-medium">{task.name}</span>
+                      <p className="text-xs text-muted-foreground">{task.module}.{task.func}</p>
                     </div>
                   </TableCell>
-                  <TableCell><Badge variant="outline">{t.trigger}</Badge></TableCell>
-                  <TableCell><code className="text-xs bg-muted px-1 rounded">{t.trigger_args}</code></TableCell>
+                  <TableCell><Badge variant="outline">{task.trigger}</Badge></TableCell>
+                  <TableCell><code className="text-xs bg-muted px-1 rounded">{task.trigger_args}</code></TableCell>
                   <TableCell>
                     <Badge
-                      variant={t.enabled ? 'default' : 'secondary'}
+                      variant={task.enabled ? 'default' : 'secondary'}
                       className="cursor-pointer"
-                      onClick={() => toggleMutation.mutate(t.id)}
+                      onClick={() => toggleMutation.mutate(task.id)}
                     >
-                      {t.enabled ? '运行中' : '已暂停'}
+                      {task.enabled ? t('scheduler.running') : t('scheduler.paused')}
                     </Badge>
                   </TableCell>
-                  <TableCell>{t.total_run_count}</TableCell>
+                  <TableCell>{task.total_run_count}</TableCell>
                   <TableCell className="text-xs">
-                    {t.next_run_time ? new Date(t.next_run_time).toLocaleString('zh-CN') : '-'}
+                    {task.next_run_time ? new Date(task.next_run_time).toLocaleString(locale) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => executeMutation.mutate(t.id)}>执行</Button>
-                      <Button variant="ghost" size="sm" onClick={() => { setEditTask(t); setFormOpen(true) }}>编辑</Button>
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTask(t)}>删除</Button>
+                      <Button variant="ghost" size="sm" onClick={() => executeMutation.mutate(task.id)}>{t('scheduler.execute')}</Button>
+                      <Button variant="ghost" size="sm" onClick={() => { setEditTask(task); setFormOpen(true) }}>{t('common.edit')}</Button>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTask(task)}>{t('common.delete')}</Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -168,10 +170,10 @@ export default function SchedulerPage() {
 
       {data && data.total_pages > 1 && (
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">共 {data.total} 条</span>
+          <span className="text-sm text-muted-foreground">{t('common.total', { total: data.total })}</span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>上一页</Button>
-            <Button variant="outline" size="sm" disabled={page >= data.total_pages} onClick={() => setPage((p) => p + 1)}>下一页</Button>
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>{t('common.prevPage')}</Button>
+            <Button variant="outline" size="sm" disabled={page >= data.total_pages} onClick={() => setPage((p) => p + 1)}>{t('common.nextPage')}</Button>
           </div>
         </div>
       )}
@@ -188,12 +190,12 @@ export default function SchedulerPage() {
       <AlertDialog open={!!deleteTask} onOpenChange={(open) => !open && setDeleteTask(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>确定要删除任务 <strong>{deleteTask?.name}</strong> 吗？</AlertDialogDescription>
+            <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('scheduler.confirmDelete', { name: deleteTask?.name ?? '' })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteTask && deleteMutation.mutate(deleteTask.id)}>删除</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteTask && deleteMutation.mutate(deleteTask.id)}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -207,6 +209,8 @@ function TaskFormDialog({
   open: boolean; onOpenChange: (open: boolean) => void; task: Task | null
   registeredTasks: string[]; onSubmit: (body: Record<string, unknown>) => void; loading: boolean
 }) {
+  const { t } = useI18n()
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -232,20 +236,20 @@ function TaskFormDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>{task ? '编辑任务' : '创建任务'}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{task ? t('scheduler.editTask') : t('scheduler.createTask')}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>任务名 *</Label>
+            <Label>{t('scheduler.taskName')} *</Label>
             <Input name="name" required defaultValue={task?.name ?? ''} />
           </div>
           <div className="space-y-2">
-            <Label>任务函数 *</Label>
+            <Label>{t('scheduler.taskFunc')} *</Label>
             {registeredTasks.length > 0 ? (
               <Select name="task" defaultValue={defaultTask}>
-                <SelectTrigger><SelectValue placeholder="选择任务" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('scheduler.selectTask')} /></SelectTrigger>
                 <SelectContent>
-                  {registeredTasks.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  {registeredTasks.map((rt) => (
+                    <SelectItem key={rt} value={rt}>{rt}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -255,7 +259,7 @@ function TaskFormDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>触发器 *</Label>
+              <Label>{t('scheduler.trigger')} *</Label>
               <Select name="trigger" defaultValue={task?.trigger ?? 'cron'}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -266,16 +270,16 @@ function TaskFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>触发器参数 *</Label>
+              <Label>{t('scheduler.triggerArgs')} *</Label>
               <Input name="trigger_args" required defaultValue={task?.trigger_args ?? ''} placeholder="*/5 * * * *" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>分组</Label><Input name="group" defaultValue={task?.group ?? 'default'} /></div>
-            <div className="space-y-2"><Label>最大实例</Label><Input name="max_instances" type="number" defaultValue={task?.max_instances ?? 1} /></div>
+            <div className="space-y-2"><Label>{t('scheduler.group')}</Label><Input name="group" defaultValue={task?.group ?? 'default'} /></div>
+            <div className="space-y-2"><Label>{t('scheduler.maxInstances')}</Label><Input name="max_instances" type="number" defaultValue={task?.max_instances ?? 1} /></div>
           </div>
-          <div className="space-y-2"><Label>备注</Label><Input name="remark" defaultValue={task?.remark ?? ''} /></div>
-          <DialogFooter><Button type="submit" disabled={loading}>{loading ? '保存中...' : '保存'}</Button></DialogFooter>
+          <div className="space-y-2"><Label>{t('common.remark')}</Label><Input name="remark" defaultValue={task?.remark ?? ''} /></div>
+          <DialogFooter><Button type="submit" disabled={loading}>{loading ? t('common.saving') : t('common.save')}</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

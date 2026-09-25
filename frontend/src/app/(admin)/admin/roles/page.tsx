@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -63,6 +64,7 @@ interface MenuTreeNode {
 export default function RolesPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t, locale } = useI18n()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
@@ -81,7 +83,7 @@ export default function RolesPage() {
   const createMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post('/sys/roles', body),
     onSuccess: () => {
-      toast.success('角色创建成功')
+      toast.success(t('role.roleCreated'))
       qc.invalidateQueries({ queryKey: ['admin-roles'] })
       setFormOpen(false)
     },
@@ -92,7 +94,7 @@ export default function RolesPage() {
     mutationFn: ({ pk, body }: { pk: number; body: Record<string, unknown> }) =>
       api.put(`/sys/roles/${pk}`, body),
     onSuccess: () => {
-      toast.success('角色更新成功')
+      toast.success(t('role.roleUpdated'))
       qc.invalidateQueries({ queryKey: ['admin-roles'] })
       setEditRole(null)
       setFormOpen(false)
@@ -103,7 +105,7 @@ export default function RolesPage() {
   const deleteMutation = useMutation({
     mutationFn: (pks: number[]) => api.delete('/sys/roles', { pks }),
     onSuccess: () => {
-      toast.success('角色已删除')
+      toast.success(t('role.roleDeleted'))
       qc.invalidateQueries({ queryKey: ['admin-roles'] })
       setDeleteIds([])
     },
@@ -123,13 +125,13 @@ export default function RolesPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">角色管理</h1>
-        <Button onClick={openCreate}>创建角色</Button>
+        <h1 className="text-2xl font-bold">{t('role.title')}</h1>
+        <Button onClick={openCreate}>{t('role.createRole')}</Button>
       </div>
 
       <div className="flex gap-2">
         <Input
-          placeholder="搜索角色名..."
+          placeholder={t('role.searchRole')}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
@@ -143,25 +145,25 @@ export default function RolesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>角色名</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>数据过滤</TableHead>
-              <TableHead>备注</TableHead>
-              <TableHead>创建时间</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t('role.roleName')}</TableHead>
+              <TableHead>{t('common.status')}</TableHead>
+              <TableHead>{t('role.dataFilter')}</TableHead>
+              <TableHead>{t('common.remark')}</TableHead>
+              <TableHead>{t('common.createdTime')}</TableHead>
+              <TableHead className="text-right">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  加载中...
+                  {t('common.loading')}
                 </TableCell>
               </TableRow>
             ) : !data?.items?.length ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  暂无数据
+                  {t('common.noData')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -170,21 +172,21 @@ export default function RolesPage() {
                   <TableCell className="font-medium">{r.name}</TableCell>
                   <TableCell>
                     <Badge variant={r.status === 1 ? 'default' : 'destructive'}>
-                      {r.status === 1 ? '启用' : '禁用'}
+                      {r.status === 1 ? t('common.enabled') : t('common.disabled')}
                     </Badge>
                   </TableCell>
-                  <TableCell>{r.is_filter_scopes ? '是' : '否'}</TableCell>
+                  <TableCell>{r.is_filter_scopes ? t('common.yes') : t('common.no')}</TableCell>
                   <TableCell className="text-muted-foreground">{r.remark ?? '-'}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {new Date(r.created_time).toLocaleString('zh-CN')}
+                    {new Date(r.created_time).toLocaleString(locale)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(r)}>
-                        编辑
+                        {t('common.edit')}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => setMenuRole(r)}>
-                        菜单权限
+                        {t('role.menuPermission')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -192,7 +194,7 @@ export default function RolesPage() {
                         className="text-destructive"
                         onClick={() => setDeleteIds([r.id])}
                       >
-                        删除
+                        {t('common.delete')}
                       </Button>
                     </div>
                   </TableCell>
@@ -206,14 +208,14 @@ export default function RolesPage() {
       {data && data.total_pages > 1 && (
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
-            共 {data.total} 条，第 {data.page}/{data.total_pages} 页
+            {t('common.total', { total: data.total })}, {t('common.pageInfo', { page: data.page, totalPages: data.total_pages })}
           </span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              上一页
+              {t('common.prevPage')}
             </Button>
             <Button variant="outline" size="sm" disabled={page >= data.total_pages} onClick={() => setPage((p) => p + 1)}>
-              下一页
+              {t('common.nextPage')}
             </Button>
           </div>
         </div>
@@ -241,12 +243,12 @@ export default function RolesPage() {
       <AlertDialog open={deleteIds.length > 0} onOpenChange={(open) => !open && setDeleteIds([])}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>确定要删除选中的角色吗？此操作不可撤销。</AlertDialogDescription>
+            <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('role.confirmBatchDelete', { count: deleteIds.length })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteMutation.mutate(deleteIds)}>删除</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteMutation.mutate(deleteIds)}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -267,6 +269,8 @@ function RoleFormDialog({
   onSubmit: (body: Record<string, unknown>) => void
   loading: boolean
 }) {
+  const { t } = useI18n()
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -281,31 +285,31 @@ function RoleFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{role ? '编辑角色' : '创建角色'}</DialogTitle>
+          <DialogTitle>{role ? t('role.editRole') : t('role.createRole')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>角色名 *</Label>
+            <Label>{t('role.roleName')} *</Label>
             <Input name="name" required defaultValue={role?.name ?? ''} />
           </div>
           <div className="space-y-2">
-            <Label>状态</Label>
+            <Label>{t('common.status')}</Label>
             <select
               name="status"
               defaultValue={role?.status ?? 1}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
             >
-              <option value={1}>启用</option>
-              <option value={0}>禁用</option>
+              <option value={1}>{t('common.enabled')}</option>
+              <option value={0}>{t('common.disabled')}</option>
             </select>
           </div>
           <div className="space-y-2">
-            <Label>备注</Label>
+            <Label>{t('common.remark')}</Label>
             <Input name="remark" defaultValue={role?.remark ?? ''} />
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? '保存中...' : '保存'}
+              {loading ? t('common.saving') : t('common.save')}
             </Button>
           </DialogFooter>
         </form>
@@ -323,6 +327,7 @@ function MenuPermissionDialog({
 }) {
   const api = useApi()
   const qc = useQueryClient()
+  const { t } = useI18n()
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set())
   const [initialized, setInitialized] = useState(false)
 
@@ -347,7 +352,7 @@ function MenuPermissionDialog({
     mutationFn: (menus: number[]) =>
       api.put(`/sys/roles/${role.id}/menus`, { menus }),
     onSuccess: () => {
-      toast.success('菜单权限已更新')
+      toast.success(t('role.permissionUpdated'))
       qc.invalidateQueries({ queryKey: ['admin-role-menus', role.id] })
       onClose()
     },
@@ -376,7 +381,7 @@ function MenuPermissionDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>菜单权限 - {role.name}</DialogTitle>
+          <DialogTitle>{t('role.menuPermissionFor', { name: role.name })}</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto py-2">
           {menuTree?.map((node) => (
@@ -391,7 +396,7 @@ function MenuPermissionDialog({
         </div>
         <DialogFooter>
           <Button onClick={handleSave} disabled={saveMutation.isPending}>
-            {saveMutation.isPending ? '保存中...' : '保存'}
+            {saveMutation.isPending ? t('common.saving') : t('common.save')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -410,8 +415,10 @@ function MenuTreeItem({
   onToggle: (id: number, descendants: number[]) => void
   depth: number
 }) {
+  const { t } = useI18n()
   const descendants = getAllIds(node.children ?? [])
   const checked = checkedIds.has(node.id)
+  const menuTypes = [t('menu.typeDirectory'), t('menu.typeMenu'), t('menu.typeButton'), t('menu.typeEmbed'), t('menu.typeLink')]
 
   return (
     <div>
@@ -425,7 +432,7 @@ function MenuTreeItem({
         />
         <span className="text-sm">{node.title}</span>
         <Badge variant="outline" className="text-xs ml-auto">
-          {['目录', '菜单', '按钮', '内嵌', '链接'][node.type] ?? node.type}
+          {menuTypes[node.type] ?? node.type}
         </Badge>
       </div>
       {node.children?.map((child) => (
