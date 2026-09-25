@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -53,6 +54,7 @@ interface PageData<T> {
 export default function OperaLogPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t, locale } = useI18n()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -70,7 +72,7 @@ export default function OperaLogPage() {
   const deleteMutation = useMutation({
     mutationFn: (pks: number[]) => api.delete('/logs/opera', { pks }),
     onSuccess: () => {
-      toast.success('日志已删除')
+      toast.success(t('log.logDeleted'))
       qc.invalidateQueries({ queryKey: ['admin-opera-logs'] })
       setSelected(new Set())
       setConfirmDelete(false)
@@ -94,16 +96,16 @@ export default function OperaLogPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">操作日志</h1>
+        <h1 className="text-2xl font-bold">{t('log.operaLog')}</h1>
         {selected.size > 0 && (
           <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(true)}>
-            删除选中 ({selected.size})
+            {t('log.deleteSelected', { count: selected.size })}
           </Button>
         )}
       </div>
 
       <Input
-        placeholder="搜索用户名..."
+        placeholder={t('log.searchUsername')}
         value={search}
         onChange={(e) => { setSearch(e.target.value); setPage(1) }}
         className="max-w-xs"
@@ -119,24 +121,24 @@ export default function OperaLogPage() {
                   onCheckedChange={toggleAll}
                 />
               </TableHead>
-              <TableHead>用户</TableHead>
-              <TableHead>方法</TableHead>
-              <TableHead>路径</TableHead>
-              <TableHead>状态码</TableHead>
-              <TableHead>耗时</TableHead>
-              <TableHead>IP</TableHead>
-              <TableHead>时间</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t('log.user')}</TableHead>
+              <TableHead>{t('log.method')}</TableHead>
+              <TableHead>{t('log.path')}</TableHead>
+              <TableHead>{t('log.statusCode')}</TableHead>
+              <TableHead>{t('log.costTime')}</TableHead>
+              <TableHead>{t('log.ip')}</TableHead>
+              <TableHead>{t('log.time')}</TableHead>
+              <TableHead className="text-right">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">加载中...</TableCell>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{t('common.loading')}</TableCell>
               </TableRow>
             ) : !data?.items?.length ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">暂无数据</TableCell>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{t('common.noData')}</TableCell>
               </TableRow>
             ) : (
               data.items.map((log) => (
@@ -156,9 +158,9 @@ export default function OperaLogPage() {
                   </TableCell>
                   <TableCell className="text-xs">{log.cost_time}ms</TableCell>
                   <TableCell className="text-xs">{log.ip}</TableCell>
-                  <TableCell className="text-xs">{new Date(log.opera_time).toLocaleString('zh-CN')}</TableCell>
+                  <TableCell className="text-xs">{new Date(log.opera_time).toLocaleString(locale)}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => setDetail(log)}>详情</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDetail(log)}>{t('log.detail')}</Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -169,10 +171,10 @@ export default function OperaLogPage() {
 
       {data && data.total_pages > 1 && (
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">共 {data.total} 条，第 {data.page}/{data.total_pages} 页</span>
+          <span className="text-sm text-muted-foreground">{t('common.total', { total: data.total })}, {t('common.pageInfo', { page: data.page, totalPages: data.total_pages })}</span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>上一页</Button>
-            <Button variant="outline" size="sm" disabled={page >= data.total_pages} onClick={() => setPage((p) => p + 1)}>下一页</Button>
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>{t('common.prevPage')}</Button>
+            <Button variant="outline" size="sm" disabled={page >= data.total_pages} onClick={() => setPage((p) => p + 1)}>{t('common.nextPage')}</Button>
           </div>
         </div>
       )}
@@ -180,28 +182,28 @@ export default function OperaLogPage() {
       <Dialog open={!!detail} onOpenChange={(open) => !open && setDetail(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>操作日志详情</DialogTitle>
+            <DialogTitle>{t('log.detailTitle')}</DialogTitle>
           </DialogHeader>
           {detail && (
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Trace ID" value={detail.trace_id} />
-                <Field label="用户" value={detail.username} />
-                <Field label="方法" value={detail.method} />
-                <Field label="路径" value={detail.path} />
-                <Field label="状态码" value={detail.code} />
-                <Field label="耗时" value={`${detail.cost_time}ms`} />
-                <Field label="IP" value={detail.ip} />
-                <Field label="地区" value={[detail.country, detail.region, detail.city].filter(Boolean).join(' ')} />
-                <Field label="浏览器" value={detail.browser} />
-                <Field label="操作系统" value={detail.os} />
-                <Field label="设备" value={detail.device} />
-                <Field label="时间" value={new Date(detail.opera_time).toLocaleString('zh-CN')} />
+                <Field label={t('log.user')} value={detail.username} />
+                <Field label={t('log.method')} value={detail.method} />
+                <Field label={t('log.path')} value={detail.path} />
+                <Field label={t('log.statusCode')} value={detail.code} />
+                <Field label={t('log.costTime')} value={`${detail.cost_time}ms`} />
+                <Field label={t('log.ip')} value={detail.ip} />
+                <Field label={t('log.region')} value={[detail.country, detail.region, detail.city].filter(Boolean).join(' ')} />
+                <Field label={t('log.browser')} value={detail.browser} />
+                <Field label={t('log.os')} value={detail.os} />
+                <Field label={t('log.device')} value={detail.device} />
+                <Field label={t('log.time')} value={new Date(detail.opera_time).toLocaleString(locale)} />
               </div>
-              {detail.msg && <Field label="消息" value={detail.msg} />}
+              {detail.msg && <Field label={t('log.message')} value={detail.msg} />}
               {detail.args && (
                 <div>
-                  <span className="text-muted-foreground">请求参数</span>
+                  <span className="text-muted-foreground">{t('log.requestParams')}</span>
                   <pre className="mt-1 rounded bg-muted p-3 text-xs overflow-x-auto">
                     {JSON.stringify(detail.args, null, 2)}
                   </pre>
@@ -215,12 +217,12 @@ export default function OperaLogPage() {
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>确定要删除选中的 {selected.size} 条日志吗？</AlertDialogDescription>
+            <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('log.confirmDelete', { count: selected.size })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteMutation.mutate(Array.from(selected))}>删除</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteMutation.mutate(Array.from(selected))}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,6 +29,7 @@ interface PluginRaw {
 export default function PluginsPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t } = useI18n()
   const [uninstallTarget, setUninstallTarget] = useState<string | null>(null)
 
   const { data: plugins, isLoading } = useQuery({
@@ -39,7 +41,7 @@ export default function PluginsPage() {
     mutationFn: (name: string) => api.put(`/sys/plugins/${name}/status`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-plugins'] })
-      toast.success('插件状态已更新')
+      toast.success(t('plugin.statusUpdated'))
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -48,7 +50,7 @@ export default function PluginsPage() {
     mutationFn: (name: string) => api.delete(`/sys/plugins/${name}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-plugins'] })
-      toast.success('插件已卸载')
+      toast.success(t('plugin.uninstalled'))
       setUninstallTarget(null)
     },
     onError: (e: Error) => toast.error(e.message),
@@ -56,12 +58,12 @@ export default function PluginsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">插件管理</h1>
+      <h1 className="text-2xl font-bold">{t('plugin.title')}</h1>
 
       {isLoading ? (
-        <p className="text-muted-foreground">加载中...</p>
+        <p className="text-muted-foreground">{t('common.loading')}</p>
       ) : !plugins?.length ? (
-        <p className="text-muted-foreground">暂无已安装插件</p>
+        <p className="text-muted-foreground">{t('plugin.noPlugins')}</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {plugins.map((raw) => {
@@ -73,15 +75,15 @@ export default function PluginsPage() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">{p.name}</CardTitle>
                     <Badge variant={enabled ? 'default' : 'secondary'}>
-                      {enabled ? '启用' : '禁用'}
+                      {enabled ? t('common.enabled') : t('common.disabled')}
                     </Badge>
                   </div>
                   {p.summary && <p className="text-sm text-muted-foreground">{p.summary}</p>}
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
-                    {p.author && <div><span className="text-muted-foreground">作者:</span> {p.author}</div>}
-                    {p.version && <div><span className="text-muted-foreground">版本:</span> {p.version}</div>}
+                    {p.author && <div><span className="text-muted-foreground">{t('plugin.author')}:</span> {p.author}</div>}
+                    {p.version && <div><span className="text-muted-foreground">{t('dashboard.version')}:</span> {p.version}</div>}
                     {p.tags?.length ? (
                       <div className="flex gap-1 flex-wrap">
                         {p.tags.map((tag) => (
@@ -97,7 +99,7 @@ export default function PluginsPage() {
                       size="sm"
                       onClick={() => toggleMutation.mutate(p.name)}
                     >
-                      {enabled ? '禁用' : '启用'}
+                      {enabled ? t('plugin.disable') : t('plugin.enable')}
                     </Button>
                     <Button
                       variant="ghost"
@@ -105,7 +107,7 @@ export default function PluginsPage() {
                       className="text-destructive"
                       onClick={() => setUninstallTarget(p.name)}
                     >
-                      卸载
+                      {t('plugin.uninstall')}
                     </Button>
                   </div>
                 </CardContent>
@@ -118,14 +120,14 @@ export default function PluginsPage() {
       <AlertDialog open={!!uninstallTarget} onOpenChange={(open) => !open && setUninstallTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认卸载</AlertDialogTitle>
+            <AlertDialogTitle>{t('plugin.confirmUninstallTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要卸载插件 <strong>{uninstallTarget}</strong> 吗？此操作不可撤销。
+              {t('plugin.confirmUninstall', { name: uninstallTarget ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={() => uninstallTarget && uninstallMutation.mutate(uninstallTarget)}>卸载</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => uninstallTarget && uninstallMutation.mutate(uninstallTarget)}>{t('plugin.uninstall')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
