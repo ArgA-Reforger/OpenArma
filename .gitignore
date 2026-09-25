@@ -27,6 +27,3 @@ acme.json
 # Local AI runtime state
 .atl/
 .codegraph/
-# NTFS junction into .agents/reforger-agent-skills/skills — regenerate with:
-# New-Item -ItemType Junction -Path .agents\skills -Target (Resolve-Path .agents\reforger-agent-skills\skills)
-.agents/skills/
