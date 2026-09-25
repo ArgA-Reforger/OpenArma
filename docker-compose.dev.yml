@@ -37,8 +37,9 @@ services:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
+  # minio/minio was removed from Docker Hub; pgsty/minio is a maintained drop-in fork.
   minio:
-    image: minio/minio
+    image: pgsty/minio
     command: server /data --console-address ":9001"
     ports:
       - "127.0.0.1:9000:9000"
