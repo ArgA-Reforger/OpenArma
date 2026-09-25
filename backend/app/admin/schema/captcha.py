@@ -4,9 +4,9 @@ from backend.common.schema import SchemaBase
 
 
 class GetCaptchaDetail(SchemaBase):
-    """验证码详情"""
+    """Captcha detail"""
 
-    is_enabled: bool = Field(description='是否启用')
-    expire_seconds: int = Field(description='过期秒数')
-    uuid: str = Field(description='图片唯一标识')
-    image: str = Field(description='图片内容')
+    is_enabled: bool = Field(description='Whether enabled')
+    expire_seconds: int = Field(description='Expiry in seconds')
+    uuid: str = Field(description='Unique image identifier')
+    image: str = Field(description='Image content')

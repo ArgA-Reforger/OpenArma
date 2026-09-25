@@ -18,14 +18,14 @@ from backend.utils.serializers import select_join_serialize
 
 
 class CRUDRole(CRUDPlus[Role]):
-    """角色数据库操作类"""
+    """Role database operations"""
 
     async def get(self, db: AsyncSession, role_id: int) -> Role | None:
         """
-        获取角色详情
+        Get role detail
 
-        :param db: 数据库会话
-        :param role_id: 角色 ID
+        :param db: database session
+        :param role_id: role ID
         :return:
         """
         return await self.select_model(db, role_id)
@@ -33,10 +33,10 @@ class CRUDRole(CRUDPlus[Role]):
     @staticmethod
     async def get_menus(db: AsyncSession, role_id: int) -> Sequence[Menu] | None:
         """
-        获取角色菜单
+        Get role menus
 
-        :param db: 数据库会话
-        :param role_id: 角色 ID
+        :param db: database session
+        :param role_id: role ID
         :return:
         """
         menu_stmt = select(Menu).join(role_menu, Menu.id == role_menu.c.menu_id).where(role_menu.c.role_id == role_id)
@@ -45,10 +45,10 @@ class CRUDRole(CRUDPlus[Role]):
 
     async def get_join(self, db: AsyncSession, role_id: int) -> Any:
         """
-        获取角色及关联数据
+        Get role with related data
 
-        :param db: 数据库会话
-        :param role_id: 角色 ID
+        :param db: database session
+        :param role_id: role ID
         :return:
         """
         result = await self.select_models(
@@ -66,19 +66,19 @@ class CRUDRole(CRUDPlus[Role]):
 
     async def get_all(self, db: AsyncSession) -> Sequence[Role]:
         """
-        获取所有角色
+        Get all roles
 
-        :param db: 数据库会话
+        :param db: database session
         :return:
         """
         return await self.select_models(db)
 
     async def get_select(self, name: str | None, status: int | None) -> Select:
         """
-        获取角色列表查询表达式
+        Get the query expression for the role list
 
-        :param name: 角色名称
-        :param status: 角色状态
+        :param name: role name
+        :param status: role status
         :return:
         """
 
@@ -93,31 +93,31 @@ class CRUDRole(CRUDPlus[Role]):
 
     async def get_by_name(self, db: AsyncSession, name: str) -> Role | None:
         """
-        通过名称获取角色
+        Get a role by name
 
-        :param db: 数据库会话
-        :param name: 角色名称
+        :param db: database session
+        :param name: role name
         :return:
         """
         return await self.select_model_by_column(db, name=name)
 
     async def create(self, db: AsyncSession, obj: CreateRoleParam) -> None:
         """
-        创建角色
+        Create role
 
-        :param db: 数据库会话
-        :param obj: 创建角色参数
+        :param db: database session
+        :param obj: role creation params
         :return:
         """
         await self.create_model(db, obj)
 
     async def update(self, db: AsyncSession, role_id: int, obj: UpdateRoleParam) -> int:
         """
-        更新角色
+        Update role
 
-        :param db: 数据库会话
-        :param role_id: 角色 ID
-        :param obj: 更新角色参数
+        :param db: database session
+        :param role_id: role ID
+        :param obj: role update params
         :return:
         """
         return await self.update_model(db, role_id, obj)
@@ -125,11 +125,11 @@ class CRUDRole(CRUDPlus[Role]):
     @staticmethod
     async def update_menus(db: AsyncSession, role_id: int, menu_ids: UpdateRoleMenuParam) -> int:
         """
-        更新角色菜单
+        Update role menus
 
-        :param db: 数据库会话
-        :param role_id: 角色 ID
-        :param menu_ids: 菜单 ID 列表
+        :param db: database session
+        :param role_id: role ID
+        :param menu_ids: menu ID list
         :return:
         """
         role_menu_stmt = delete(role_menu).where(role_menu.c.role_id == role_id)
@@ -147,11 +147,11 @@ class CRUDRole(CRUDPlus[Role]):
     @staticmethod
     async def update_scopes(db: AsyncSession, role_id: int, scope_ids: UpdateRoleScopeParam) -> int:
         """
-        更新角色数据范围
+        Update role data scope
 
-        :param db: 数据库会话
-        :param role_id: 角色 ID
-        :param scope_ids: 权限范围 ID 列表
+        :param db: database session
+        :param role_id: role ID
+        :param scope_ids: permission scope ID list
         :return:
         """
         role_scope_stmt = delete(role_data_scope).where(role_data_scope.c.role_id == role_id)
@@ -169,10 +169,10 @@ class CRUDRole(CRUDPlus[Role]):
 
     async def delete(self, db: AsyncSession, role_ids: list[int]) -> int:
         """
-        批量删除角色
+        Batch delete roles
 
-        :param db: 数据库会话
-        :param role_ids: 角色 ID 列表
+        :param db: database session
+        :param role_ids: role ID list
         :return:
         """
         return await self.delete_model_by_column(db, allow_multiple=True, id__in=role_ids)

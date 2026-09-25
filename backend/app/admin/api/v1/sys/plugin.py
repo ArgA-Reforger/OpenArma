@@ -15,13 +15,13 @@ from backend.common.security.rbac import DependsRBAC
 router = APIRouter()
 
 
-@router.get('', summary='获取所有插件', dependencies=[DependsJwtAuth])
+@router.get('', summary='Get all plugins', dependencies=[DependsJwtAuth])
 async def get_all_plugins() -> ResponseSchemaModel[list[dict[str, Any]]]:
     plugins = await plugin_service.get_all()
     return response_base.success(data=plugins)
 
 
-@router.get('/changed', summary='是否存在插件变更', dependencies=[DependsJwtAuth])
+@router.get('/changed', summary='Check whether any plugin has changed', dependencies=[DependsJwtAuth])
 async def plugin_changed() -> ResponseSchemaModel[bool]:
     plugins = await plugin_service.changed()
     return response_base.success(data=bool(plugins))
@@ -29,58 +29,58 @@ async def plugin_changed() -> ResponseSchemaModel[bool]:
 
 @router.post(
     '',
-    summary='安装插件',
-    description='使用插件 zip 压缩包或 git 仓库地址进行安装（仅开发环境）',
+    summary='Install plugin',
+    description='Install using a plugin zip archive or a git repository URL (dev environment only)',
     dependencies=[
         Depends(RequestPermission('sys:plugin:install')),
         DependsRBAC,
     ],
 )
 async def install_plugin(
-    type: Annotated[PluginType, Query(description='插件类型')],
+    type: Annotated[PluginType, Query(description='Plugin type')],
     file: Annotated[UploadFile | None, File()] = None,
-    repo_url: Annotated[str | None, Query(description='插件 git 仓库地址')] = None,
+    repo_url: Annotated[str | None, Query(description='Plugin git repository URL')] = None,
 ) -> ResponseModel:
     plugin_name = await plugin_service.install(type=type, file=file, repo_url=repo_url)
     return response_base.success(
         res=CustomResponse(
             code=200,
-            msg=f'插件 {plugin_name} 安装成功，请根据插件说明（README.md）进行相关配置并重启服务',
+            msg=f'Plugin {plugin_name} installed successfully, please configure it per its README.md and restart the service',
         ),
     )
 
 
 @router.delete(
     '/{plugin}',
-    summary='卸载插件',
-    description='此操作会直接删除插件依赖，但不会直接删除插件，而是将插件移动到备份目录（仅开发环境）',
+    summary='Uninstall plugin',
+    description='This removes the plugin dependencies directly, but does not delete the plugin itself; instead it moves the plugin to the backup directory (dev environment only)',
     dependencies=[
         Depends(RequestPermission('sys:plugin:uninstall')),
         DependsRBAC,
     ],
 )
-async def uninstall_plugin(plugin: Annotated[str, Path(description='插件名称')]) -> ResponseModel:
+async def uninstall_plugin(plugin: Annotated[str, Path(description='Plugin name')]) -> ResponseModel:
     await plugin_service.uninstall(plugin=plugin)
     return response_base.success(
-        res=CustomResponse(code=200, msg=f'插件 {plugin} 卸载成功，请根据插件说明（README.md）移除相关配置并重启服务'),
+        res=CustomResponse(code=200, msg=f'Plugin {plugin} uninstalled successfully, please remove its config per its README.md and restart the service'),
     )
 
 
 @router.put(
     '/{plugin}/status',
-    summary='更新插件状态',
+    summary='Update plugin status',
     dependencies=[
         Depends(RequestPermission('sys:plugin:edit')),
         DependsRBAC,
     ],
 )
-async def update_plugin_status(plugin: Annotated[str, Path(description='插件名称')]) -> ResponseModel:
+async def update_plugin_status(plugin: Annotated[str, Path(description='Plugin name')]) -> ResponseModel:
     await plugin_service.update_status(plugin=plugin)
     return response_base.success()
 
 
-@router.get('/{plugin}', summary='下载插件', dependencies=[DependsJwtAuth])
-async def download_plugin(plugin: Annotated[str, Path(description='插件名称')]) -> StreamingResponse:
+@router.get('/{plugin}', summary='Download plugin', dependencies=[DependsJwtAuth])
+async def download_plugin(plugin: Annotated[str, Path(description='Plugin name')]) -> StreamingResponse:
     bio = await plugin_service.build(plugin=plugin)
     return StreamingResponse(
         bio,

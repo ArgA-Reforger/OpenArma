@@ -14,19 +14,19 @@ from backend.utils.timezone import timezone
 
 
 class UserPasswordHistoryService:
-    """用户密码历史服务类"""
+    """User password history service class"""
 
     @staticmethod
     async def check_status(user_id: int, user_status: int) -> None:
         """
-        检查用户状态
+        Check user status
 
-        :param user_id: 用户 ID
-        :param user_status: 用户状态
+        :param user_id: user ID
+        :param user_status: user status
         :return:
         """
         if not user_status:
-            raise errors.AuthorizationError(msg='用户已被锁定, 请联系统管理员')
+            raise errors.AuthorizationError(msg='This user has been locked, please contact an administrator')
 
         locked_until_str = await redis_client.get(f'{settings.USER_LOCK_REDIS_PREFIX}:{user_id}')
 
@@ -35,7 +35,7 @@ class UserPasswordHistoryService:
             now = timezone.now()
             if locked_until > now:
                 remaining_minutes = math.ceil((locked_until - now).total_seconds() / 60)
-                raise errors.AuthorizationError(msg=f'账号已被锁定，请在 {remaining_minutes} 分钟后重试')
+                raise errors.AuthorizationError(msg=f'Account is locked, please try again in {remaining_minutes} minutes')
 
             await redis_client.delete(f'{settings.USER_LOCK_REDIS_PREFIX}:{user_id}')
             await redis_client.delete(f'{settings.LOGIN_FAILURE_PREFIX}:{user_id}')
@@ -43,10 +43,10 @@ class UserPasswordHistoryService:
     @staticmethod
     async def handle_login_failure(db: AsyncSession, user_id: int) -> None:
         """
-        处理登录失败
+        Handle login failure
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
+        :param db: database session
+        :param user_id: user ID
         :return:
         """
         await load_user_security_config(db)
@@ -70,15 +70,15 @@ class UserPasswordHistoryService:
                 settings.USER_LOCK_SECONDS,
                 timezone.to_str(locked_until),
             )
-            raise errors.AuthorizationError(msg='登录失败次数过多，账号已被锁定')
+            raise errors.AuthorizationError(msg='Too many failed login attempts, account has been locked')
 
     @staticmethod
     async def check_password_expiry_status(db: AsyncSession, password_changed_time: datetime) -> int | None:
         """
-        检查密码过期状态
+        Check password expiry status
 
-        :param db: 数据库会话
-        :param password_changed_time: 密码修改时间
+        :param db: database session
+        :param password_changed_time: password change time
         :return:
         """
         await load_user_security_config(db)
@@ -87,13 +87,13 @@ class UserPasswordHistoryService:
             return None
 
         if not password_changed_time:
-            raise errors.AuthorizationError(msg='密码已过期，请修改密码后重新登录')
+            raise errors.AuthorizationError(msg='Password has expired, please change it and log in again')
 
         expiry_time = password_changed_time + timedelta(days=settings.USER_PASSWORD_EXPIRY_DAYS)
         days_remaining = (expiry_time - timezone.now()).days
 
         if days_remaining < 0:
-            raise errors.AuthorizationError(msg='密码已过期，请修改密码后重新登录')
+            raise errors.AuthorizationError(msg='Password has expired, please change it and log in again')
 
         if days_remaining <= settings.USER_PASSWORD_REMINDER_DAYS:
             return days_remaining
@@ -103,9 +103,9 @@ class UserPasswordHistoryService:
     @staticmethod
     async def handle_login_success(user_id: int) -> None:
         """
-        处理登录成功
+        Handle login success
 
-        :param user_id: 用户 ID
+        :param user_id: user ID
         :return:
         """
         await redis_client.delete(f'{settings.USER_LOCK_REDIS_PREFIX}:{user_id}')
@@ -114,10 +114,10 @@ class UserPasswordHistoryService:
     @staticmethod
     async def save_password_history(db: AsyncSession, obj: CreateUserPasswordHistoryParam) -> None:
         """
-        保存密码历史记录
+        Save password history record
 
-        :param db: 数据库会话
-        :param obj: 创建密码历史记录参数
+        :param db: database session
+        :param obj: password history record creation params
         :return:
         """
         await user_password_history_dao.create(db, obj)
