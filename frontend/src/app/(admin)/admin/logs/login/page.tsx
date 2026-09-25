@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +44,7 @@ interface PageData<T> {
 export default function LoginLogPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t, locale } = useI18n()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -59,7 +61,7 @@ export default function LoginLogPage() {
   const deleteMutation = useMutation({
     mutationFn: (pks: number[]) => api.delete('/logs/login', { pks }),
     onSuccess: () => {
-      toast.success('日志已删除')
+      toast.success(t('log.logDeleted'))
       qc.invalidateQueries({ queryKey: ['admin-login-logs'] })
       setSelected(new Set())
       setConfirmDelete(false)
@@ -87,16 +89,16 @@ export default function LoginLogPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">登录日志</h1>
+        <h1 className="text-2xl font-bold">{t('log.loginLog')}</h1>
         {selected.size > 0 && (
           <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(true)}>
-            删除选中 ({selected.size})
+            {t('log.deleteSelected', { count: selected.size })}
           </Button>
         )}
       </div>
 
       <Input
-        placeholder="搜索用户名..."
+        placeholder={t('log.searchUsername')}
         value={search}
         onChange={(e) => { setSearch(e.target.value); setPage(1) }}
         className="max-w-xs"
@@ -112,24 +114,24 @@ export default function LoginLogPage() {
                   onCheckedChange={toggleAll}
                 />
               </TableHead>
-              <TableHead>用户名</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>IP</TableHead>
-              <TableHead>地区</TableHead>
-              <TableHead>浏览器</TableHead>
-              <TableHead>操作系统</TableHead>
-              <TableHead>消息</TableHead>
-              <TableHead>登录时间</TableHead>
+              <TableHead>{t('user.username')}</TableHead>
+              <TableHead>{t('common.status')}</TableHead>
+              <TableHead>{t('log.ip')}</TableHead>
+              <TableHead>{t('log.region')}</TableHead>
+              <TableHead>{t('log.browser')}</TableHead>
+              <TableHead>{t('log.os')}</TableHead>
+              <TableHead>{t('log.message')}</TableHead>
+              <TableHead>{t('log.loginTime')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">加载中...</TableCell>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{t('common.loading')}</TableCell>
               </TableRow>
             ) : !data?.items?.length ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">暂无数据</TableCell>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{t('common.noData')}</TableCell>
               </TableRow>
             ) : (
               data.items.map((log) => (
@@ -140,7 +142,7 @@ export default function LoginLogPage() {
                   <TableCell className="font-medium">{log.username}</TableCell>
                   <TableCell>
                     <Badge variant={log.status === 1 ? 'default' : 'destructive'}>
-                      {log.status === 1 ? '成功' : '失败'}
+                      {log.status === 1 ? t('log.success') : t('log.failed')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs">{log.ip}</TableCell>
@@ -148,7 +150,7 @@ export default function LoginLogPage() {
                   <TableCell className="text-xs">{log.browser ?? '-'}</TableCell>
                   <TableCell className="text-xs">{log.os ?? '-'}</TableCell>
                   <TableCell className="text-xs text-muted-foreground max-w-40 truncate">{log.msg ?? '-'}</TableCell>
-                  <TableCell className="text-xs">{new Date(log.login_time).toLocaleString('zh-CN')}</TableCell>
+                  <TableCell className="text-xs">{new Date(log.login_time).toLocaleString(locale)}</TableCell>
                 </TableRow>
               ))
             )}
@@ -158,10 +160,10 @@ export default function LoginLogPage() {
 
       {data && data.total_pages > 1 && (
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">共 {data.total} 条，第 {data.page}/{data.total_pages} 页</span>
+          <span className="text-sm text-muted-foreground">{t('common.total', { total: data.total })}, {t('common.pageInfo', { page: data.page, totalPages: data.total_pages })}</span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>上一页</Button>
-            <Button variant="outline" size="sm" disabled={page >= data.total_pages} onClick={() => setPage((p) => p + 1)}>下一页</Button>
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>{t('common.prevPage')}</Button>
+            <Button variant="outline" size="sm" disabled={page >= data.total_pages} onClick={() => setPage((p) => p + 1)}>{t('common.nextPage')}</Button>
           </div>
         </div>
       )}
@@ -169,12 +171,12 @@ export default function LoginLogPage() {
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>确定要删除选中的 {selected.size} 条日志吗？</AlertDialogDescription>
+            <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('log.confirmDelete', { count: selected.size })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteMutation.mutate(Array.from(selected))}>删除</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteMutation.mutate(Array.from(selected))}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

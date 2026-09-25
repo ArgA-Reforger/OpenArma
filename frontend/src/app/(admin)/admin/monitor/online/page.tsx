@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -31,6 +32,7 @@ interface OnlineUser {
 export default function OnlineMonitorPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t, locale } = useI18n()
   const [search, setSearch] = useState('')
   const [kickTarget, setKickTarget] = useState<OnlineUser | null>(null)
 
@@ -44,7 +46,7 @@ export default function OnlineMonitorPage() {
     mutationFn: (user: OnlineUser) =>
       api.delete(`/monitors/sessions/${user.id}`, { session_uuid: user.session_uuid }),
     onSuccess: () => {
-      toast.success('用户已踢出')
+      toast.success(t('monitor.kickSuccess'))
       qc.invalidateQueries({ queryKey: ['admin-online'] })
       setKickTarget(null)
     },
@@ -55,15 +57,15 @@ export default function OnlineMonitorPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">在线用户</h1>
+          <h1 className="text-2xl font-bold">{t('monitor.online')}</h1>
           {data && (
-            <span className="text-sm text-muted-foreground">当前在线: {data.length}</span>
+            <span className="text-sm text-muted-foreground">{t('monitor.currentOnline', { count: data.length })}</span>
           )}
         </div>
       </div>
 
       <Input
-        placeholder="搜索用户名..."
+        placeholder={t('log.searchUsername')}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="max-w-xs"
@@ -73,24 +75,24 @@ export default function OnlineMonitorPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>用户名</TableHead>
-              <TableHead>昵称</TableHead>
-              <TableHead>IP</TableHead>
-              <TableHead>浏览器</TableHead>
-              <TableHead>操作系统</TableHead>
-              <TableHead>设备</TableHead>
-              <TableHead>登录时间</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t('user.username')}</TableHead>
+              <TableHead>{t('user.nickname')}</TableHead>
+              <TableHead>{t('log.ip')}</TableHead>
+              <TableHead>{t('log.browser')}</TableHead>
+              <TableHead>{t('log.os')}</TableHead>
+              <TableHead>{t('log.device')}</TableHead>
+              <TableHead>{t('log.loginTime')}</TableHead>
+              <TableHead className="text-right">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">加载中...</TableCell>
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t('common.loading')}</TableCell>
               </TableRow>
             ) : !data?.length ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">暂无在线用户</TableCell>
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t('monitor.noOnlineUsers')}</TableCell>
               </TableRow>
             ) : (
               data.map((u) => (
@@ -101,10 +103,10 @@ export default function OnlineMonitorPage() {
                   <TableCell className="text-xs">{u.browser}</TableCell>
                   <TableCell className="text-xs">{u.os}</TableCell>
                   <TableCell className="text-xs">{u.device}</TableCell>
-                  <TableCell className="text-xs">{new Date(u.last_login_time).toLocaleString('zh-CN')}</TableCell>
+                  <TableCell className="text-xs">{new Date(u.last_login_time).toLocaleString(locale)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setKickTarget(u)}>
-                      踢出
+                      {t('monitor.kick')}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -117,14 +119,14 @@ export default function OnlineMonitorPage() {
       <AlertDialog open={!!kickTarget} onOpenChange={(open) => !open && setKickTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认踢出</AlertDialogTitle>
+            <AlertDialogTitle>{t('monitor.confirmKickTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要踢出用户 <strong>{kickTarget?.nickname}</strong>（{kickTarget?.username}）吗？
+              {t('monitor.confirmKick', { name: kickTarget?.nickname ?? '', username: kickTarget?.username ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={() => kickTarget && kickMutation.mutate(kickTarget)}>踢出</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => kickTarget && kickMutation.mutate(kickTarget)}>{t('monitor.kick')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

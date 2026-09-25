@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -48,6 +49,7 @@ interface ServerInfo {
 
 export default function ServerMonitorPage() {
   const api = useApi()
+  const { t } = useI18n()
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-server-monitor'],
@@ -58,8 +60,8 @@ export default function ServerMonitorPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">服务器监控</h1>
-        <p className="text-muted-foreground">加载中...</p>
+        <h1 className="text-2xl font-bold">{t('monitor.server')}</h1>
+        <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     )
   }
@@ -68,81 +70,81 @@ export default function ServerMonitorPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">服务器监控</h1>
+      <h1 className="text-2xl font-bold">{t('monitor.server')}</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="CPU 使用率" value={`${data.cpu.usage}%`} color={getColor(data.cpu.usage)} />
-        <StatCard title="内存使用率" value={`${data.mem.usage}%`} color={getColor(data.mem.usage)} />
-        <StatCard title="逻辑核心" value={String(data.cpu.logical_num)} />
-        <StatCard title="物理核心" value={String(data.cpu.physical_num)} />
+        <StatCard title={t('dashboard.cpuUsage')} value={`${data.cpu.usage}%`} color={getColor(data.cpu.usage)} />
+        <StatCard title={t('dashboard.memUsage')} value={`${data.mem.usage}%`} color={getColor(data.mem.usage)} />
+        <StatCard title={t('monitor.logicalCores')} value={String(data.cpu.logical_num)} />
+        <StatCard title={t('monitor.physicalCores')} value={String(data.cpu.physical_num)} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader><CardTitle>CPU 信息</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('monitor.cpuInfo')}</CardTitle></CardHeader>
           <CardContent>
             <DescList items={[
-              ['使用率', `${data.cpu.usage}%`],
-              ['逻辑核心', String(data.cpu.logical_num)],
-              ['物理核心', String(data.cpu.physical_num)],
-              ['最大频率', data.cpu.max_freq],
-              ['最小频率', data.cpu.min_freq],
-              ['当前频率', data.cpu.current_freq],
+              [t('monitor.usage'), `${data.cpu.usage}%`],
+              [t('monitor.logicalCores'), String(data.cpu.logical_num)],
+              [t('monitor.physicalCores'), String(data.cpu.physical_num)],
+              [t('monitor.maxFreq'), data.cpu.max_freq],
+              [t('monitor.minFreq'), data.cpu.min_freq],
+              [t('monitor.currentFreq'), data.cpu.current_freq],
             ]} />
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>内存信息</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('monitor.memInfo')}</CardTitle></CardHeader>
           <CardContent>
             <DescList items={[
-              ['总内存', data.mem.total],
-              ['已使用', data.mem.used],
-              ['可用', data.mem.free],
-              ['使用率', `${data.mem.usage}%`],
+              [t('monitor.totalMem'), data.mem.total],
+              [t('monitor.usedMem'), data.mem.used],
+              [t('monitor.freeMem'), data.mem.free],
+              [t('monitor.usage'), `${data.mem.usage}%`],
             ]} />
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>系统信息</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('monitor.sysInfo')}</CardTitle></CardHeader>
           <CardContent>
             <DescList items={[
-              ['系统', data.sys.name],
-              ['版本', data.sys.version],
-              ['主机名', data.sys.hostname],
-              ['启动时间', data.sys.boot_time],
+              [t('monitor.system'), data.sys.name],
+              [t('dashboard.version'), data.sys.version],
+              [t('monitor.hostname'), data.sys.hostname],
+              [t('monitor.bootTime'), data.sys.boot_time],
             ]} />
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>服务信息</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('monitor.serviceInfo')}</CardTitle></CardHeader>
           <CardContent>
             <DescList items={[
-              ['服务', data.service.name],
-              ['版本', data.service.version],
-              ['Python', data.service.python_version],
+              [t('monitor.service'), data.service.name],
+              [t('dashboard.version'), data.service.version],
+              [t('monitor.python'), data.service.python_version],
               ['PID', String(data.service.pid)],
-              ['运行时间', data.service.uptime],
+              [t('dashboard.uptime'), data.service.uptime],
             ]} />
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>磁盘信息</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t('monitor.diskInfo')}</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>设备</TableHead>
-                <TableHead>挂载点</TableHead>
-                <TableHead>文件系统</TableHead>
-                <TableHead>总容量</TableHead>
-                <TableHead>已使用</TableHead>
-                <TableHead>可用</TableHead>
-                <TableHead>使用率</TableHead>
+                <TableHead>{t('monitor.device')}</TableHead>
+                <TableHead>{t('monitor.mountpoint')}</TableHead>
+                <TableHead>{t('monitor.fstype')}</TableHead>
+                <TableHead>{t('monitor.totalSpace')}</TableHead>
+                <TableHead>{t('monitor.usedSpace')}</TableHead>
+                <TableHead>{t('monitor.freeSpace')}</TableHead>
+                <TableHead>{t('monitor.usage')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
