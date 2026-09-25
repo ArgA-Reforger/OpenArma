@@ -44,7 +44,7 @@ services:
 
   # minio/minio was removed from Docker Hub; pgsty/minio is a maintained drop-in fork.
   minio:
-    image: pgsty/minio
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     command: server /data --console-address ":9001"
     ports:
       - "127.0.0.1:29000:9000"
