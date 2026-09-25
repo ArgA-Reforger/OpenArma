@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000/api/v1'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:28000/api/v1'
 
 export interface AgentOutput {
   agentId: number

@@ -172,6 +172,7 @@ class Settings(BaseSettings):
     CORS_ALLOWED_ORIGINS: list[str] = [  # 末尾不带斜杠
         'http://127.0.0.1',
         'http://localhost:3000',
+        'http://localhost:23000',
         'http://localhost:5173',
         'https://openarma.com',
         'http://openarma.com',
