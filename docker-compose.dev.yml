@@ -1,0 +1,69 @@
+# Support services for local development.
+# Backend and frontend run natively on the host (uv run fba run / pnpm dev).
+# Credentials match the defaults in backend/core/conf.py.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   docker compose -f docker-compose.dev.yml --profile rabbit up -d   # include RabbitMQ
+
+name: openarma-dev
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DB: openarma
+      POSTGRES_PASSWORD: openarma123
+      TZ: America/Argentina/Buenos_Aires
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: redis-server --requirepass openarma123
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "127.0.0.1:6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  # Optional in dev: CELERY_BROKER defaults to redis unless ENVIRONMENT=prod.
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    profiles: [rabbit]
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: openarma
+      RABBITMQ_DEFAULT_PASS: openarma123
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  redis_data:
+  qdrant_data:
+  minio_data:
