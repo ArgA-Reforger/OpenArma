@@ -9,7 +9,7 @@ from backend.core.conf import settings
 from backend.database.db import get_db
 from backend.main import app
 
-# 重载数据库
+# Override the database
 app.dependency_overrides[get_db] = override_get_db
 
 
