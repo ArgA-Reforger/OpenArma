@@ -75,15 +75,15 @@ function extractProjectId(pathname: string): string | null {
 
 function SidebarLocaleSwitcher() {
   const { locale, setLocale } = useI18n()
-  const next = locale === 'zh-CN' ? 'en-US' : 'zh-CN'
-  const label = locale === 'zh-CN' ? 'EN' : '中'
+  const next = locale === 'es-ES' ? 'en-US' : 'es-ES'
+  const label = locale === 'es-ES' ? 'EN' : 'ES'
   return (
     <Button
       variant="ghost"
       size="icon"
       className="h-8 w-8 text-xs font-medium"
-      onClick={() => setLocale(next as 'zh-CN' | 'en-US')}
-      title={next === 'zh-CN' ? '切换到中文' : 'Switch to English'}
+      onClick={() => setLocale(next as 'es-ES' | 'en-US')}
+      title={next === 'es-ES' ? 'Cambiar a español' : 'Switch to English'}
     >
       {label}
     </Button>
