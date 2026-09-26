@@ -20,9 +20,9 @@ class ConversationService:
     async def _check_project_owner(db: AsyncSession, project_id: int, user_id: int) -> None:
         project = await project_dao.get(db, project_id)
         if not project:
-            raise errors.NotFoundError(msg='项目不存在')
+            raise errors.NotFoundError(msg='Project does not exist')
         if project.owner_id != user_id:
-            raise errors.NotFoundError(msg='项目不存在')
+            raise errors.NotFoundError(msg='Project does not exist')
 
     @staticmethod
     async def create(
@@ -52,9 +52,9 @@ class ConversationService:
         await ConversationService._check_project_owner(db, project_id, user_id)
         obj = await conversation_dao.get(db, pk)
         if not obj:
-            raise errors.NotFoundError(msg='对话不存在')
+            raise errors.NotFoundError(msg='Conversation does not exist')
         if obj.project_id != project_id:
-            raise errors.NotFoundError(msg='对话不存在')
+            raise errors.NotFoundError(msg='Conversation does not exist')
         return obj
 
     @staticmethod
@@ -111,7 +111,7 @@ class ConversationService:
     async def get_shared(*, db: AsyncSession, share_code: str) -> dict[str, Any]:
         conv = await conversation_dao.get_by_share_code(db, share_code)
         if not conv:
-            raise errors.NotFoundError(msg='分享链接不存在或已过期')
+            raise errors.NotFoundError(msg='Share link does not exist or has expired')
 
         if conv.conversation_group_id:
             group_convs = await conversation_dao.get_by_group_id(db, conv.conversation_group_id)
@@ -147,9 +147,9 @@ class ConversationService:
         await ConversationService._check_project_owner(db, project_id, user_id)
         conv = await conversation_dao.get(db, conversation_id)
         if not conv:
-            raise errors.NotFoundError(msg='对话不存在')
+            raise errors.NotFoundError(msg='Conversation does not exist')
         if conv.project_id != project_id:
-            raise errors.NotFoundError(msg='对话不存在')
+            raise errors.NotFoundError(msg='Conversation does not exist')
         select = await message_dao.get_list(conversation_id=conversation_id, after_id=after_id)
         return await paging_data(db, select)
 
@@ -166,10 +166,10 @@ class ConversationService:
         await ConversationService._check_project_owner(db, project_id, user_id)
         conv = await conversation_dao.get(db, conversation_id)
         if not conv or conv.project_id != project_id:
-            raise errors.NotFoundError(msg='对话不存在')
+            raise errors.NotFoundError(msg='Conversation does not exist')
         msg = await message_dao.get(db, message_id)
         if not msg or msg.conversation_id != conversation_id:
-            raise errors.NotFoundError(msg='消息不存在')
+            raise errors.NotFoundError(msg='Message does not exist')
         return await message_dao.update(db, message_id, obj)
 
     @staticmethod
@@ -184,10 +184,10 @@ class ConversationService:
         await ConversationService._check_project_owner(db, project_id, user_id)
         conv = await conversation_dao.get(db, conversation_id)
         if not conv or conv.project_id != project_id:
-            raise errors.NotFoundError(msg='对话不存在')
+            raise errors.NotFoundError(msg='Conversation does not exist')
         msg = await message_dao.get(db, message_id)
         if not msg or msg.conversation_id != conversation_id:
-            raise errors.NotFoundError(msg='消息不存在')
+            raise errors.NotFoundError(msg='Message does not exist')
         return await message_dao.delete(db, message_id)
 
     @staticmethod
@@ -203,10 +203,10 @@ class ConversationService:
         await ConversationService._check_project_owner(db, project_id, user_id)
         conv = await conversation_dao.get(db, conversation_id)
         if not conv or conv.project_id != project_id:
-            raise errors.NotFoundError(msg='对话不存在')
+            raise errors.NotFoundError(msg='Conversation does not exist')
         msg = await message_dao.get(db, message_id)
         if not msg or msg.conversation_id != conversation_id:
-            raise errors.NotFoundError(msg='消息不存在')
+            raise errors.NotFoundError(msg='Message does not exist')
 
         branches = await message_dao.get_branches(db, conversation_id, message_id)
 
@@ -286,7 +286,7 @@ class ConversationService:
         await ConversationService._check_project_owner(db, project_id, user_id)
         conv = await conversation_dao.get(db, conversation_id)
         if not conv or conv.project_id != project_id:
-            raise errors.NotFoundError(msg='对话不存在')
+            raise errors.NotFoundError(msg='Conversation does not exist')
 
         return await message_dao.switch_branch(
             db, conversation_id, message_id, target_branch_id,
@@ -303,18 +303,18 @@ class ConversationService:
         new_content: str,
     ) -> str:
         """
-        编辑消息并截断之后的所有消息（DeepSeek 模式）。
-        返回编辑后的消息内容，前端随后自动触发重新生成。
+        Edit a message and truncate all messages after it (DeepSeek mode).
+        Returns the edited message content; the frontend then automatically triggers regeneration.
         """
         await ConversationService._check_project_owner(db, project_id, user_id)
         conv = await conversation_dao.get(db, conversation_id)
         if not conv or conv.project_id != project_id:
-            raise errors.NotFoundError(msg='对话不存在')
+            raise errors.NotFoundError(msg='Conversation does not exist')
         msg = await message_dao.get(db, message_id)
         if not msg or msg.conversation_id != conversation_id:
-            raise errors.NotFoundError(msg='消息不存在')
+            raise errors.NotFoundError(msg='Message does not exist')
         if msg.role != 'user':
-            raise errors.RequestError(msg='只能编辑用户消息')
+            raise errors.RequestError(msg='Only user messages can be edited')
 
         await message_dao.soft_delete_after(db, conversation_id, message_id)
 
@@ -355,7 +355,7 @@ class ConversationService:
         resource_id: int,
     ) -> None:
         if resource_type not in ('knowledge_base', 'mcp_server'):
-            raise errors.RequestError(msg='不支持的资源类型')
+            raise errors.RequestError(msg='Unsupported resource type')
         await ConversationService.get(db=db, project_id=project_id, pk=conversation_id, user_id=user_id)
         existing = await conversation_resource_dao.get_binding(db, conversation_id, resource_type, resource_id)
         if existing:

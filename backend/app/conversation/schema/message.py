@@ -6,46 +6,46 @@ from backend.common.schema import SchemaBase
 
 
 class MessageSchemaBase(SchemaBase):
-    """消息基础模型"""
+    """Message base model"""
 
-    role: str = Field(description='角色 user/assistant/system')
-    content: str | None = Field(None, description='内容')
-    structured_data: dict | None = Field(None, description='结构化数据')
-    metadata: dict | None = Field(None, validation_alias='metadata_', description='消息元数据')
-    parent_message_id: int | None = Field(None, description='父消息 ID')
+    role: str = Field(description='Role user/assistant/system')
+    content: str | None = Field(None, description='Content')
+    structured_data: dict | None = Field(None, description='Structured data')
+    metadata: dict | None = Field(None, validation_alias='metadata_', description='Message metadata')
+    parent_message_id: int | None = Field(None, description='Parent message ID')
 
 
 class GetMessageDetail(MessageSchemaBase):
-    """消息详情"""
+    """Message details"""
 
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(description='ID')
-    conversation_id: int = Field(description='对话 ID')
-    created_time: datetime = Field(description='创建时间')
-    updated_time: datetime | None = Field(None, description='更新时间')
+    conversation_id: int = Field(description='Conversation ID')
+    created_time: datetime = Field(description='Creation time')
+    updated_time: datetime | None = Field(None, description='Update time')
 
 
 class GetMessageWithBranches(GetMessageDetail):
-    """消息详情（含分支信息）"""
+    """Message details (including branch info)"""
 
-    branch_count: int = Field(0, description='AI 回复分支数')
-    active_branch_index: int = Field(0, description='当前活跃分支索引（0-based）')
+    branch_count: int = Field(0, description='Number of AI reply branches')
+    active_branch_index: int = Field(0, description='Currently active branch index (0-based)')
 
 
 class UpdateMessageParam(SchemaBase):
-    """更新消息参数"""
+    """Update message parameters"""
 
-    content: str = Field(description='消息内容')
+    content: str = Field(description='Message content')
 
 
 class SendMessageParam(SchemaBase):
-    """发送消息参数"""
+    """Send message parameters"""
 
-    content: str = Field(description='消息内容')
+    content: str = Field(description='Message content')
 
 
 class SwitchBranchParam(SchemaBase):
-    """切换分支参数"""
+    """Switch branch parameters"""
 
-    target_branch_id: int = Field(description='目标分支消息 ID')
+    target_branch_id: int = Field(description='Target branch message ID')

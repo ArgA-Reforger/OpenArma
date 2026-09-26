@@ -1,4 +1,5 @@
-"""对话消息处理服务：通过 LangGraph 图引擎执行，支持单/多 Agent 协作 + RAG + MCP + 内置工具。"""
+"""Conversation message processing service: executes through the LangGraph engine,
+supporting single/multi-Agent collaboration + RAG + MCP + builtin tools."""
 
 import json
 import logging
@@ -22,6 +23,12 @@ from backend.app.project.crud.crud_project import project_dao
 from backend.common.exception import errors
 
 log = logging.getLogger(__name__)
+
+TITLE_SYSTEM_PROMPT = (
+    'Based on the following conversation content, generate a short conversation title '
+    '(no more than 6 words), written in the same language as the conversation. '
+    'Return only the title text, with no quotes, punctuation, or explanation.'
+)
 
 
 class ChatService:
@@ -77,14 +84,14 @@ class ChatService:
         db: AsyncSession, project_id: int, user_id: int, conversation_id: int | None = None,
     ) -> tuple[Any, list[dict], Any, dict | None]:
         """
-        从对话级绑定加载 Agent / Topology 及其 LLM Provider 和工具配置。
-        优先级: conversation.topology_id > conversation.agent_id > 用户默认 Agent。
+        Load the Agent / Topology and its LLM Provider and tool config from the conversation-level binding.
+        Priority: conversation.topology_id > conversation.agent_id > the user's default Agent.
 
         :return: (project, agent_configs_list, topology_json, project_settings)
         """
         project = await project_dao.get(db, project_id)
         if not project or project.owner_id != user_id:
-            raise errors.NotFoundError(msg='项目不存在')
+            raise errors.NotFoundError(msg='Project does not exist')
 
         topology = None
         agent_configs: list[dict] = []
@@ -122,7 +129,7 @@ class ChatService:
                     agent_configs.append(cfg)
 
         if not agent_configs:
-            raise errors.RequestError(msg='未配置有效的 Agent（需要 Agent + LLM 服务商）')
+            raise errors.RequestError(msg='No valid Agent configured (an Agent + LLM provider is required)')
 
         settings = project.settings or {}
 
@@ -201,7 +208,7 @@ class ChatService:
 
     @staticmethod
     async def _get_conversation_kb_ids(db: AsyncSession, conversation_id: int) -> list[int]:
-        """获取对话绑定的知识库 ID 列表。"""
+        """Get the list of knowledge base IDs bound to the conversation."""
         try:
             bindings = await conversation_resource_dao.get_by_conversation(db, conversation_id, 'knowledge_base')
             return [b.resource_id for b in bindings]
@@ -273,7 +280,7 @@ class ChatService:
         db: AsyncSession,
     ) -> tuple[list[dict], dict]:
         """
-        根据 Agent 的 builtin_tools 配置构建内置工具列表和 handler 映射。
+        Build the builtin tools list and handler mapping from the Agent's builtin_tools config.
 
         :return: (tools_list, handlers_dict)
         """
@@ -292,7 +299,7 @@ class ChatService:
 
     @staticmethod
     def _has_rag_tool_enabled(agent_configs: list[dict]) -> bool:
-        """检查是否有任何 Agent 启用了 rag_retrieval 内置工具。"""
+        """Check whether any Agent has the rag_retrieval builtin tool enabled."""
         for cfg in agent_configs:
             handlers = cfg.get('builtin_tool_handlers', {})
             if 'rag_retrieval' in handlers:
@@ -309,8 +316,8 @@ class ChatService:
         resend: bool = False,
     ) -> AsyncGenerator[str, None]:
         """
-        发送消息并流式返回 AI 回复。
-        resend=True 时不创建用户消息，用于编辑重发和重新生成场景。
+        Send a message and stream back the AI reply.
+        When resend=True, no user message is created; used for edit-and-resend and regeneration scenarios.
         """
         from backend.app.conversation.model.message import Message
         from backend.database.db import async_db_session
@@ -322,7 +329,7 @@ class ChatService:
 
             conversation = await conversation_dao.get(db, conversation_id)
             if not conversation or conversation.project_id != project_id:
-                raise errors.NotFoundError(msg='对话不存在')
+                raise errors.NotFoundError(msg='Conversation does not exist')
 
             if resend:
                 await message_dao.soft_delete_last_assistant_replies(db, conversation_id)
@@ -493,7 +500,7 @@ class ChatService:
         parent_message_id: int | None = None,
         conversation_source: str | None = None,
     ) -> None:
-        """持久化 assistant 消息。在 finally 中调用，确保中断时也能保存。"""
+        """Persist the assistant message. Called in a finally block to ensure it is saved even on interruption."""
         from backend.app.conversation.model.message import Message
         from backend.database.db import async_db_session
 
@@ -596,7 +603,7 @@ class ChatService:
         usage_records: list[dict],
         call_type: str = 'chat',
     ) -> None:
-        """持久化用量记录。"""
+        """Persist usage records."""
         if not usage_records:
             return
 
@@ -663,7 +670,7 @@ class ChatService:
         conversation_id: int,
         user_id: int,
     ) -> str:
-        """用项目的第一个 Agent 的 LLM 为对话生成简短标题。"""
+        """Use the project's first Agent's LLM to generate a short title for the conversation."""
         from backend.app.conversation.schema.conversation import UpdateConversationParam
         from backend.database.db import async_db_session
 
@@ -672,15 +679,15 @@ class ChatService:
                 db, project_id, user_id, conversation_id=conversation_id,
             )
             if not agent_configs:
-                raise errors.RequestError(msg='无可用 Agent')
+                raise errors.RequestError(msg='No Agent available')
 
             conversation = await conversation_dao.get(db, conversation_id)
             if not conversation or conversation.project_id != project_id:
-                raise errors.NotFoundError(msg='对话不存在')
+                raise errors.NotFoundError(msg='Conversation does not exist')
 
             history = await ChatService._get_history_messages(db, conversation_id, limit=6)
             if not history:
-                raise errors.RequestError(msg='对话无消息')
+                raise errors.RequestError(msg='Conversation has no messages')
 
             cfg = agent_configs[0]
             from backend.app.conversation.engine.llm import acompletion
@@ -688,10 +695,7 @@ class ChatService:
             prompt_messages = [
                 {
                     'role': 'system',
-                    'content': (
-                        '根据以下对话内容，生成一个简短的对话标题（不超过20个字）。'
-                        '只返回标题文本，不要加引号、标点或解释。'
-                    ),
+                    'content': TITLE_SYSTEM_PROMPT,
                 },
                 {
                     'role': 'user',

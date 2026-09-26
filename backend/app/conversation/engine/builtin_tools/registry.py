@@ -1,4 +1,4 @@
-"""内置工具注册表：管理所有平台内置工具的定义和执行器。"""
+"""Builtin tool registry: manages the definitions and executors of all platform builtin tools."""
 
 import logging
 from collections.abc import Callable, Coroutine
@@ -12,7 +12,7 @@ ToolHandler = Callable[..., Coroutine[Any, Any, str]]
 
 @dataclass
 class BuiltinToolDef:
-    """内置工具的运行时定义。"""
+    """Runtime definition of a builtin tool."""
 
     name: str
     description: str
@@ -23,11 +23,11 @@ class BuiltinToolDef:
 
 class BuiltinToolRegistry:
     """
-    内置工具注册表。
+    Builtin tool registry.
 
-    系统启动时注册所有内置工具处理函数。
-    运行时根据 Agent 的 builtin_tools 配置，
-    筛选出启用的工具并构建 tools + handlers 供图引擎使用。
+    Registers all builtin tool handler functions on system startup.
+    At runtime, based on the Agent's builtin_tools config,
+    filters the enabled tools and builds tools + handlers for the graph engine to use.
     """
 
     def __init__(self) -> None:
@@ -41,7 +41,7 @@ class BuiltinToolRegistry:
         input_schema: dict,
         display_name: str = '',
     ) -> Callable[[ToolHandler], ToolHandler]:
-        """装饰器：注册一个内置工具处理函数。"""
+        """Decorator: registers a builtin tool handler function."""
         def decorator(func: ToolHandler) -> ToolHandler:
             self._tools[name] = BuiltinToolDef(
                 name=name,
@@ -66,10 +66,10 @@ class BuiltinToolRegistry:
         context: dict | None = None,
     ) -> tuple[list[dict], dict[str, ToolHandler]]:
         """
-        根据 Agent 的 builtin_tools 配置，构建 OpenAI tools 列表和 handler 映射。
+        Build the OpenAI tools list and handler mapping from the Agent's builtin_tools config.
 
         :param builtin_tools_config: Agent.builtin_tools JSON, e.g. {"web_search": {"enabled": true}, ...}
-        :param context: 运行时上下文，供 ChatService 后续绑定具体参数
+        :param context: runtime context, for ChatService to bind concrete parameters afterward
         :return: (tools_list, handlers_dict)
         """
         if not builtin_tools_config:

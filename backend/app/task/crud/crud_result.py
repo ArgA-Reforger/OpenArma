@@ -6,24 +6,24 @@ from backend.app.task.model import TaskResult
 
 
 class CRUDTaskResult(CRUDPlus[TaskResult]):
-    """任务结果数据库操作类"""
+    """Task result database operations class"""
 
     async def get(self, db: AsyncSession, pk: int) -> TaskResult | None:
         """
-        获取任务结果详情
+        Get task result details
 
-        :param db: 数据库会话
-        :param pk: 任务 ID
+        :param db: database session
+        :param pk: task ID
         :return:
         """
         return await self.select_model(db, pk)
 
     async def get_select(self, name: str | None, task_id: str | None) -> Select:
         """
-        获取任务结果列表查询表达式
+        Get the query expression for the task result list
 
-        :param name: 任务名称
-        :param task_id: 任务 ID
+        :param name: task name
+        :param task_id: task ID
         :return:
         """
         filters = {}
@@ -37,10 +37,10 @@ class CRUDTaskResult(CRUDPlus[TaskResult]):
 
     async def delete(self, db: AsyncSession, pks: list[int]) -> int:
         """
-        批量删除任务结果
+        Batch delete task results
 
-        :param db: 数据库会话
-        :param pks: 任务结果 ID 列表
+        :param db: database session
+        :param pks: list of task result IDs
         :return:
         """
         return await self.delete_model_by_column(db, allow_multiple=True, id__in=pks)

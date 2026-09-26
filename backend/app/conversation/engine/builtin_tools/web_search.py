@@ -1,4 +1,4 @@
-"""内置工具：联网搜索。支持 Tavily（推荐）和 DuckDuckGo（免费 fallback）。"""
+"""Builtin tool: web search. Supports Tavily (recommended) and DuckDuckGo (free fallback)."""
 
 import logging
 from typing import Any
@@ -9,7 +9,7 @@ log = logging.getLogger(__name__)
 
 
 async def _search_tavily(query: str, max_results: int = 5) -> str:
-    """通过 Tavily API 搜索（专为 LLM 设计，返回格式化文本）。"""
+    """Search via the Tavily API (designed for LLMs, returns formatted text)."""
     try:
         from tavily import AsyncTavilyClient
     except ImportError:
@@ -39,7 +39,7 @@ async def _search_tavily(query: str, max_results: int = 5) -> str:
 
 
 async def _search_duckduckgo(query: str, max_results: int = 5) -> str:
-    """通过 DuckDuckGo 搜索（免费，无需 API Key）。"""
+    """Search via DuckDuckGo (free, no API key required)."""
     try:
         from duckduckgo_search import AsyncDDGS
     except ImportError:
@@ -88,7 +88,7 @@ async def _search_duckduckgo(query: str, max_results: int = 5) -> str:
     },
 )
 async def web_search(query: str, max_results: int = 5, **_: Any) -> str:
-    """联网搜索：优先使用 Tavily，fallback 到 DuckDuckGo。"""
+    """Web search: prefers Tavily, falls back to DuckDuckGo."""
     from backend.core.conf import settings
 
     provider = getattr(settings, 'WEB_SEARCH_PROVIDER', 'auto')

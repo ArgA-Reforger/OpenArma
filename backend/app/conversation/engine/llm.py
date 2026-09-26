@@ -1,4 +1,4 @@
-"""LiteLLM 封装，提供统一 LLM 调用接口。"""
+"""LiteLLM wrapper providing a unified LLM call interface."""
 
 import asyncio
 import time
@@ -35,11 +35,11 @@ async def _wait_for_rpm(provider_id: int | None, rpm_limit: int | None) -> None:
 
 def _build_model_string(provider_type: str, model_name: str) -> str:
     """
-    构建 LiteLLM 模型字符串
+    Build the LiteLLM model string
 
-    :param provider_type: 服务商类型
-    :param model_name: 模型名称
-    :return: LiteLLM 模型字符串
+    :param provider_type: provider type
+    :param model_name: model name
+    :return: LiteLLM model string
     """
     provider_prefix_map = {
         'openai': '',
@@ -66,7 +66,7 @@ def completion(
     rpm_limit: int | None = None,
     **kwargs,
 ):
-    """同步 LLM 调用接口（RPM 限速需在调用前手动 await _wait_for_rpm）"""
+    """Synchronous LLM call interface (RPM rate limiting requires manually awaiting _wait_for_rpm before the call)"""
     api_key = _decrypt_api_key(api_key_encrypted) if api_key_encrypted else None
     model = _build_model_string(provider_type, model_name)
 
@@ -102,7 +102,7 @@ async def acompletion(
     rpm_limit: int | None = None,
     **kwargs,
 ):
-    """异步 LLM 调用接口，自动遵守 RPM 限速。"""
+    """Asynchronous LLM call interface, automatically respects RPM rate limiting."""
     await _wait_for_rpm(provider_id, rpm_limit)
 
     api_key = _decrypt_api_key(api_key_encrypted) if api_key_encrypted else None
@@ -138,16 +138,16 @@ def completion_stream(
     **kwargs,
 ) -> Generator[str, None, None]:
     """
-    同步流式 LLM 调用，逐 token 返回内容
+    Synchronous streaming LLM call, returns content token by token
 
-    :param provider_type: 服务商类型
-    :param api_base: API 基础地址
-    :param api_key_encrypted: 加密后的 API Key
-    :param model_name: 模型名称
-    :param messages: 消息列表
-    :param temperature: 温度
-    :param max_tokens: 最大 token 数
-    :return: 内容生成器
+    :param provider_type: provider type
+    :param api_base: API base URL
+    :param api_key_encrypted: encrypted API key
+    :param model_name: model name
+    :param messages: message list
+    :param temperature: temperature
+    :param max_tokens: maximum number of tokens
+    :return: content generator
     """
     response = completion(
         provider_type=provider_type,
@@ -178,8 +178,8 @@ async def acompletion_stream(
     **kwargs,
 ) -> AsyncGenerator[str, None]:
     """
-    异步流式 LLM 调用，逐 token 返回内容。
-    如果流式返回空内容，自动 fallback 到非流式调用。
+    Asynchronous streaming LLM call, returns content token by token.
+    If the streamed response is empty, automatically falls back to a non-streaming call.
     """
     response = await acompletion(
         provider_type=provider_type,
