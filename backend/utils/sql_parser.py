@@ -8,14 +8,14 @@ from backend.common.exception import errors
 
 async def parse_sql_script(filepath: str) -> list[str]:
     """
-    解析 SQL 脚本
+    Parse a SQL script
 
-    :param filepath: 脚本文件路径
+    :param filepath: script file path
     :return:
     """
     path = anyio.Path(filepath)
     if not await path.exists():
-        raise errors.NotFoundError(msg='SQL 脚本文件不存在')
+        raise errors.NotFoundError(msg='SQL script file does not exist')
 
     async with await open_file(filepath, encoding='utf-8') as f:
         contents = await f.read(1024)
@@ -26,6 +26,8 @@ async def parse_sql_script(filepath: str) -> list[str]:
     for statement in statements:
         stripped = statement.strip().lower()
         if not any(stripped.startswith(_) for _ in ['select', 'insert']):
-            raise errors.RequestError(msg='SQL 脚本文件中存在非法操作，仅允许 SELECT 和 INSERT')
+            raise errors.RequestError(
+                msg='The SQL script file contains an illegal operation; only SELECT and INSERT are allowed'
+            )
 
     return statements

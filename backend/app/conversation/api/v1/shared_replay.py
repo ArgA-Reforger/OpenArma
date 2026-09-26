@@ -40,10 +40,10 @@ async def _resolve_share(db, share_code: str):
     """Validate share_code and return (conversation, project)."""
     conv = await conversation_dao.get_by_share_code(db, share_code)
     if not conv:
-        raise errors.NotFoundError(msg='分享链接不存在或已过期')
+        raise errors.NotFoundError(msg='Share link does not exist or has expired')
     project = await project_dao.get(db, conv.project_id)
     if not project:
-        raise errors.NotFoundError(msg='项目不存在')
+        raise errors.NotFoundError(msg='Project does not exist')
     return conv, project
 
 
@@ -54,10 +54,10 @@ def _build_snapshot_filter(project_id: int, group_id: int | None = None):
     return conditions
 
 
-@router.get('/{share_code}/replay/info', summary='分享回放基础信息')
+@router.get('/{share_code}/replay/info', summary='Shared replay basic info')
 async def shared_replay_info(
     db: CurrentSession,
-    share_code: Annotated[str, Path(description='分享码')],
+    share_code: Annotated[str, Path(description='Share code')],
 ) -> ResponseSchemaModel:
     """Return project/map info needed to initialise the replay viewer."""
     conv, project = await _resolve_share(db, share_code)
@@ -95,10 +95,10 @@ async def shared_replay_info(
     })
 
 
-@router.get('/{share_code}/replay/metadata', summary='分享回放元数据')
+@router.get('/{share_code}/replay/metadata', summary='Shared replay metadata')
 async def shared_replay_metadata(
     db: CurrentSession,
-    share_code: Annotated[str, Path(description='分享码')],
+    share_code: Annotated[str, Path(description='Share code')],
 ) -> ResponseSchemaModel:
     conv, project = await _resolve_share(db, share_code)
     group_id = conv.conversation_group_id
@@ -150,17 +150,17 @@ async def shared_replay_metadata(
     })
 
 
-@router.get('/{share_code}/replay/frames', summary='分享回放帧数据')
+@router.get('/{share_code}/replay/frames', summary='Shared replay frame data')
 async def shared_replay_frames(
     db: CurrentSession,
-    share_code: Annotated[str, Path(description='分享码')],
+    share_code: Annotated[str, Path(description='Share code')],
     from_frame: int = Query(alias='from', ge=1),
     to_frame: int = Query(alias='to', ge=1),
 ) -> ResponseSchemaModel:
     conv, project = await _resolve_share(db, share_code)
 
     if to_frame - from_frame > 200:
-        raise errors.RequestError(msg='单次最多请求200帧')
+        raise errors.RequestError(msg='At most 200 frames can be requested at once')
 
     group_id = conv.conversation_group_id
     conditions = _build_snapshot_filter(project.id, group_id)
@@ -218,15 +218,15 @@ async def shared_replay_frames(
     return response_base.success(data={'frames': frames})
 
 
-@router.get('/{share_code}/replay/map/{map_id}', summary='分享回放地图详情')
+@router.get('/{share_code}/replay/map/{map_id}', summary='Shared replay map details')
 async def shared_replay_map(
     db: CurrentSession,
-    share_code: Annotated[str, Path(description='分享码')],
+    share_code: Annotated[str, Path(description='Share code')],
     map_id: Annotated[int, Path(description='Map ID')],
 ) -> ResponseSchemaModel:
     conv, project = await _resolve_share(db, share_code)
     if project.map_id != map_id:
-        raise errors.NotFoundError(msg='地图不匹配')
+        raise errors.NotFoundError(msg='Map does not match')
 
     game_map = await map_dao.get(db, map_id)
     if not game_map:
@@ -234,15 +234,15 @@ async def shared_replay_map(
     return response_base.success(data=GetMapDetail.model_validate(game_map).model_dump())
 
 
-@router.get('/{share_code}/replay/map/{map_id}/tiles/info', summary='分享回放瓦片信息')
+@router.get('/{share_code}/replay/map/{map_id}/tiles/info', summary='Shared replay tile info')
 async def shared_replay_tile_info(
     db: CurrentSession,
-    share_code: Annotated[str, Path(description='分享码')],
+    share_code: Annotated[str, Path(description='Share code')],
     map_id: Annotated[int, Path(description='Map ID')],
 ) -> ResponseSchemaModel:
     conv, project = await _resolve_share(db, share_code)
     if project.map_id != map_id:
-        raise errors.NotFoundError(msg='地图不匹配')
+        raise errors.NotFoundError(msg='Map does not match')
 
     game_map = await map_dao.get(db, map_id)
     if not game_map:
@@ -306,44 +306,44 @@ async def shared_replay_tile_info(
     })
 
 
-@router.get('/{share_code}/replay/map/{map_id}/landmarks', summary='分享回放地标')
+@router.get('/{share_code}/replay/map/{map_id}/landmarks', summary='Shared replay landmarks')
 async def shared_replay_landmarks(
     db: CurrentSession,
-    share_code: Annotated[str, Path(description='分享码')],
+    share_code: Annotated[str, Path(description='Share code')],
     map_id: Annotated[int, Path(description='Map ID')],
     limit: Annotated[int, Query(ge=1, le=5000)] = 2000,
 ) -> ResponseSchemaModel:
     conv, project = await _resolve_share(db, share_code)
     if project.map_id != map_id:
-        raise errors.NotFoundError(msg='地图不匹配')
+        raise errors.NotFoundError(msg='Map does not match')
     items = await landmark_dao.get_by_map(db, map_id, limit=limit)
     data = [GetLandmarkDetail.model_validate(i).model_dump() for i in items]
     return response_base.success(data=data)
 
 
-@router.get('/{share_code}/replay/map/{map_id}/zones', summary='分享回放区域')
+@router.get('/{share_code}/replay/map/{map_id}/zones', summary='Shared replay zones')
 async def shared_replay_zones(
     db: CurrentSession,
-    share_code: Annotated[str, Path(description='分享码')],
+    share_code: Annotated[str, Path(description='Share code')],
     map_id: Annotated[int, Path(description='Map ID')],
 ) -> ResponseSchemaModel:
     conv, project = await _resolve_share(db, share_code)
     if project.map_id != map_id:
-        raise errors.NotFoundError(msg='地图不匹配')
+        raise errors.NotFoundError(msg='Map does not match')
     items = await zone_dao.get_by_map(db, map_id)
     data = [GetZoneDetail.model_validate(i).model_dump() for i in items]
     return response_base.success(data=data)
 
 
-@router.get('/{share_code}/replay/map/{map_id}/roads', summary='分享回放道路')
+@router.get('/{share_code}/replay/map/{map_id}/roads', summary='Shared replay roads')
 async def shared_replay_roads(
     db: CurrentSession,
-    share_code: Annotated[str, Path(description='分享码')],
+    share_code: Annotated[str, Path(description='Share code')],
     map_id: Annotated[int, Path(description='Map ID')],
 ) -> ResponseSchemaModel:
     conv, project = await _resolve_share(db, share_code)
     if project.map_id != map_id:
-        raise errors.NotFoundError(msg='地图不匹配')
+        raise errors.NotFoundError(msg='Map does not match')
     items = await road_dao.get_by_map(db, map_id)
     data = [GetRoadDetail.model_validate(i).model_dump() for i in items]
     return response_base.success(data=data)

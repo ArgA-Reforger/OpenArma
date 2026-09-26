@@ -1,4 +1,4 @@
-"""知识库文档向量化 Celery 任务。"""
+"""Celery task for knowledge base document vectorization."""
 
 from backend.app.task.celery import celery_app
 

@@ -1,4 +1,5 @@
-"""Arma Reforger 专用内置工具：距离计算、威胁评估、指令验证、小队查询、巡逻路线生成。"""
+"""Arma Reforger-specific builtin tools: distance calculation, threat assessment,
+order validation, squad lookup, patrol route generation."""
 
 import json
 import math

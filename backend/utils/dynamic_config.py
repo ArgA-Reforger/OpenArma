@@ -13,7 +13,7 @@ _sys_config_table_exists: bool | None = None
 
 
 async def check_sys_config_table_exists() -> bool:
-    """检查 sys_config 表是否存在"""
+    """Check whether the sys_config table exists"""
     global _sys_config_table_exists
     if _sys_config_table_exists is None:
         async with async_engine.connect() as conn:
@@ -22,7 +22,7 @@ async def check_sys_config_table_exists() -> bool:
 
 
 def _to_bool(value: str) -> bool:
-    """将字符串转换为布尔值"""
+    """Convert a string to a boolean"""
     return value == 'true'
 
 
@@ -33,12 +33,12 @@ async def _load_config(
     status_key: str,
 ) -> None:
     """
-    根据配置类型加载配置
+    Load config based on the config type
 
-    :param db: 数据库会话
-    :param config_type: 配置类型枚举
-    :param mapping: 配置映射 {config_key: converter}
-    :param status_key: 状态键
+    :param db: database session
+    :param config_type: config type enum
+    :param mapping: config mapping {config_key: converter}
+    :param status_key: status key
     :return:
     """
     if not await check_sys_config_table_exists():
@@ -60,9 +60,9 @@ async def _load_config(
 
 async def load_user_security_config(db: AsyncSession) -> None:
     """
-    获取用户安全配置
+    Get user security config
 
-    :param db: 数据库会话
+    :param db: database session
     :return:
     """
     mapping = {
@@ -80,9 +80,9 @@ async def load_user_security_config(db: AsyncSession) -> None:
 
 async def load_login_config(db: AsyncSession) -> None:
     """
-    获取登录配置
+    Get login config
 
-    :param db: 数据库会话
+    :param db: database session
     :return:
     """
     mapping = {
@@ -93,9 +93,9 @@ async def load_login_config(db: AsyncSession) -> None:
 
 async def load_email_config(db: AsyncSession) -> None:
     """
-    获取邮箱配置
+    Get email config
 
-    :param db: 数据库会话
+    :param db: database session
     :return:
     """
     mapping = {

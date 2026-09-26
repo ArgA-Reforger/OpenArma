@@ -1,12 +1,12 @@
-"""DAG 拓扑图构建器：将用户定义的 JSON 拓扑转换为 LangGraph 可执行图。
+"""DAG topology graph builder: converts a user-defined JSON topology into an executable LangGraph graph.
 
-支持的节点类型：
-- agent: 执行绑定的 Agent（LLM 调用 + 工具）
-- coordinator: 深度综合上游输出（ForumEngine 风格）
-- aggregator: 简单合并/总结上游输出
-- condition: 基于表达式路由到不同分支
-- tool: 直接执行 MCP 或内置工具
-- rag: 从知识库检索
+Supported node types:
+- agent: executes the bound Agent (LLM call + tools)
+- coordinator: deeply synthesizes upstream outputs (ForumEngine style)
+- aggregator: simple merge/summary of upstream outputs
+- condition: routes to different branches based on an expression
+- tool: directly executes an MCP or builtin tool
+- rag: retrieves from the knowledge base
 """
 
 import asyncio

@@ -16,9 +16,9 @@ T = TypeVar('T')
 @lru_cache(maxsize=128)
 def import_module_cached(module_path: str) -> Any:
     """
-    缓存导入模块
+    Cache an imported module
 
-    :param module_path: 模块路径
+    :param module_path: module path
     :return:
     """
     return importlib.import_module(module_path)
@@ -26,9 +26,9 @@ def import_module_cached(module_path: str) -> Any:
 
 def dynamic_import_data_model(module_path: str) -> type[T]:
     """
-    动态导入数据模型
+    Dynamically import a data model
 
-    :param module_path: 模块路径，格式为 'module_path.class_name'
+    :param module_path: module path, in the format 'module_path.class_name'
     :return:
     """
     try:
@@ -36,15 +36,17 @@ def dynamic_import_data_model(module_path: str) -> type[T]:
         module = import_module_cached(module_path)
         return getattr(module, class_name)
     except Exception as e:
-        log.error(f'动态导入数据模型失败：{e}')
-        raise errors.ServerError(msg='数据模型列动态解析失败，请联系系统超级管理员')
+        log.error(f'Failed to dynamically import data model: {e}')
+        raise errors.ServerError(
+            msg='Failed to dynamically resolve data model columns, please contact the system super administrator'
+        )
 
 
 def get_model_objects(module_path: str) -> list[object] | None:
     """
-    获取模型对象
+    Get model objects
 
-    :param module_path: 模块路径
+    :param module_path: module path
     :return:
     """
     try:
@@ -66,7 +68,7 @@ def get_model_objects(module_path: str) -> list[object] | None:
 
 
 def get_app_models() -> list[object]:
-    """获取 app 所有模型类"""
+    """Get all app model classes"""
     from backend.core.path_conf import BASE_PATH
 
     app_path = BASE_PATH / 'app'
@@ -86,7 +88,7 @@ def get_app_models() -> list[object]:
 
 @lru_cache(256)
 def get_all_models() -> tuple[object, ...]:
-    """获取所有模型类"""
+    """Get all model classes"""
     from backend.plugin.core import get_plugin_models
 
     return tuple(get_app_models() + get_plugin_models())

@@ -1,7 +1,7 @@
-"""Arma Commander 态势报告处理 Celery 任务。
+"""Arma Commander situation report processing Celery task.
 
-Phase 1.5: 完全复用 ChatService 的 Agent 编排能力。
-态势报告 = 一条 user 消息 → ChatService 走完整流程 → Output Processor 提取 orders。
+Phase 1.5: fully reuses ChatService's Agent orchestration capability.
+Situation report = one user message -> ChatService runs the full pipeline -> Output Processor extracts orders.
 """
 
 import json
@@ -15,8 +15,11 @@ log = logging.getLogger(__name__)
 SYSTEM_RULES = (
     '\n\nIMPORTANT SYSTEM RULES (engine constraints — do NOT override):\n'
     '1. Coordinate system: X axis = East(+)/West(-), Z axis = North(+)/South(-), Y axis = altitude.\n'
-    '   "右移" means move East (+X), "左移" means move West (-X), '
-    '"前进" means move North (+Z), "后退" means move South (-Z).\n'
+    # These four Chinese vocabulary words are literal terms the LLM may see in
+    # incoming game chat/messages; kept as escapes so the mapping still matches
+    # that raw text if it appears (behavior-preserving, not a translation).
+    '   "\u53f3\u79fb" means move East (+X), "\u5de6\u79fb" means move West (-X), '
+    '"\u524d\u8fdb" means move North (+Z), "\u540e\u9000" means move South (-Z).\n'
     '2. Your final response MUST be valid JSON with this structure:\n'
     '{"orders": [{"type": "move"|"force_move"|"defend"|"attack"|"patrol"|"hold"|"retreat"|"route",'
     ' "group_id": "<id>", "target": [x, y, z], ...}],'

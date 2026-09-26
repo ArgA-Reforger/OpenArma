@@ -1,11 +1,12 @@
-"""滑动窗口 + 自动摘要上下文管理器 (ADR-32b)。
+"""Sliding window + automatic summary context manager (ADR-32b).
 
-当对话消息数超过阈值时，自动将早期消息压缩为一条摘要，
-避免上下文无限膨胀。摘要存为 Message(role='system', metadata={type: 'context_summary'})。
+When the number of conversation messages exceeds a threshold, earlier messages are
+automatically compressed into a summary, avoiding unbounded context growth. The summary
+is stored as Message(role='system', metadata={type: 'context_summary'}).
 
-两条消费路径：
-- Web Chat (ChatService) — 通过 build_history() 获取 history list[dict]
-- Arma Task (tasks.py) — 同上
+Two consumption paths:
+- Web Chat (ChatService) -- gets the history list[dict] via build_history()
+- Arma Task (tasks.py) -- same as above
 """
 
 import logging
