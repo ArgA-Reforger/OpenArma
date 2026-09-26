@@ -9,7 +9,7 @@ from backend.app.conversation.engine.builtin_tools.registry import builtin_regis
 
 @builtin_registry.register(
     'calculate_distance',
-    display_name='距离计算',
+    display_name='Cálculo de distancia',
     description=(
         'Calculate the distance between two 3D positions on the battlefield. '
         'Returns 3D distance, horizontal distance (ignoring height), and height difference in meters. '
@@ -52,7 +52,7 @@ async def calculate_distance(pos_a: list, pos_b: list, **_: Any) -> str:
 
 @builtin_registry.register(
     'assess_threats',
-    display_name='威胁评估',
+    display_name='Evaluación de amenazas',
     description=(
         'Analyze the current situational data and produce a threat assessment summary. '
         'Identifies the most dangerous enemies, which squads are at risk, and suggested priority targets. '
@@ -125,7 +125,7 @@ _VALID_FORMATIONS = frozenset({'Line', 'Column', 'StaggeredColumn', 'Wedge', 'Ve
 
 @builtin_registry.register(
     'validate_orders',
-    display_name='指令验证',
+    display_name='Validación de órdenes',
     description=(
         'Validate a set of orders before sending them. '
         'Checks that all command types are valid, group_ids exist, coordinates are reasonable, '
@@ -191,7 +191,7 @@ async def validate_orders(orders_json: str = '', known_group_ids: list | None = 
 
 @builtin_registry.register(
     'get_squad_summary',
-    display_name='小队状态查询',
+    display_name='Resumen de escuadrón',
     description=(
         'Get a detailed summary of a specific squad from the situational data. '
         'Returns position, strength, casualties, current orders, known enemies, '
@@ -252,7 +252,7 @@ async def get_squad_summary(situation_json: str = '', group_id: str = '', **_: A
 
 @builtin_registry.register(
     'generate_patrol_route',
-    display_name='巡逻路线生成',
+    display_name='Generación de ruta de patrulla',
     description=(
         'Generate a terrain-aware patrol route around a center position. '
         'Waypoints are placed at tactically advantageous terrain: ridgelines, '

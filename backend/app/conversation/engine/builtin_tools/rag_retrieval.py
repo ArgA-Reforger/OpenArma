@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 @builtin_registry.register(
     'rag_retrieval',
-    display_name='知识库检索',
+    display_name='Búsqueda en base de conocimiento',
     description=(
         'Search the project knowledge base for relevant information. '
         'Use this when you need to look up specific facts, documents, '

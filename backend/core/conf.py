@@ -209,7 +209,7 @@ class Settings(BaseSettings):
     }
 
     # IP 定位配置
-    IP_LOCATION_PARSE: Literal['online', 'offline', 'false'] = 'offline'
+    IP_LOCATION_PARSE: Literal['online', 'offline', 'false'] = 'online'
     IP_LOCATION_REDIS_PREFIX: str = 'fba:ip:location'
     IP_LOCATION_EXPIRE_SECONDS: int = 60 * 60 * 24  # 1 天
 
