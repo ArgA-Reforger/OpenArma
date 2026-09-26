@@ -213,6 +213,22 @@ async def auto_init() -> None:
         await init(db, redis_init_client)
 
 
+INIT_REDIS_CLEAR_PREFIXES = [
+    settings.JWT_USER_REDIS_PREFIX,
+    settings.TOKEN_EXTRA_INFO_REDIS_PREFIX,
+    settings.TOKEN_REDIS_PREFIX,
+    settings.TOKEN_REFRESH_REDIS_PREFIX,
+    settings.CACHE_CONFIG_REDIS_PREFIX,
+    settings.CACHE_DICT_REDIS_PREFIX,
+    settings.PLUGIN_REDIS_PREFIX,
+    settings.IP_LOCATION_REDIS_PREFIX,
+]
+"""Redis key prefixes cleared by `fba init` so stale cached/config/plugin data
+doesn't survive a re-seed. Plugin cache (`fba:plugin`) is safe to clear here
+because `parse_plugin_config()` (backend/plugin/core.py) rebuilds it on every
+backend startup, including the `fba run` that normally follows `fba init`."""
+
+
 async def init(db: AsyncSession, redis: RedisCli) -> None:
     panel_content = Text()
     panel_content.append('【数据库配置】', style='bold green')
@@ -250,12 +266,7 @@ async def init(db: AsyncSession, redis: RedisCli) -> None:
         console.print('开始初始化...', style='white')
         try:
             console.print('清理 Redis 缓存', style='white')
-            for prefix in [
-                settings.JWT_USER_REDIS_PREFIX,
-                settings.TOKEN_EXTRA_INFO_REDIS_PREFIX,
-                settings.TOKEN_REDIS_PREFIX,
-                settings.TOKEN_REFRESH_REDIS_PREFIX,
-            ]:
+            for prefix in INIT_REDIS_CLEAR_PREFIXES:
                 await redis.delete_prefix(prefix)
 
             console.print('重建数据库表', style='white')

@@ -1,7 +1,7 @@
 [plugin]
-summary = "数据字典"
+summary = "Diccionario de datos"
 version = "0.0.8"
-description = "通常用于约束前端工程数据展示"
+description = "Se usa normalmente para restringir la visualización de datos en el frontend"
 author = "wu-clan"
 tags = ["other"]
 database = ["mysql", "postgresql"]
