@@ -23,9 +23,9 @@ from backend.utils.pattern_validate import is_git_url
 
 async def _append_env_example(plugin_path: anyio.Path) -> None:
     """
-    追加主 .env 文件
+    Append to the main .env file
 
-    :param plugin_path: 插件目录路径
+    :param plugin_path: Plugin directory path
     :return:
     """
     env_example_path = plugin_path / '.env.example'
@@ -53,9 +53,9 @@ async def _append_env_example(plugin_path: anyio.Path) -> None:
 
 async def install_zip_plugin(file: UploadFile | str) -> str:
     """
-    安装 ZIP 插件
+    Install a ZIP plugin
 
-    :param file: FastAPI 上传文件对象或文件完整路径
+    :param file: FastAPI upload file object or full file path
     :return:
     """
     if isinstance(file, str):
@@ -65,23 +65,23 @@ async def install_zip_plugin(file: UploadFile | str) -> str:
         contents = await file.read()
     file_bytes = io.BytesIO(contents)
     if not zipfile.is_zipfile(file_bytes):
-        raise errors.RequestError(msg='插件压缩包格式非法')
+        raise errors.RequestError(msg='Invalid plugin archive format')
 
     async with acquire_distributed_reload_lock():
         with zipfile.ZipFile(file_bytes) as zf:
-            # 校验压缩包
+            # Validate the archive
             plugin_namelist = zf.namelist()
             plugin_dir_name = plugin_namelist[0].split('/')[0]
             if not plugin_namelist:
-                raise errors.RequestError(msg='插件压缩包内容非法')
+                raise errors.RequestError(msg='Invalid plugin archive contents')
             if (
                 len(plugin_namelist) <= 3
                 or f'{plugin_dir_name}/plugin.toml' not in plugin_namelist
                 or f'{plugin_dir_name}/README.md' not in plugin_namelist
             ):
-                raise errors.RequestError(msg='插件压缩包内缺少必要文件')
+                raise errors.RequestError(msg='Plugin archive is missing required files')
 
-            # 插件是否可安装
+            # Check whether the plugin can be installed
             plugin_name = re.match(
                 r'^([a-zA-Z0-9_]+)',
                 file.split(os.sep)[-1].split('.')[0].strip()
@@ -90,10 +90,10 @@ async def install_zip_plugin(file: UploadFile | str) -> str:
             ).group()
             full_plugin_path = anyio.Path(PLUGIN_DIR / plugin_name)
             if await full_plugin_path.exists():
-                raise errors.ConflictError(msg='此插件已安装')
+                raise errors.ConflictError(msg='This plugin is already installed')
             await full_plugin_path.mkdir(parents=True, exist_ok=True)
 
-            # 解压（安装）
+            # Extract (install)
             members = []
             for member in zf.infolist():
                 if member.filename.startswith(plugin_dir_name):
@@ -112,25 +112,25 @@ async def install_zip_plugin(file: UploadFile | str) -> str:
 
 async def install_git_plugin(repo_url: str) -> str:
     """
-    安装 Git 插件
+    Install a Git plugin
 
     :param repo_url:
     :return:
     """
     match = is_git_url(repo_url)
     if not match:
-        raise errors.RequestError(msg='Git 仓库地址格式非法，仅支持 HTTP/HTTPS 协议')
+        raise errors.RequestError(msg='Invalid Git repository URL format, only HTTP/HTTPS protocols are supported')
     repo_name = match.group('repo')
     path = anyio.Path(PLUGIN_DIR / repo_name)
     if await path.exists():
-        raise errors.ConflictError(msg=f'{repo_name} 插件已安装')
+        raise errors.ConflictError(msg=f'Plugin {repo_name} is already installed')
 
     async with acquire_distributed_reload_lock():
         try:
             await run_in_threadpool(porcelain.clone, repo_url, PLUGIN_DIR / repo_name, checkout=True)
         except Exception as e:
-            log.error(f'插件安装失败: {e}')
-            raise errors.ServerError(msg='插件安装失败，请稍后重试') from e
+            log.error(f'Plugin installation failed: {e}')
+            raise errors.ServerError(msg='Plugin installation failed, please try again later') from e
 
         await _append_env_example(path)
         await install_requirements_async(repo_name)
@@ -141,9 +141,9 @@ async def install_git_plugin(repo_url: str) -> str:
 
 def remove_plugin(plugin_dir: os.PathLike) -> None:
     """
-    删除插件
+    Remove a plugin
 
-    :param plugin_dir: 插件目录
+    :param plugin_dir: Plugin directory
     :return:
     """
     import shutil
@@ -157,10 +157,10 @@ def remove_plugin(plugin_dir: os.PathLike) -> None:
 
 def zip_plugin(plugin_dir: os.PathLike, target: os.PathLike | io.BytesIO) -> None:
     """
-    zip 压缩插件
+    Zip-compress a plugin
 
-    :param plugin_dir: 插件目录
-    :param target: 压缩目标
+    :param plugin_dir: Plugin directory
+    :param target: Compression target
     :return:
     """
     with zipfile.ZipFile(target, 'w') as zf:

@@ -32,15 +32,15 @@ from backend.utils.locks import acquire_distributed_reload_lock
 
 
 class GenService:
-    """代码生成服务类"""
+    """Code generator service"""
 
     @staticmethod
     async def get_tables(*, db: AsyncSession, table_schema: str) -> Sequence[RowMapping]:
         """
-        获取指定 schema 下的所有表名
+        Get all table names under the given schema
 
-        :param db: 数据库会话
-        :param table_schema: 数据库 schema 名称
+        :param db: Database session
+        :param table_schema: Database schema name
         :return:
         """
         return await gen_dao.get_all_tables(db, table_schema)
@@ -48,27 +48,31 @@ class GenService:
     @staticmethod
     async def import_business_and_model(*, db: AsyncSession, obj: ImportParam) -> None:
         """
-        导入业务和模型列数据
+        Import business and model column data
 
-        :param db: 数据库会话
-        :param obj: 导入参数对象
+        :param db: Database session
+        :param obj: Import parameters object
         :return:
         """
         if settings.ENVIRONMENT != 'dev':
-            raise errors.ForbiddenError(msg='禁止在非开发环境下导入代码生成业务')
+            raise errors.ForbiddenError(msg='Importing code generator business is forbidden outside the dev environment')
 
         table_info = await gen_dao.get_table(db, obj.table_schema, obj.table_name)
         if not table_info:
-            raise errors.NotFoundError(msg='数据库表不存在')
+            raise errors.NotFoundError(msg='Database table does not exist')
 
         business_info = await gen_business_dao.get_by_name(db, obj.table_name)
         if business_info:
-            raise errors.ConflictError(msg='已存在相同数据库表业务')
+            raise errors.ConflictError(msg='A business for this database table already exists')
 
         table_name = table_info['table_name']
+        # NOTE: U+8868 (the Chinese character for "table") is intentionally referenced via escape
+        # here — it strips a trailing "table" suffix from the actual DB table comment value, which
+        # may be Chinese for databases generated/commented in Chinese. This is a runtime data
+        # comparison against DB content, not translatable source text.
         doc_comment = (
             table_info['table_comment'][:-1]
-            if table_info['table_comment'][-1] == '表'
+            if table_info['table_comment'][-1] == '\u8868'
             else table_info['table_comment'] or table_name.split('_')[-1]
         )
         new_business = GenBusiness(
@@ -110,15 +114,15 @@ class GenService:
     @staticmethod
     async def _render_tpl_code(*, db: AsyncSession, business: GenBusiness) -> dict[str, str]:
         """
-        渲染模板代码
+        Render template code
 
-        :param db: 数据库会话
-        :param business: 业务对象
+        :param db: Database session
+        :param business: Business object
         :return:
         """
         gen_models = await gen_column_service.get_columns(db=db, business_id=business.id)
         if not gen_models:
-            raise errors.NotFoundError(msg='代码生成模型表为空')
+            raise errors.NotFoundError(msg='Code generator model table is empty')
 
         gen_vars = gen_template.get_vars(business, gen_models)
         template_mapping = gen_template.get_template_path_mapping(business)
@@ -135,10 +139,10 @@ class GenService:
     @staticmethod
     async def _inject_app_router(*, app_name: str, write: bool = True) -> str | None:
         """
-        注入应用路由
+        Inject the app router
 
         :param app_name:
-        :param write: 是否写入文件
+        :param write: Whether to write to the file
         :return:
         """
         app_root_router = BASE_PATH / 'app' / 'router.py'
@@ -169,15 +173,15 @@ class GenService:
 
     async def preview(self, *, db: AsyncSession, pk: int) -> dict[str, bytes]:
         """
-        预览生成的代码
+        Preview the generated code
 
-        :param db: 数据库会话
-        :param pk: 业务 ID
+        :param db: Database session
+        :param pk: Business ID
         :return:
         """
         business = await gen_business_dao.get(db, pk)
         if not business:
-            raise errors.NotFoundError(msg='业务不存在')
+            raise errors.NotFoundError(msg='Business does not exist')
 
         codes = {}
         backend_path = 'fastapi_best_architecture/backend/app/'
@@ -199,15 +203,15 @@ class GenService:
     @staticmethod
     async def get_generate_path(*, db: AsyncSession, pk: int) -> list[str]:
         """
-        获取代码生成路径
+        Get the code generation path
 
-        :param db: 数据库会话
-        :param pk: 业务 ID
+        :param db: Database session
+        :param pk: Business ID
         :return:
         """
         business = await gen_business_dao.get(db, pk)
         if not business:
-            raise errors.NotFoundError(msg='业务不存在')
+            raise errors.NotFoundError(msg='Business does not exist')
 
         gen_path = business.gen_path or '<project_root>/backend/app'
         paths = []
@@ -222,18 +226,18 @@ class GenService:
 
     async def generate(self, *, db: AsyncSession, pk: int) -> str:
         """
-        生成代码文件
+        Generate code files
 
-        :param db: 数据库会话
-        :param pk: 业务 ID
+        :param db: Database session
+        :param pk: Business ID
         :return:
         """
         if settings.ENVIRONMENT != 'dev':
-            raise errors.ForbiddenError(msg='禁止在非开发环境下生成代码')
+            raise errors.ForbiddenError(msg='Generating code is forbidden outside the dev environment')
 
         business = await gen_business_dao.get(db, pk)
         if not business:
-            raise errors.NotFoundError(msg='业务不存在')
+            raise errors.NotFoundError(msg='Business does not exist')
 
         gen_path = business.gen_path or str(BASE_PATH / 'app')
 
@@ -267,15 +271,15 @@ class GenService:
 
     async def download(self, *, db: AsyncSession, pk: int) -> io.BytesIO:
         """
-        下载生成的代码
+        Download the generated code
 
-        :param db: 数据库会话
-        :param pk: 业务 ID
+        :param db: Database session
+        :param pk: Business ID
         :return:
         """
         business = await gen_business_dao.get(db, pk)
         if not business:
-            raise errors.NotFoundError(msg='业务不存在')
+            raise errors.NotFoundError(msg='Business does not exist')
 
         all_files = {}
         init_files = gen_template.get_init_files(business)

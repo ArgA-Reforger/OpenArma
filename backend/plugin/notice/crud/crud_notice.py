@@ -9,25 +9,25 @@ from backend.plugin.notice.schema.notice import CreateNoticeParam, UpdateNoticeP
 
 
 class CRUDNotice(CRUDPlus[Notice]):
-    """通知公告数据库操作类"""
+    """Notice database operations"""
 
     async def get(self, db: AsyncSession, pk: int) -> Notice | None:
         """
-        获取通知公告
+        Get notice
 
-        :param db: 数据库会话
-        :param pk: 通知公告 ID
+        :param db: Database session
+        :param pk: Notice ID
         :return:
         """
         return await self.select_model(db, pk)
 
     async def get_select(self, title: str, type: int | None, status: int | None) -> Select:
         """
-        获取通知公告列表查询表达式
+        Get the query expression for the notice list
 
-        :param title: 通知公告标题
-        :param type: 通知公告类型
-        :param status: 通知公告状态
+        :param title: Notice title
+        :param type: Notice type
+        :param status: Notice status
         :return:
         """
         filters = {}
@@ -43,40 +43,40 @@ class CRUDNotice(CRUDPlus[Notice]):
 
     async def get_all(self, db: AsyncSession) -> Sequence[Notice]:
         """
-        获取所有通知公告
+        Get all notices
 
-        :param db: 数据库会话
+        :param db: Database session
         :return:
         """
         return await self.select_models(db)
 
     async def create(self, db: AsyncSession, obj: CreateNoticeParam) -> None:
         """
-        创建通知公告
+        Create notice
 
-        :param db: 数据库会话
-        :param obj: 创建通知公告参数
+        :param db: Database session
+        :param obj: Create notice parameters
         :return:
         """
         await self.create_model(db, obj)
 
     async def update(self, db: AsyncSession, pk: int, obj: UpdateNoticeParam) -> int:
         """
-        更新通知公告
+        Update notice
 
-        :param db: 数据库会话
-        :param pk: 通知公告 ID
-        :param obj: 更新通知公告参数
+        :param db: Database session
+        :param pk: Notice ID
+        :param obj: Update notice parameters
         :return:
         """
         return await self.update_model(db, pk, obj)
 
     async def delete(self, db: AsyncSession, pks: list[int]) -> int:
         """
-        批量删除通知公告
+        Batch delete notices
 
-        :param db: 数据库会话
-        :param pks: 通知公告 ID 列表
+        :param db: Database session
+        :param pks: List of notice IDs
         :return:
         """
         return await self.delete_model_by_column(db, allow_multiple=True, id__in=pks)

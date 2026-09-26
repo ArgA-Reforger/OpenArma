@@ -5,37 +5,37 @@ from backend.plugin.code_generator.utils.type_conversion import sql_type_to_sqla
 
 
 class GenColumnSchemaBase(SchemaBase):
-    """代码生成模型基础模型"""
+    """Code generator model base model"""
 
-    name: str = Field(description='列名称')
-    comment: str | None = Field(None, description='列描述')
-    type: str = Field(description='SQLA 模型列类型')
-    default: str | None = Field(None, description='列默认值')
-    sort: int = Field(description='列排序')
-    length: int = Field(description='列长度')
-    is_pk: bool = Field(False, description='是否主键')
-    is_nullable: bool = Field(False, description='是否可为空')
-    gen_business_id: int = Field(description='代码生成业务ID')
+    name: str = Field(description='Column name')
+    comment: str | None = Field(None, description='Column description')
+    type: str = Field(description='SQLA model column type')
+    default: str | None = Field(None, description='Column default value')
+    sort: int = Field(description='Column sort order')
+    length: int = Field(description='Column length')
+    is_pk: bool = Field(False, description='Whether it is a primary key')
+    is_nullable: bool = Field(False, description='Whether it can be null')
+    gen_business_id: int = Field(description='Code generator business ID')
 
     @field_validator('type')
     @classmethod
     def normalize_type(cls, v: str) -> str:
-        """规范化类型"""
+        """Normalize the type"""
         return sql_type_to_sqlalchemy(v)
 
 
 class CreateGenColumnParam(GenColumnSchemaBase):
-    """创建代码生成模型列参数"""
+    """Create code generator model column parameters"""
 
 
 class UpdateGenColumnParam(GenColumnSchemaBase):
-    """更新代码生成模型列参数"""
+    """Update code generator model column parameters"""
 
 
 class GetGenColumnDetail(GenColumnSchemaBase):
-    """获取代码生成模型列详情"""
+    """Get code generator model column detail"""
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int = Field(description='主键 ID')
-    pd_type: str = Field(description='列类型对应的 pydantic 类型')
+    id: int = Field(description='Primary key ID')
+    pd_type: str = Field(description='Pydantic type for the column type')

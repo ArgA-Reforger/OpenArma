@@ -24,16 +24,16 @@ from backend.utils.dynamic_import import get_model_objects, import_module_cached
 
 @lru_cache(maxsize=128)
 def get_plugins() -> tuple[str, ...]:
-    """获取插件列表"""
+    """Get the list of plugins"""
     plugin_packages = []
 
-    # 遍历插件目录
+    # Walk the plugins directory
     for item in os.listdir(PLUGIN_DIR):
         item_path = PLUGIN_DIR / item
         if not os.path.isdir(item_path) and item == '__pycache__':
             continue
 
-        # 检查是否为目录且包含 __init__.py 文件
+        # Check whether it's a directory containing an __init__.py file
         if os.path.isdir(item_path) and '__init__.py' in os.listdir(item_path):
             plugin_packages.append(item)
 
@@ -41,7 +41,7 @@ def get_plugins() -> tuple[str, ...]:
 
 
 def get_plugin_models() -> list[object]:
-    """获取插件所有模型类"""
+    """Get all model classes of every plugin"""
     objs = []
 
     for plugin in get_plugins():
@@ -55,11 +55,11 @@ def get_plugin_models() -> list[object]:
 
 async def get_plugin_sql(plugin: str, db_type: DataBaseType, pk_type: PrimaryKeyType) -> str | None:
     """
-    获取插件 SQL 脚本
+    Get the plugin's SQL script
 
-    :param plugin: 插件名称
-    :param db_type: 数据库类型
-    :param pk_type: 主键类型
+    :param plugin: Plugin name
+    :param db_type: Database type
+    :param pk_type: Primary key type
     :return:
     """
     if db_type == DataBaseType.mysql:
@@ -84,31 +84,31 @@ async def get_plugin_sql(plugin: str, db_type: DataBaseType, pk_type: PrimaryKey
 
 def load_plugin_config(plugin: str) -> dict[str, Any]:
     """
-    加载插件配置
+    Load a plugin's config
 
-    :param plugin: 插件名称
+    :param plugin: Plugin name
     :return:
     """
     toml_path = PLUGIN_DIR / plugin / 'plugin.toml'
     if not os.path.exists(toml_path):
-        raise PluginInjectError(f'插件 {plugin} 缺少 plugin.toml 配置文件，请检查插件是否合法')
+        raise PluginInjectError(f'Plugin {plugin} is missing its plugin.toml config file, please check if the plugin is valid')
 
     with open(toml_path, encoding='utf-8') as f:
         return rtoml.load(f)
 
 
 def parse_plugin_config() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """解析插件配置"""
+    """Parse plugin configs"""
     extend_plugins = []
     app_plugins = []
 
     plugins = get_plugins()
 
-    # 使用独立连接
+    # Use a dedicated connection
     current_redis_client = RedisCli()
     run_await(current_redis_client.init)()
 
-    # 清理未知插件信息
+    # Clean up info of unknown plugins
     run_await(current_redis_client.delete_prefix)(
         settings.PLUGIN_REDIS_PREFIX,
         exclude=[f'{settings.PLUGIN_REDIS_PREFIX}:{key}' for key in plugins],
@@ -123,7 +123,7 @@ def parse_plugin_config() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         else:
             app_plugins.append(data)
 
-        # 补充插件信息
+        # Fill in extra plugin info
         data['plugin']['name'] = plugin
         plugin_cache_info = run_await(current_redis_client.get)(f'{settings.PLUGIN_REDIS_PREFIX}:{plugin}')
         if plugin_cache_info:
@@ -131,16 +131,16 @@ def parse_plugin_config() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         else:
             data['plugin']['enable'] = str(StatusType.enable.value)
 
-        # 缓存最新插件信息
+        # Cache the latest plugin info
         run_await(current_redis_client.set)(
             f'{settings.PLUGIN_REDIS_PREFIX}:{plugin}',
             json.dumps(data, ensure_ascii=False),
         )
 
-    # 重置插件变更状态
+    # Reset the plugin-changed state
     run_await(current_redis_client.delete)(f'{settings.PLUGIN_REDIS_PREFIX}:changed')
 
-    # 关闭连接
+    # Close the connection
     run_await(current_redis_client.aclose)()
 
     return extend_plugins, app_plugins
@@ -148,27 +148,27 @@ def parse_plugin_config() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
 
 def inject_extend_router(plugin: dict[str, Any]) -> None:
     """
-    扩展级插件路由注入
+    Inject routes for an extend-level plugin
 
-    :param plugin: 插件名称
+    :param plugin: Plugin name
     :return:
     """
     plugin_name: str = plugin['plugin']['name']
     plugin_api_path = PLUGIN_DIR / plugin_name / 'api'
     if not os.path.exists(plugin_api_path):
-        raise PluginConfigError(f'插件 {plugin} 缺少 api 目录，请检查插件文件是否完整')
+        raise PluginConfigError(f'Plugin {plugin} is missing its api directory, please check the plugin files')
 
     for root, _, api_files in os.walk(plugin_api_path):
         for file in api_files:
             if not (file.endswith('.py') and file != '__init__.py'):
                 continue
 
-            # 解析插件路由配置
+            # Parse the plugin route config
             file_config = plugin['api'][file[:-3]]
             prefix = file_config['prefix']
             tags = file_config['tags']
 
-            # 获取插件路由模块
+            # Get the plugin route module
             file_path = os.path.join(root, file)
             path_to_module_str = os.path.relpath(file_path, PLUGIN_DIR).replace(os.sep, '.')[:-3]
             module_path = f'backend.plugin.{path_to_module_str}'
@@ -178,12 +178,13 @@ def inject_extend_router(plugin: dict[str, Any]) -> None:
                 plugin_router = getattr(module, 'router', None)
                 if not plugin_router:
                     warnings.warn(
-                        f'扩展级插件 {plugin_name} 模块 {module_path} 中没有有效的 router，请检查插件文件是否完整',
+                        f'Extend-level plugin {plugin_name} module {module_path} has no valid router, '
+                        f'please check that the plugin files are complete',
                         FutureWarning,
                     )
                     continue
 
-                # 获取目标 app 路由
+                # Get the target app router
                 relative_path = os.path.relpath(root, plugin_api_path)
                 app_name = plugin.get('app', {}).get('extend')
                 target_module_path = f'backend.app.{app_name}.api.{relative_path.replace(os.sep, ".")}'
@@ -192,10 +193,11 @@ def inject_extend_router(plugin: dict[str, Any]) -> None:
 
                 if not target_router or not isinstance(target_router, APIRouter):
                     raise PluginInjectError(
-                        f'扩展级插件 {plugin_name} 模块 {module_path} 中没有有效的 router，请检查插件文件是否完整',
+                        f'Extend-level plugin {plugin_name} module {module_path} has no valid router, '
+                        f'please check that the plugin files are complete',
                     )
 
-                # 将插件路由注入到目标路由中
+                # Inject the plugin router into the target router
                 target_router.include_router(
                     router=plugin_router,
                     prefix=prefix,
@@ -203,15 +205,15 @@ def inject_extend_router(plugin: dict[str, Any]) -> None:
                     dependencies=[Depends(PluginStatusChecker(plugin_name))],
                 )
             except Exception as e:
-                raise PluginInjectError(f'扩展级插件 {plugin_name} 路由注入失败：{e!s}') from e
+                raise PluginInjectError(f'Extend-level plugin {plugin_name} route injection failed: {e!s}') from e
 
 
 def inject_app_router(plugin: dict[str, Any], target_router: APIRouter) -> None:
     """
-    应用级插件路由注入
+    Inject routes for an app-level plugin
 
-    :param plugin: 插件名称
-    :param target_router: FastAPI 路由器
+    :param plugin: Plugin name
+    :param target_router: FastAPI router
     :return:
     """
     plugin_name: str = plugin['plugin']['name']
@@ -220,29 +222,31 @@ def inject_app_router(plugin: dict[str, Any], target_router: APIRouter) -> None:
         module = import_module_cached(module_path)
         routers = plugin['app']['router']
         if not routers or not isinstance(routers, list):
-            raise PluginConfigError(f'应用级插件 {plugin_name} 配置文件存在错误，请检查')
+            raise PluginConfigError(f'App-level plugin {plugin_name} config file has an error, please check it')
 
         for router in routers:
             plugin_router = getattr(module, router, None)
             if not plugin_router or not isinstance(plugin_router, APIRouter):
                 raise PluginInjectError(
-                    f'应用级插件 {plugin_name} 模块 {module_path} 中没有有效的 router，请检查插件文件是否完整',
+                    f'App-level plugin {plugin_name} module {module_path} has no valid router, '
+                    f'please check that the plugin files are complete',
                 )
 
-            # 将插件路由注入到目标路由中
+            # Inject the plugin router into the target router
             target_router.include_router(plugin_router, dependencies=[Depends(PluginStatusChecker(plugin_name))])
     except Exception as e:
-        raise PluginInjectError(f'应用级插件 {plugin_name} 路由注入失败：{e!s}') from e
+        raise PluginInjectError(f'App-level plugin {plugin_name} route injection failed: {e!s}') from e
 
 
 def build_final_router() -> APIRouter:
-    """构建最终路由"""
+    """Build the final router"""
     extend_plugins, app_plugins = parse_plugin_config()
 
     for plugin in extend_plugins:
         inject_extend_router(plugin)
 
-    # 主路由，必须在扩展级插件路由注入后，应用级插件路由注入前导入
+    # Main router, must be imported after extend-level plugin route injection and before
+    # app-level plugin route injection
     from backend.app.router import router as main_router
 
     for plugin in app_plugins:
@@ -252,28 +256,28 @@ def build_final_router() -> APIRouter:
 
 
 class PluginStatusChecker:
-    """插件状态检查器"""
+    """Plugin status checker"""
 
     def __init__(self, plugin: str) -> None:
         """
-        初始化插件状态检查器
+        Initialize the plugin status checker
 
-        :param plugin: 插件名称
+        :param plugin: Plugin name
         :return:
         """
         self.plugin = plugin
 
     async def __call__(self, request: Request) -> None:
         """
-        验证插件状态
+        Verify the plugin status
 
-        :param request: FastAPI 请求对象
+        :param request: FastAPI request object
         :return:
         """
         plugin_info = await redis_client.get(f'{settings.PLUGIN_REDIS_PREFIX}:{self.plugin}')
         if not plugin_info:
-            log.error('插件状态未初始化或丢失，需重启服务自动修复')
-            raise PluginInjectError('插件状态未初始化或丢失，请联系系统管理员')
+            log.error('Plugin status not initialized or lost, restarting the service should auto-fix it')
+            raise PluginInjectError('Plugin status not initialized or lost, please contact the system administrator')
 
         if not int(json.loads(plugin_info)['plugin']['enable']):
-            raise errors.ServerError(msg=f'插件 {self.plugin} 未启用，请联系系统管理员')
+            raise errors.ServerError(msg=f'Plugin {self.plugin} is not enabled, please contact the system administrator')
