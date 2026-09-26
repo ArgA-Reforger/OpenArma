@@ -209,9 +209,13 @@ class Settings(BaseSettings):
     }
 
     # IP 定位配置
+    # 'online' queries ip-api.com (Spanish place names) over plain HTTP, so client IPs
+    # leave the server; the free tier is rate-limited (~45 req/min). 'offline' uses the
+    # bundled ip2region database, which only returns Chinese names. 'false' disables it.
     IP_LOCATION_PARSE: Literal['online', 'offline', 'false'] = 'online'
     IP_LOCATION_REDIS_PREFIX: str = 'fba:ip:location'
     IP_LOCATION_EXPIRE_SECONDS: int = 60 * 60 * 24  # 1 天
+    IP_LOCATION_FAILURE_EXPIRE_SECONDS: int = 60 * 5  # failed online lookups are retried after 5 minutes
 
     # Trace ID
     TRACE_ID_REQUEST_HEADER_KEY: str = 'X-Request-ID'

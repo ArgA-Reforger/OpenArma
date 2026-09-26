@@ -83,9 +83,10 @@ async def parse_ip_info(request: Request) -> IpInfo:
     """
     country, region, city = None, None, None
     ip = get_request_ip(request)
-    location = await redis_client.get(f'{settings.IP_LOCATION_REDIS_PREFIX}:{ip}')
-    if location:
-        country, region, city = location.split('|')
+    cache_key = f'{settings.IP_LOCATION_REDIS_PREFIX}:{ip}'
+    location = await redis_client.get(cache_key)
+    if location is not None:
+        country, region, city = (part or None for part in location.split('|'))
         return IpInfo(ip=ip, country=country, region=region, city=city)
 
     location_info = None
@@ -99,10 +100,14 @@ async def parse_ip_info(request: Request) -> IpInfo:
         region = location_info.get('regionName')
         city = location_info.get('city')
         await redis_client.set(
-            f'{settings.IP_LOCATION_REDIS_PREFIX}:{ip}',
-            f'{country}|{region}|{city}',
+            cache_key,
+            f'{country or ""}|{region or ""}|{city or ""}',
             ex=settings.IP_LOCATION_EXPIRE_SECONDS,
         )
+    elif settings.IP_LOCATION_PARSE == 'online':
+        # Cache failures briefly so an unreachable or rate-limited service
+        # does not add its timeout to every request from the same IP.
+        await redis_client.set(cache_key, '||', ex=settings.IP_LOCATION_FAILURE_EXPIRE_SECONDS)
     return IpInfo(ip=ip, country=country, region=region, city=city)
 
 
