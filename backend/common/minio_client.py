@@ -1,4 +1,4 @@
-"""MinIO 客户端封装，提供文件上传/下载/删除操作。"""
+"""MinIO client wrapper, providing file upload/download/delete operations."""
 
 from io import BytesIO
 
@@ -25,12 +25,12 @@ def ensure_bucket() -> None:
 
 def upload_file(object_name: str, data: bytes, content_type: str = 'application/octet-stream') -> str:
     """
-    上传文件到 MinIO。
+    Upload a file to MinIO.
 
-    :param object_name: 对象路径，如 knowledge/123/456/file.pdf
-    :param data: 文件字节内容
-    :param content_type: MIME 类型
-    :return: 对象路径
+    :param object_name: object path, e.g. knowledge/123/456/file.pdf
+    :param data: file byte content
+    :param content_type: MIME type
+    :return: object path
     """
     client = _get_client()
     ensure_bucket()

@@ -42,47 +42,47 @@ from backend.utils.trace_id import OtelTraceIdPlugin
 @asynccontextmanager
 async def register_init(app: FastAPI) -> AsyncGenerator[None, None]:
     """
-    启动初始化
+    Startup initialization
 
-    :param app: FastAPI 应用实例
+    :param app: FastAPI application instance
     :return:
     """
-    # 创建数据库表
+    # Create the database tables
     await create_tables()
 
-    # 初始化 redis
+    # Initialize redis
     await redis_client.init()
 
-    # 初始化 snowflake 节点
+    # Initialize the snowflake node
     await snowflake.init()
 
-    # 创建操作日志任务
+    # Create the operation log task
     create_task(OperaLogMiddleware.consumer())
 
-    # 启动缓存 Pub/Sub 监听器
+    # Start the cache Pub/Sub listener
     cache_pubsub_manager.start_listener()
 
-    # 自动执行种子数据（仅首次部署，sys_user 表为空时触发）
+    # Automatically run the seed data (only for first-time deployment, triggered when the sys_user table is empty)
     try:
         await _auto_seed_if_empty()
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning('自动种子数据执行失败: %s', e)
+        logging.getLogger(__name__).warning('Automatic seed data run failed: %s', e)
 
     yield
 
-    # 停止缓存 Pub/Sub 监听器
+    # Stop the cache Pub/Sub listener
     await cache_pubsub_manager.stop_listener()
 
-    # 释放 snowflake 节点
+    # Release the snowflake node
     await snowflake.shutdown()
 
-    # 关闭 redis 连接
+    # Close the redis connection
     await redis_client.aclose()
 
 
 async def _auto_seed_if_empty() -> None:
-    """首次部署时自动执行种子数据（sys_user 表为空则视为首次）"""
+    """Automatically run the seed data on first-time deployment (treated as first-time when sys_user is empty)"""
     import logging
 
     from sqlalchemy import text
@@ -92,7 +92,7 @@ async def _auto_seed_if_empty() -> None:
     _log = logging.getLogger(__name__)
 
     async with async_db_session() as db:
-        # 内置工具种子（幂等，每次启动都执行）
+        # Built-in tool seed (idempotent, runs on every startup)
         await seed_builtin_tools(db)
         await db.commit()
 
@@ -102,7 +102,7 @@ async def _auto_seed_if_empty() -> None:
         if count and count > 0:
             return
 
-    _log.info('检测到 sys_user 为空，执行首次部署种子数据...')
+    _log.info('Detected empty sys_user, running first-time deployment seed data...')
 
     from backend.common.enums import DataBaseType
     from backend.core.path_conf import POSTGRESQL_SCRIPT_DIR
@@ -135,16 +135,16 @@ async def _auto_seed_if_empty() -> None:
 
     async with async_db_session.begin() as db:
         for sql_file in sql_files:
-            _log.info('执行种子脚本: %s', sql_file)
+            _log.info('Running seed script: %s', sql_file)
             stmts = await parse_sql_script(sql_file)
             for stmt in stmts:
                 await db.execute(text(stmt))
 
-    _log.info('种子数据执行完成 (%d 个脚本)', len(sql_files))
+    _log.info('Seed data run completed (%d scripts)', len(sql_files))
 
 
 def register_app() -> FastAPI:
-    """注册 FastAPI 应用"""
+    """Register the FastAPI application"""
 
     app = FastAPI(
         title=settings.FASTAPI_TITLE,
@@ -157,7 +157,7 @@ def register_app() -> FastAPI:
         lifespan=register_init,
     )
 
-    # 注册组件
+    # Register components
     register_logger()
     register_socket_app(app)
     register_static_file(app)
@@ -173,33 +173,33 @@ def register_app() -> FastAPI:
 
 
 def register_logger() -> None:
-    """注册日志"""
+    """Register logging"""
     setup_logging()
     set_custom_logfile()
 
 
 def register_static_file(app: FastAPI) -> None:
     """
-    注册静态资源服务
+    Register the static resource service
 
-    :param app: FastAPI 应用实例
+    :param app: FastAPI application instance
     :return:
     """
-    # 上传静态资源
+    # Uploaded static resources
     if not os.path.exists(UPLOAD_DIR):
         os.makedirs(UPLOAD_DIR)
     app.mount('/static/upload', StaticFiles(directory=UPLOAD_DIR), name='upload')
 
-    # 固有静态资源
+    # Built-in static resources
     if settings.FASTAPI_STATIC_FILES:
         app.mount('/static', StaticFiles(directory=STATIC_DIR), name='static')
 
 
 def register_middleware(app: FastAPI) -> None:
     """
-    注册中间件（执行顺序从下往上）
+    Register middleware (execution order runs bottom to top)
 
-    :param app: FastAPI 应用实例
+    :param app: FastAPI application instance
     :return:
     """
     # Opera log
@@ -250,9 +250,9 @@ def register_middleware(app: FastAPI) -> None:
 
 def register_router(app: FastAPI) -> None:
     """
-    注册路由
+    Register routes
 
-    :param app: FastAPI 应用实例
+    :param app: FastAPI application instance
     :return:
     """
     dependencies = [Depends(demo_site)] if settings.DEMO_MODE else None
@@ -268,9 +268,9 @@ def register_router(app: FastAPI) -> None:
 
 def register_page(app: FastAPI) -> None:
     """
-    注册分页查询功能
+    Register the paginated query feature
 
-    :param app: FastAPI 应用实例
+    :param app: FastAPI application instance
     :return:
     """
     add_pagination(app)
@@ -278,9 +278,9 @@ def register_page(app: FastAPI) -> None:
 
 def register_socket_app(app: FastAPI) -> None:
     """
-    注册 Socket.IO 应用
+    Register the Socket.IO application
 
-    :param app: FastAPI 应用实例
+    :param app: FastAPI application instance
     :return:
     """
     from backend.common.socketio.server import sio
@@ -288,7 +288,7 @@ def register_socket_app(app: FastAPI) -> None:
     socket_app = socketio.ASGIApp(
         socketio_server=sio,
         other_asgi_app=app,
-        # 切勿删除此配置：https://github.com/pyropy/fastapi-socketio/issues/51
+        # Never remove this setting: https://github.com/pyropy/fastapi-socketio/issues/51
         socketio_path='/ws/socket.io',
     )
     app.mount('/ws', socket_app)
@@ -296,9 +296,9 @@ def register_socket_app(app: FastAPI) -> None:
 
 def register_metrics(app: FastAPI) -> None:
     """
-    注册指标
+    Register metrics
 
-    :param app: FastAPI 应用实例
+    :param app: FastAPI application instance
     :return:
     """
     metrics_app = make_asgi_app()
