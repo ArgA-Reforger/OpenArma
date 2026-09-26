@@ -18,39 +18,40 @@ if TYPE_CHECKING:
 
 class RequestPermission:
     """
-    请求权限验证器，用于角色菜单 RBAC 权限控制
+    Request permission validator, used for role-menu RBAC permission control
 
-    注意：
-        使用此请求权限时，需要将 `Depends(RequestPermission('xxx'))` 在 `DependsRBAC` 之前设置，
-        因为 FastAPI 当前版本的接口依赖注入按正序执行，意味着 RBAC 标识会在验证前被设置
+    Note:
+        When using this request permission, `Depends(RequestPermission('xxx'))` must be set before
+        `DependsRBAC`, because in the current FastAPI version endpoint dependency injection runs in
+        declaration order, meaning the RBAC identifier is set before it is validated
     """
 
     def __init__(self, value: str) -> None:
         """
-        初始化请求权限验证器
+        Initialize the request permission validator
 
-        :param value: 权限标识
+        :param value: permission identifier
         :return:
         """
         self.value = value
 
     async def __call__(self, request: Request) -> None:
         """
-        验证请求权限
+        Validate the request permission
 
-        :param request: FastAPI 请求对象
+        :param request: FastAPI request object
         :return:
         """
         if settings.RBAC_ROLE_MENU_MODE:
             if not isinstance(self.value, str):
                 raise errors.ServerError
 
-            # 设置权限标识到上下文
+            # Set the permission identifier in the context
             ctx.permission = self.value
 
 
 def get_data_permission_models() -> dict[str, object]:
-    """获取所有可用于数据权限的模型"""
+    """Get all models available for data permissions"""
     return {getattr(model, '__name__', str(model)): model for model in get_all_models()}
 
 
@@ -58,25 +59,25 @@ def filter_data_permission(  # noqa: C901
     request: Request, *models: type[Model] | AliasedClass | Alias | Table
 ) -> ColumnElement[bool]:
     """
-    过滤数据权限，控制用户可见数据范围
+    Filter data permissions, controlling the range of data visible to the user
 
-    使用场景：
-        - 控制用户能看到哪些数据
+    Use cases:
+        - Control which data a user can see
 
-    :param request: FastAPI 请求对象
-    :param models: 需要应用数据权限的模型类
+    :param request: FastAPI request object
+    :param models: model classes to which data permissions should be applied
     :return:
     """
-    # 超级管理员不过滤
+    # Superusers are not filtered
     if request.user.is_superuser:
         return or_(1 == 1)
 
-    # 角色未启用数据权限过滤
+    # Role does not have data permission filtering enabled
     for role in request.user.roles:
         if role.status and not role.is_filter_scopes:
             return or_(1 == 1)
 
-    # 获取数据规则
+    # Get the data rules
     data_rules: set[DataRule] = set()
     for role in request.user.roles:
         if not role.status:
@@ -88,17 +89,17 @@ def filter_data_permission(  # noqa: C901
     if not data_rules:
         return or_(1 == 1)
 
-    # 目标模型
+    # Target models
     target_model_map = (
         {getattr(model, '__name__', str(model)): model for model in models} if models else get_data_permission_models()
     )
 
-    # 字段模板变量映射
+    # Column template variable mapping
     column_template_resolvers = {
         var['key']: var['key'].strip('_') for var in settings.DATA_PERMISSION_COLUMN_TEMPLATE_VARIABLES
     }
 
-    # 模板变量解析映射
+    # Template variable resolution mapping
     template_variable_keys = {var['key'] for var in settings.DATA_PERMISSION_TEMPLATE_VARIABLES}
     template_resolvers = {
         '${user_id}': request.user.id,
@@ -124,7 +125,7 @@ def filter_data_permission(  # noqa: C901
             if rule_column in settings.DATA_PERMISSION_COLUMN_EXCLUDE:
                 continue
 
-            # 构建过滤条件
+            # Build the filter condition
             column_obj = (
                 getattr(target_model, rule_column)
                 if not isinstance(target_model, Table)
@@ -133,7 +134,7 @@ def filter_data_permission(  # noqa: C901
             column_type = table.columns[rule_column].type.python_type
 
             def cast_value(value: Any, _column_type: type = column_type) -> Any:
-                """类型转换"""
+                """Type conversion"""
                 try:
                     if value in template_variable_keys:
                         return _column_type(template_resolvers[value])
@@ -162,7 +163,7 @@ def filter_data_permission(  # noqa: C901
                     values = [cast_value(v.strip()) for v in data_rule.value.split(',')]
                     condition = column_obj.not_in(values)
 
-            # 根据运算符添加到对应列表
+            # Add to the corresponding list based on the operator
             if condition is not None:
                 match data_rule.operator:
                     case RoleDataRuleOperatorType.AND:
@@ -170,7 +171,7 @@ def filter_data_permission(  # noqa: C901
                     case RoleDataRuleOperatorType.OR:
                         where_or_list.append(condition)
 
-    # 组合所有条件
+    # Combine all conditions
     where_list = []
     if where_and_list:
         where_list.append(and_(*where_and_list))
@@ -180,19 +181,19 @@ def filter_data_permission(  # noqa: C901
     return or_(*where_list) if where_list else or_(1 == 1)
 
 
-# 此函数是为了简化调用方式，但目前无法正常工作: https://github.com/fastapi/fastapi/discussions/14438
+# This function is meant to simplify the call style, but currently does not work: https://github.com/fastapi/fastapi/discussions/14438
 # def DataPermissionFilter(*models: type[Model] | AliasedClass | Alias | Table) -> type[ColumnElement[bool]]:
 #     """
-#     指定模型的数据权限过滤器
+#     Data permission filter for the specified models
 #
-#     :param models: 模型类（可选，支持多个）
+#     :param models: model classes (optional, multiple supported)
 #     :return:
 #     """
 #     return Annotated[ColumnElement[bool], Depends(partial(filter_data_permission, *models))]
 
 
 class DataPermissionFilter:
-    """指定模型的数据权限过滤器"""
+    """Data permission filter for the specified models"""
 
     def __init__(self, *models: type[Model] | AliasedClass | Alias | Table) -> None:
         self.models = models

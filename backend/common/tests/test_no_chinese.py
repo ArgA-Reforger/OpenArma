@@ -10,11 +10,24 @@ HAN_RE = re.compile(f'[{chr(0x4E00)}-{chr(0x9FFF)}{chr(0x3400)}-{chr(0x4DBF)}]')
 
 REPO_ROOT = BASE_PATH.parent
 
-TRANSLATED_PACKAGES = ['backend/app/admin', 'backend/plugin']
+TRANSLATED_PACKAGES = [
+    'backend/app/admin',
+    'backend/plugin',
+    'backend/common',
+    'backend/core',
+    'backend/middleware',
+    'backend/database',
+    'backend/alembic',
+    'backend/cli.py',
+    'backend/run.py',
+    'backend/main.py',
+]
 
 
 def _iter_py_files(package: str) -> list[Path]:
     package_dir = REPO_ROOT / package
+    if package_dir.is_file():
+        return [package_dir]
     return sorted(package_dir.rglob('*.py'))
 
 

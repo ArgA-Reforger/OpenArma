@@ -16,7 +16,7 @@ from backend.utils.serializers import MsgSpecJSONResponse
 
 
 class AuthenticationError(StarletteAuthenticationError):
-    """重写内部认证错误类"""
+    """Override the internal authentication error class"""
 
     def __init__(
         self,
@@ -26,11 +26,11 @@ class AuthenticationError(StarletteAuthenticationError):
         headers: dict[str, Any] | None = None,
     ) -> None:
         """
-        初始化认证错误
+        Initialize the authentication error
 
-        :param code: 错误码
-        :param msg: 错误信息
-        :param headers: 响应头
+        :param code: error code
+        :param msg: error message
+        :param headers: response headers
         :return:
         """
         self.code = code
@@ -39,15 +39,15 @@ class AuthenticationError(StarletteAuthenticationError):
 
 
 class JwtAuthMiddleware(AuthenticationBackend):
-    """JWT 认证中间件"""
+    """JWT authentication middleware"""
 
     @staticmethod
     def auth_exception_handler(conn: HTTPConnection, exc: AuthenticationError) -> Response:
         """
-        覆盖内部认证错误处理
+        Override the internal authentication error handling
 
-        :param conn: HTTP 连接对象
-        :param exc: 认证错误对象
+        :param conn: HTTP connection object
+        :param exc: authentication error object
         :return:
         """
         return MsgSpecJSONResponse(content={'code': exc.code, 'msg': exc.msg, 'data': None}, status_code=exc.code)
@@ -55,9 +55,9 @@ class JwtAuthMiddleware(AuthenticationBackend):
     @staticmethod
     def extract_token(request: Request) -> str | None:
         """
-        从请求中提取 Bearer Token
+        Extract the Bearer Token from the request
 
-        :param request: FastAPI 请求对象
+        :param request: FastAPI request object
         :return:
         """
         authorization = request.headers.get('Authorization')
@@ -79,9 +79,9 @@ class JwtAuthMiddleware(AuthenticationBackend):
 
     async def authenticate(self, request: Request) -> tuple[AuthCredentials, GetUserInfoWithRelationDetail] | None:
         """
-        认证请求
+        Authenticate the request
 
-        :param request: FastAPI 请求对象
+        :param request: FastAPI request object
         :return:
         """
         token = self.extract_token(request)
@@ -93,12 +93,12 @@ class JwtAuthMiddleware(AuthenticationBackend):
         except TokenError as exc:
             raise AuthenticationError(code=exc.code, msg=exc.detail, headers=exc.headers)
         except Exception as e:
-            log.exception(f'JWT 授权异常：{e}')
+            log.exception(f'JWT authorization exception: {e}')
             raise AuthenticationError(code=getattr(e, 'code', 500), msg=getattr(e, 'msg', 'Internal Server Error'))
 
-        # 设置用户 ID 到上下文
+        # Set the user ID in the context
         ctx.user_id = user.id
 
-        # 请注意，此返回使用非标准模式，所以在认证通过时，将丢失某些标准特性
-        # 标准返回模式请查看：https://www.starlette.io/authentication/
+        # Note: this return uses a non-standard mode, so some standard features are lost once authentication succeeds
+        # For the standard return mode, see: https://www.starlette.io/authentication/
         return AuthCredentials(['authenticated']), user

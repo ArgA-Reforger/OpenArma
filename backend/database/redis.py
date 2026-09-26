@@ -8,7 +8,7 @@ from backend.core.conf import settings
 
 
 class RedisCli(Redis):
-    """Redis 客户端"""
+    """Redis client"""
 
     def __init__(
         self,
@@ -24,17 +24,17 @@ class RedisCli(Redis):
         decode_responses: bool = True,
     ) -> None:
         """
-        初始化 Redis 客户端
+        Initialize the Redis client
 
-        :param host: Redis 服务器的主机地址
-        :param port: Redis 服务器的端口号
-        :param password: Redis 认证密码
-        :param db: 使用的 Redis 逻辑数据库索引
-        :param socket_timeout: Socket 读写操作的超时时间
-        :param socket_connect_timeout: 建立 TCP 连接时的超时时间
-        :param socket_keepalive: 是否开启 TCP Keepalive 探测
-        :param health_check_interval: 健康检查间隔时间（秒）
-        :param decode_responses: 是否自动将 Redis 返回的字节流（bytes）解码为字符串（utf-8）
+        :param host: Redis server host address
+        :param port: Redis server port number
+        :param password: Redis authentication password
+        :param db: Redis logical database index to use
+        :param socket_timeout: timeout for socket read/write operations
+        :param socket_connect_timeout: timeout when establishing the TCP connection
+        :param socket_keepalive: whether to enable TCP keepalive probing
+        :param health_check_interval: health check interval (seconds)
+        :param decode_responses: whether to automatically decode bytes returned by Redis into strings (utf-8)
         """
         super().__init__(
             host=host,
@@ -49,26 +49,26 @@ class RedisCli(Redis):
         )
 
     async def init(self) -> None:
-        """初始化 Redis 服务器"""
+        """Initialize the Redis server"""
         try:
             await self.ping()
         except TimeoutError:
-            log.error('Redis 服务器连接超时')
+            log.error('Redis server connection timed out')
             sys.exit()
         except AuthenticationError:
-            log.error('Redis 服务器连接认证失败')
+            log.error('Redis server connection authentication failed')
             sys.exit()
         except Exception as e:
-            log.error('Redis 服务器连接异常 %s', e)
+            log.error('Redis server connection exception %s', e)
             sys.exit()
 
     async def delete_prefix(self, prefix: str, exclude: str | list[str] | None = None, batch_size: int = 1000) -> None:
         """
-        删除指定前缀的所有 key
+        Delete all keys with the given prefix
 
-        :param prefix: 要删除的键前缀
-        :param exclude: 要排除的键或键列表
-        :param batch_size: 批量删除的大小，避免一次性删除过多键导致 Redis 阻塞
+        :param prefix: key prefix to delete
+        :param exclude: key or list of keys to exclude
+        :param batch_size: batch size for deletion, to avoid blocking Redis by deleting too many keys at once
         :return:
         """
         exclude_set = set(exclude) if isinstance(exclude, list) else {exclude} if isinstance(exclude, str) else set()
@@ -87,14 +87,14 @@ class RedisCli(Redis):
 
     async def get_prefix(self, prefix: str, count: int = 100) -> list[str]:
         """
-        获取指定前缀的所有 key
+        Get all keys with the given prefix
 
-        :param prefix: 要搜索的键前缀
-        :param count: 每次扫描批次的数量，值越大扫描速度越快，但会占用更多服务器资源
+        :param prefix: key prefix to search for
+        :param count: number of keys scanned per batch; a larger value scans faster but uses more server resources
         :return:
         """
         return [key async for key in self.scan_iter(match=f'{prefix}*', count=count)]
 
 
-# 创建 redis 客户端单例
+# Create the redis client singleton
 redis_client: RedisCli = RedisCli()

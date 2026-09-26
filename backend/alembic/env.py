@@ -68,7 +68,7 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     def process_revision_directives(context, revision, directives) -> None:  # noqa: ANN001
-        """当迁移无变化时，不生成迁移记录"""
+        """Don't generate a migration record when there are no changes to migrate"""
         if config.cmd_opts.autogenerate:
             script = directives[0]
             if script.upgrade_ops.is_empty():

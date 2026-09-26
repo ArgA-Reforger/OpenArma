@@ -17,13 +17,13 @@ from backend.utils.trace_id import get_request_trace_id
 
 def _get_exception_code(status_code: int) -> int:
     """
-    获取返回状态码（可用状态码基于 RFC 定义）
+    Get the returned status code (available status codes are based on the RFC definitions)
 
-    `python 状态码标准支持 <https://github.com/python/cpython/blob/6e3cc72afeaee2532b4327776501eb8234ac787b/Lib/http/__init__.py#L7>`__
+    `Python status code standard support <https://github.com/python/cpython/blob/6e3cc72afeaee2532b4327776501eb8234ac787b/Lib/http/__init__.py#L7>`__
 
-    `IANA 状态码注册表 <https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml>`__
+    `IANA status code registry <https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml>`__
 
-    :param status_code: HTTP 状态码
+    :param status_code: HTTP status code
     :return:
     """
     try:
@@ -36,14 +36,14 @@ def _get_exception_code(status_code: int) -> int:
 
 async def _validation_exception_handler(exc: RequestValidationError | ValidationError):
     """
-    数据验证异常处理
+    Data validation exception handling
 
-    :param exc: 验证异常
+    :param exc: validation exception
     :return:
     """
     errors = []
     for error in exc.errors():
-        # 非 en-US 语言下，使用自定义错误信息
+        # Use custom error messages for non-en-US languages
         if i18n.current_language != 'en-US':
             custom_message = t(f'pydantic.{error["type"]}')
             if custom_message:
@@ -58,20 +58,20 @@ async def _validation_exception_handler(exc: RequestValidationError | Validation
         errors.append(error)
     error = errors[0]
     if error.get('type') == 'json_invalid':
-        message = 'json解析失败'
+        message = 'Failed to parse JSON'
     else:
         error_input = error.get('input')
         field = str(error.get('loc')[-1])
         error_msg = error.get('msg')
-        message = f'{field} {error_msg}，输入：{error_input}' if settings.ENVIRONMENT == 'dev' else error_msg
-    msg = f'请求参数非法: {message}'
+        message = f'{field} {error_msg}, input: {error_input}' if settings.ENVIRONMENT == 'dev' else error_msg
+    msg = f'Invalid request parameters: {message}'
     data = {'errors': errors} if settings.ENVIRONMENT == 'dev' else None
     content = {
         'code': StandardResponseCode.HTTP_422,
         'msg': msg,
         'data': data,
     }
-    ctx.__request_validation_exception__ = content  # 用于在中间件中获取异常信息
+    ctx.__request_validation_exception__ = content  # Used to retrieve exception information in middleware
     content.update(trace_id=get_request_trace_id())
     return MsgSpecJSONResponse(status_code=StandardResponseCode.HTTP_422, content=content)
 
@@ -80,10 +80,10 @@ def register_exception(app: FastAPI) -> None:  # noqa: C901
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
         """
-        全局 HTTP 异常处理
+        Global HTTP exception handling
 
-        :param request: FastAPI 请求对象
-        :param exc: HTTP 异常
+        :param request: FastAPI request object
+        :param exc: HTTP exception
         :return:
         """
         if settings.ENVIRONMENT == 'dev':
@@ -106,10 +106,10 @@ def register_exception(app: FastAPI) -> None:  # noqa: C901
     @app.exception_handler(RequestValidationError)
     async def fastapi_validation_exception_handler(request: Request, exc: RequestValidationError):
         """
-        FastAPI 数据验证异常处理
+        FastAPI data validation exception handling
 
-        :param request: FastAPI 请求对象
-        :param exc: 验证异常
+        :param request: FastAPI request object
+        :param exc: validation exception
         :return:
         """
         return await _validation_exception_handler(exc)
@@ -117,10 +117,10 @@ def register_exception(app: FastAPI) -> None:  # noqa: C901
     @app.exception_handler(ValidationError)
     async def pydantic_validation_exception_handler(request: Request, exc: ValidationError):
         """
-        Pydantic 数据验证异常处理
+        Pydantic data validation exception handling
 
-        :param request: 请求对象
-        :param exc: 验证异常
+        :param request: request object
+        :param exc: validation exception
         :return:
         """
         return await _validation_exception_handler(exc)
@@ -128,10 +128,10 @@ def register_exception(app: FastAPI) -> None:  # noqa: C901
     @app.exception_handler(AssertionError)
     async def assertion_error_handler(request: Request, exc: AssertionError):
         """
-        断言错误处理
+        Assertion error handling
 
-        :param request: FastAPI 请求对象
-        :param exc: 断言错误
+        :param request: FastAPI request object
+        :param exc: assertion error
         :return:
         """
         if settings.ENVIRONMENT == 'dev':
@@ -153,10 +153,10 @@ def register_exception(app: FastAPI) -> None:  # noqa: C901
     @app.exception_handler(BaseExceptionError)
     async def custom_exception_handler(request: Request, exc: BaseExceptionError):
         """
-        全局自定义异常处理
+        Global custom exception handling
 
-        :param request: FastAPI 请求对象
-        :param exc: 自定义异常
+        :param request: FastAPI request object
+        :param exc: custom exception
         :return:
         """
         content = {
@@ -175,10 +175,10 @@ def register_exception(app: FastAPI) -> None:  # noqa: C901
     @app.exception_handler(Exception)
     async def all_unknown_exception_handler(request: Request, exc: Exception):
         """
-        全局未知异常处理
+        Global unknown exception handling
 
-        :param request: FastAPI 请求对象
-        :param exc: 未知异常
+        :param request: FastAPI request object
+        :param exc: unknown exception
         :return:
         """
         if settings.ENVIRONMENT == 'dev':
@@ -201,10 +201,10 @@ def register_exception(app: FastAPI) -> None:  # noqa: C901
         @app.exception_handler(StandardResponseCode.HTTP_500)
         async def cors_custom_code_500_exception_handler(request: Request, exc: BaseExceptionError | Exception):
             """
-            跨域自定义 500 异常处理
+            Cross-origin custom 500 exception handling
 
-            :param request: FastAPI 请求对象
-            :param exc: 自定义异常
+            :param request: FastAPI request object
+            :param exc: custom exception
             :return:
             """
             if isinstance(exc, BaseExceptionError):

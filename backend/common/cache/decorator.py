@@ -25,27 +25,30 @@ def _build_cache_key(
     *args: Any,
     **kwargs: Any,
 ) -> str:
-    """构建缓存 Key"""
+    """Build the cache key"""
     if key:
         if '.' in key:
             param, field = key.split('.', 1)
             value = kwargs.get(param)
             if value is None:
-                raise errors.ServerError(msg=f'缓存键构建失败，参数 "{param}" 不存在或值为空')
+                raise errors.ServerError(msg=f'Failed to build cache key: parameter "{param}" is missing or empty')
 
             if isinstance(value, list):
-                raise errors.ServerError(msg='缓存键构建失败：不支持从列表中提取字段，请使用 key_builder 处理列表参数')
+                raise errors.ServerError(
+                    msg='Failed to build cache key: extracting a field from a list is not supported, '
+                    'use key_builder to handle list parameters'
+                )
 
             if hasattr(value, field):
                 value = getattr(value, field)
             elif isinstance(value, dict) and field in value:
                 value = value[field]
             else:
-                raise errors.ServerError(msg=f'缓存键构建失败，对象中不存在字段 "{field}"')
+                raise errors.ServerError(msg=f'Failed to build cache key: field "{field}" does not exist on the object')
         else:
             value = kwargs.get(key)
             if value is None:
-                raise errors.ServerError(msg=f'缓存键构建失败，参数 "{key}" 不存在或值为空')
+                raise errors.ServerError(msg=f'Failed to build cache key: parameter "{key}" is missing or empty')
 
         return f'{name}:{value}'
 
@@ -57,16 +60,16 @@ def _build_cache_key(
 
 def _serialize_result(result: Any) -> bytes:
     """
-    序列化缓存结果
+    Serialize the cache result
 
-    :param result: 需要进行序列化的结果
+    :param result: result to serialize
     :return:
     """
-    # SQLAlchemy 查询表
+    # SQLAlchemy query table
     if hasattr(result, '__table__'):
         return json.encode(select_columns_serialize(result))
 
-    # SQLAlchemy 查询列表
+    # SQLAlchemy query list
     if (
         isinstance(result, Sequence)
         and not isinstance(result, (str, bytes))
@@ -75,15 +78,15 @@ def _serialize_result(result: Any) -> bytes:
     ):
         return json.encode(select_list_serialize(result))
 
-    # 基本类型
+    # Basic types
     return json.encode(result)
 
 
 def _deserialize_result(value: bytes) -> Any:
     """
-    反序列化缓存结果
+    Deserialize the cache result
 
-    :param value: 缓存结果
+    :param value: cache result
     :return:
     """
     try:
@@ -93,10 +96,10 @@ def _deserialize_result(value: bytes) -> Any:
 
 
 def user_key_builder() -> str:
-    """基于当前用户 ID 生成缓存 Key"""
+    """Generate a cache key based on the current user ID"""
     user_id = ctx.user_id
     if user_id is None:
-        raise errors.ServerError(msg='用户缓存键构建失败')
+        raise errors.ServerError(msg='Failed to build user cache key')
     return str(user_id)
 
 
@@ -107,49 +110,49 @@ def cached(  # noqa: C901
     key_builder: Callable[..., str] | None = None,
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
-    缓存装饰器
+    Cache decorator
 
-    :param name: 缓存名称（通常为缓存 Key 前缀）
-    :param key: 从方法参数中获取指定参数名的值作为缓存 Key，与 key_builder 互斥
-    :param key_builder: 自定义 Key 生成函数，与 key 互斥
+    :param name: cache name (usually the cache key prefix)
+    :param key: use the value of the named method parameter as the cache key, mutually exclusive with key_builder
+    :param key_builder: custom key generation function, mutually exclusive with key
     :return:
     """
     if key is not None and key_builder is not None:
-        raise errors.ServerError(msg='缓存 key 和 key_builder 不能同时使用')
+        raise errors.ServerError(msg='Cache key and key_builder cannot be used at the same time')
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:  # noqa: C901
         @functools.wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             cache_key = _build_cache_key(name, key, key_builder, *args, **kwargs)
 
-            # L1: 本地缓存
+            # L1: local cache
             if settings.CACHE_LOCAL_ENABLED:
                 local_value = local_cache_manager.get(cache_key)
                 if local_value is not None:
                     return local_value
 
-            # L2: Redis 缓存
+            # L2: Redis cache
             try:
                 redis_value = await redis_client.get(cache_key)
                 if redis_value is not None:
                     result = _deserialize_result(redis_value)
-                    # 回填 L1
+                    # Backfill L1
                     if settings.CACHE_LOCAL_ENABLED:
                         local_cache_manager.set(cache_key, result)
                     return result
             except Exception as e:
                 log.warning(f'[Cache] GET error: {e}')
 
-            # 缓存未命中
+            # Cache miss
             result = await func(*args, **kwargs)
 
             if result is not None:
                 try:
-                    # 回填 L1
+                    # Backfill L1
                     if settings.CACHE_LOCAL_ENABLED:
                         local_cache_manager.set(cache_key, result)
 
-                    # 回填 L2
+                    # Backfill L2
                     serialized_result = _serialize_result(result)
                     if settings.CACHE_REDIS_TTL:
                         await redis_client.setex(cache_key, settings.CACHE_REDIS_TTL, serialized_result)
@@ -173,44 +176,44 @@ def cache_invalidate(  # noqa: C901
     atomic: bool = True,
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
-    缓存失效装饰器
+    Cache invalidation decorator
 
-    :param name: 缓存名称（通常为缓存 Key 前缀）
-    :param key: 从方法参数中获取指定参数名的值作为缓存 Key，与 key_builder 互斥
-    :param key_builder: 自定义 Key 生成函数，与 key 互斥
-    :param atomic: 是否保证缓存原子性
+    :param name: cache name (usually the cache key prefix)
+    :param key: use the value of the named method parameter as the cache key, mutually exclusive with key_builder
+    :param key_builder: custom key generation function, mutually exclusive with key
+    :param atomic: whether to guarantee cache atomicity
     :return:
     """
     if key is not None and key_builder is not None:
-        raise errors.ServerError(msg='缓存 key 和 key_builder 不能同时使用')
+        raise errors.ServerError(msg='Cache key and key_builder cannot be used at the same time')
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             result = await func(*args, **kwargs)
 
-            # 尝试失效缓存
+            # Attempt to invalidate the cache
             invalidate_success = False
             invalidate_error = None
 
             try:
                 invalidate_key = _build_cache_key(name, key, key_builder, *args, **kwargs)
 
-                # L1 缓存失效
+                # L1 cache invalidation
                 if settings.CACHE_LOCAL_ENABLED:
                     if invalidate_key == name:
                         local_cache_manager.delete_prefix(invalidate_key)
                     else:
                         local_cache_manager.delete(invalidate_key)
 
-                # 广播失效消息（通知其他节点清除本地缓存）
+                # Broadcast the invalidation message (notify other nodes to clear their local cache)
                 if settings.CACHE_LOCAL_ENABLED:
                     if invalidate_key == name:
                         await cache_pubsub_manager.publish_invalidation(invalidate_key, is_delete_prefix=True)
                     else:
                         await cache_pubsub_manager.publish_invalidation(invalidate_key)
 
-                # L2 缓存失效
+                # L2 cache invalidation
                 if invalidate_key == name:
                     await redis_client.delete_prefix(invalidate_key)
                 else:
@@ -222,9 +225,11 @@ def cache_invalidate(  # noqa: C901
             else:
                 invalidate_success = True
 
-            # 原子性检查
+            # Atomicity check
             if atomic and not invalidate_success:
-                raise errors.ServerError(msg='缓存失效失败，数据可能不一致', data=invalidate_error)
+                raise errors.ServerError(
+                    msg='Cache invalidation failed, data may be inconsistent', data=invalidate_error
+                )
 
             return result
 
