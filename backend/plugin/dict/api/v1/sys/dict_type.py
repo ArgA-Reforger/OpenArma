@@ -19,16 +19,16 @@ from backend.plugin.dict.service.dict_type_service import dict_type_service
 router = APIRouter()
 
 
-@router.get('/all', summary='获取所有字典数据', dependencies=[DependsJwtAuth])
+@router.get('/all', summary='Get all dict data', dependencies=[DependsJwtAuth])
 async def get_all_dict_types(db: CurrentSession) -> ResponseSchemaModel[list[GetDictTypeDetail]]:
     data = await dict_type_service.get_all(db=db)
     return response_base.success(data=data)
 
 
-@router.get('/{pk}', summary='获取字典类型详情', dependencies=[DependsJwtAuth])
+@router.get('/{pk}', summary='Get dict type detail', dependencies=[DependsJwtAuth])
 async def get_dict_type(
     db: CurrentSession,
-    pk: Annotated[int, Path(description='字典类型 ID')],
+    pk: Annotated[int, Path(description='Dict type ID')],
 ) -> ResponseSchemaModel[GetDictTypeDetail]:
     data = await dict_type_service.get(db=db, pk=pk)
     return response_base.success(data=data)
@@ -36,7 +36,7 @@ async def get_dict_type(
 
 @router.get(
     '',
-    summary='分页获取所有字典类型',
+    summary='Get all dict types, paginated',
     dependencies=[
         DependsJwtAuth,
         DependsPagination,
@@ -44,8 +44,8 @@ async def get_dict_type(
 )
 async def get_dict_types_paginated(
     db: CurrentSession,
-    name: Annotated[str | None, Query(description='字典类型名称')] = None,
-    code: Annotated[str | None, Query(description='字典类型编码')] = None,
+    name: Annotated[str | None, Query(description='Dict type name')] = None,
+    code: Annotated[str | None, Query(description='Dict type code')] = None,
 ) -> ResponseSchemaModel[PageData[GetDictTypeDetail]]:
     page_data = await dict_type_service.get_list(db=db, name=name, code=code)
     return response_base.success(data=page_data)
@@ -53,7 +53,7 @@ async def get_dict_types_paginated(
 
 @router.post(
     '',
-    summary='创建字典类型',
+    summary='Create dict type',
     dependencies=[
         Depends(RequestPermission('dict:type:add')),
         DependsRBAC,
@@ -66,7 +66,7 @@ async def create_dict_type(db: CurrentSessionTransaction, obj: CreateDictTypePar
 
 @router.put(
     '/{pk}',
-    summary='更新字典类型',
+    summary='Update dict type',
     dependencies=[
         Depends(RequestPermission('dict:type:edit')),
         DependsRBAC,
@@ -74,7 +74,7 @@ async def create_dict_type(db: CurrentSessionTransaction, obj: CreateDictTypePar
 )
 async def update_dict_type(
     db: CurrentSessionTransaction,
-    pk: Annotated[int, Path(description='字典类型 ID')],
+    pk: Annotated[int, Path(description='Dict type ID')],
     obj: UpdateDictTypeParam,
 ) -> ResponseModel:
     count = await dict_type_service.update(db=db, pk=pk, obj=obj)
@@ -85,7 +85,7 @@ async def update_dict_type(
 
 @router.delete(
     '',
-    summary='批量删除字典类型',
+    summary='Batch delete dict types',
     dependencies=[
         Depends(RequestPermission('dict:type:del')),
         DependsRBAC,

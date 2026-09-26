@@ -14,15 +14,15 @@ from backend.plugin.errors import PluginInstallError
 
 
 def _is_in_virtualenv() -> bool:
-    """检测当前是否在虚拟环境中运行"""
+    """Detect whether currently running inside a virtual environment"""
     return hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
 
 
 def install_requirements(plugin: str | None) -> None:  # noqa: C901
     """
-    安装插件依赖
+    Install plugin dependencies
 
-    :param plugin: 指定插件名，否则检查所有插件
+    :param plugin: Specific plugin name, otherwise check all plugins
     :return:
     """
     plugins = [plugin] if plugin else get_plugins()
@@ -40,7 +40,7 @@ def install_requirements(plugin: str | None) -> None:  # noqa: C901
                         req = Requirement(line)
                         dependency = req.name.lower()
                     except Exception as e:
-                        raise PluginInstallError(f'插件 {plugin} 依赖 {line} 格式错误: {e!s}') from e
+                        raise PluginInstallError(f'Plugin {plugin} dependency {line} has an invalid format: {e!s}') from e
                     try:
                         distribution(dependency)
                     except PackageNotFoundError:
@@ -60,19 +60,19 @@ def install_requirements(plugin: str | None) -> None:  # noqa: C901
                     break
                 except subprocess.TimeoutExpired:
                     if attempt == max_retries - 1:
-                        raise PluginInstallError(f'插件 {plugin} 依赖安装超时')
+                        raise PluginInstallError(f'Plugin {plugin} dependency installation timed out')
                     continue
                 except subprocess.CalledProcessError as e:
                     if attempt == max_retries - 1:
-                        raise PluginInstallError(f'插件 {plugin} 依赖安装失败：{e}') from e
+                        raise PluginInstallError(f'Plugin {plugin} dependency installation failed: {e}') from e
                     continue
 
 
 def uninstall_requirements(plugin: str) -> None:
     """
-    卸载插件依赖
+    Uninstall plugin dependencies
 
-    :param plugin: 插件名称
+    :param plugin: Plugin name
     :return:
     """
     requirements_file = PLUGIN_DIR / plugin / 'requirements.txt'
@@ -83,14 +83,14 @@ def uninstall_requirements(plugin: str) -> None:
                 pip_uninstall.append('--system')
             subprocess.check_call(pip_uninstall, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError as e:
-            raise PluginInstallError(f'插件 {plugin} 依赖卸载失败：{e}') from e
+            raise PluginInstallError(f'Plugin {plugin} dependency uninstallation failed: {e}') from e
 
 
 async def install_requirements_async(plugin: str | None = None) -> None:
     """
-    异步安装插件依赖
+    Asynchronously install plugin dependencies
 
-    由于 Windows 平台限制，无法实现完美的全异步方案，详情：
+    Due to Windows platform limitations, a fully async solution isn't possible, see:
     https://stackoverflow.com/questions/44633458/why-am-i-getting-notimplementederror-with-async-and-await-on-windows
     """
     await run_in_threadpool(install_requirements, plugin)
@@ -98,9 +98,9 @@ async def install_requirements_async(plugin: str | None = None) -> None:
 
 async def uninstall_requirements_async(plugin: str) -> None:
     """
-    异步卸载插件依赖
+    Asynchronously uninstall plugin dependencies
 
-    :param plugin: 插件名称
+    :param plugin: Plugin name
     :return:
     """
     await run_in_threadpool(uninstall_requirements, plugin)

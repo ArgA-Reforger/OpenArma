@@ -8,57 +8,57 @@ from backend.plugin.code_generator.schema.column import CreateGenColumnParam, Up
 
 
 class CRUDGenColumn(CRUDPlus[GenColumn]):
-    """代码生成模型列 CRUD 类"""
+    """Code generator model column CRUD"""
 
     async def get(self, db: AsyncSession, pk: int) -> GenColumn | None:
         """
-        获取代码生成模型列
+        Get code generator model column
 
-        :param db: 数据库会话
-        :param pk: 代码生成模型 ID
+        :param db: Database session
+        :param pk: Code generator model ID
         :return:
         """
         return await self.select_model(db, pk)
 
     async def get_all_by_business(self, db: AsyncSession, business_id: int) -> Sequence[GenColumn]:
         """
-        获取所有代码生成模型列
+        Get all code generator model columns
 
-        :param db: 数据库会话
-        :param business_id: 业务 ID
+        :param db: Database session
+        :param business_id: Business ID
         :return:
         """
         return await self.select_models_order(db, sort_columns='sort', gen_business_id=business_id)
 
     async def create(self, db: AsyncSession, obj: CreateGenColumnParam, pd_type: str | None) -> None:
         """
-        创建代码生成模型列
+        Create code generator model column
 
-        :param db: 数据库会话
-        :param obj: 创建代码生成模型列参数
-        :param pd_type: Pydantic 类型
+        :param db: Database session
+        :param obj: Create code generator model column parameters
+        :param pd_type: Pydantic type
         :return:
         """
         await self.create_model(db, obj, pd_type=pd_type)
 
     async def update(self, db: AsyncSession, pk: int, obj: UpdateGenColumnParam, pd_type: str | None) -> int:
         """
-        更新代码生成模型列
+        Update code generator model column
 
-        :param db: 数据库会话
-        :param pk: 代码生成模型列 ID
-        :param obj: 更新代码生成模型列参数
-        :param pd_type: Pydantic 类型
+        :param db: Database session
+        :param pk: Code generator model column ID
+        :param obj: Update code generator model column parameters
+        :param pd_type: Pydantic type
         :return:
         """
         return await self.update_model(db, pk, obj, pd_type=pd_type)
 
     async def delete(self, db: AsyncSession, pk: int) -> int:
         """
-        删除代码生成模型列
+        Delete code generator model column
 
-        :param db: 数据库会话
-        :param pk: 代码生成模型列 ID
+        :param db: Database session
+        :param pk: Code generator model column ID
         :return:
         """
         return await self.delete_model(db, pk)

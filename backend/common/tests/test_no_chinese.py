@@ -10,7 +10,7 @@ HAN_RE = re.compile(f'[{chr(0x4E00)}-{chr(0x9FFF)}{chr(0x3400)}-{chr(0x4DBF)}]')
 
 REPO_ROOT = BASE_PATH.parent
 
-TRANSLATED_PACKAGES = ['backend/app/admin']
+TRANSLATED_PACKAGES = ['backend/app/admin', 'backend/plugin']
 
 
 def _iter_py_files(package: str) -> list[Path]:

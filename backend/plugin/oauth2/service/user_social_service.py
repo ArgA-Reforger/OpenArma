@@ -15,11 +15,11 @@ class UserSocialService:
     @staticmethod
     async def get_bindings(*, db: AsyncSession, user_id: int) -> list[str]:
         """
-        获取用户已绑定的社交账号
+        Get the social accounts already bound to the user
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :return: 绑定列表，每个元素包含 sid、source 等信息
+        :param db: Database session
+        :param user_id: User ID
+        :return: List of bindings, each item containing sid, source, etc.
         """
         bindings = await user_social_dao.get_by_user_id(db, user_id)
         return [binding.source for binding in bindings]
@@ -33,19 +33,19 @@ class UserSocialService:
         source: UserSocialType,
     ) -> None:
         """
-        通过 OAuth2 流程绑定用户社交账号
+        Bind a user's social account through the OAuth2 flow
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param sid: 社交账号唯一编码
-        :param source: 绑定源
+        :param db: Database session
+        :param user_id: User ID
+        :param sid: Social account unique ID
+        :param source: Binding source
         :return:
         """
         if await user_social_dao.check_binding(db, user_id, source.value):
-            raise errors.RequestError(msg=f'用户已绑定 {source.value} 账号')
+            raise errors.RequestError(msg=f'User has already bound a {source.value} account')
 
         if await user_social_dao.get_by_sid(db, sid, source.value):
-            raise errors.RequestError(msg=f'该 {source.value} 账号已被其他用户绑定')
+            raise errors.RequestError(msg=f'This {source.value} account is already bound to another user')
 
         new_user_social = CreateUserSocialParam(sid=sid, source=source.value, user_id=user_id)
         await user_social_dao.create(db, new_user_social)
@@ -53,16 +53,16 @@ class UserSocialService:
     @staticmethod
     async def unbinding(*, db: AsyncSession, user_id: int, source: UserSocialType) -> int:
         """
-        解绑用户社交账号
+        Unbind a user's social account
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param source: 解绑源
+        :param db: Database session
+        :param user_id: User ID
+        :param source: Unbinding source
         :return:
         """
         bind = await user_social_dao.check_binding(db, user_id, source.value)
         if not bind:
-            raise errors.NotFoundError(msg=f'用户未绑定 {source.value} 账号')
+            raise errors.NotFoundError(msg=f'User has not bound a {source.value} account')
         return await user_social_dao.delete(db, user_id, source.value)
 
     @staticmethod
@@ -91,7 +91,7 @@ class UserSocialService:
                     state=state,
                 )
             case _:
-                raise errors.ForbiddenError(msg=f'暂不支持 {source} 绑定')
+                raise errors.ForbiddenError(msg=f'Binding for {source} is not supported yet')
 
         return auth_url
 
