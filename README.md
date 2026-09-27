@@ -19,6 +19,8 @@
 
 <a id="español"></a>
 
+> **Nota:** Este repositorio es un fork modificado del proyecto original [OpenArma](https://github.com/chenhaha99/OpenArma), mantenido por [ArgA-Reforger](https://github.com/ArgA-Reforger).
+
 <div align="center">
 <img src="docs/images/intro.png" alt="Presentación del proyecto OpenArma" width="800">
 </div>
@@ -138,9 +140,9 @@ Estas lecciones se guardan en una base de conocimiento y se vectorizan. En la si
 
 | Mod | Descripción | Repositorio |
 |:---|:---|:---|
-| **OpenArma Mod Main** | Mod principal — runtime del comandante de IA | [GitHub](https://github.com/chenhaha99/OpenArma-Mod-Main) |
-| **OpenArma Mod MapExporter** | Exportación de datos de mapa desde Workbench | [GitHub](https://github.com/chenhaha99/OpenArma-Mod-MapExporter) |
-| **OpenArma Mod MapScanner** | Escaneo de mapa dentro del juego | [GitHub](https://github.com/chenhaha99/OpenArma-Mod-MapScanner) |
+| **OpenArma Mod Main** | Mod principal — runtime del comandante de IA | [GitHub](https://github.com/ArgA-Reforger/OpenArma-Mod-Main) |
+| **OpenArma Mod MapExporter** | Exportación de datos de mapa desde Workbench | [GitHub](https://github.com/ArgA-Reforger/OpenArma-Mod-MapExporter) |
+| **OpenArma Mod MapScanner** | Escaneo de mapa dentro del juego | [GitHub](https://github.com/ArgA-Reforger/OpenArma-Mod-MapScanner) |
 
 ## 🏗️ Arquitectura del sistema
 
@@ -279,6 +281,8 @@ Este proyecto es de código abierto bajo la [Licencia MIT](LICENSE).
 
 </div>
 
+> **Note:** This repository is a modified fork of the original [OpenArma](https://github.com/chenhaha99/OpenArma) project, maintained by [ArgA-Reforger](https://github.com/ArgA-Reforger).
+
 ## ⚡ Overview
 
 Imagine you've built an AI military assistant — it's hard to prove it works by having it fight a real war.
@@ -390,9 +394,9 @@ These lessons are stored in a knowledge base and vectorized. On the next mission
 
 | Mod | Description | Repository |
 |:---|:---|:---|
-| **Main** | Core mod — AI commander runtime | [GitHub](https://github.com/chenhaha99/OpenArma-Mod-Main) |
-| **MapExporter** | Workbench map data export | [GitHub](https://github.com/chenhaha99/OpenArma-Mod-MapExporter) |
-| **MapScanner** | In-game map scanning | [GitHub](https://github.com/chenhaha99/OpenArma-Mod-MapScanner) |
+| **Main** | Core mod — AI commander runtime | [GitHub](https://github.com/ArgA-Reforger/OpenArma-Mod-Main) |
+| **MapExporter** | Workbench map data export | [GitHub](https://github.com/ArgA-Reforger/OpenArma-Mod-MapExporter) |
+| **MapScanner** | In-game map scanning | [GitHub](https://github.com/ArgA-Reforger/OpenArma-Mod-MapScanner) |
 
 ## 🏗️ System Architecture
 
