@@ -8,7 +8,7 @@ networks:
         - subnet: 172.10.10.0/24
 
 volumes:
-  # 如果你是 mysql 用户，应将 fba_postgres 修改为 fba_mysql
+  # If you are a MySQL user, change fba_postgres to fba_mysql
   fba_postgres:
     name: fba_postgres
   fba_redis:
@@ -34,7 +34,7 @@ services:
     restart: always
     environment:
       - TZ=Asia/Shanghai
-    # 如果你是 mysql 用户，应将 fba_postgres 修改为 fba_mysql
+    # If you are a MySQL user, change fba_postgres to fba_mysql
     depends_on:
       - fba_postgres
       - fba_redis
@@ -45,7 +45,7 @@ services:
       - ${DOCKER_FBA_SERVER_LOG:-./logs/fba}:/var/log/fba
     networks:
       - fba_network
-    # 如果你是 mysql 用户，应将 fba_postgres:5432 修改为 fba_mysql:3306
+    # If you are a MySQL user, change fba_postgres:5432 to fba_mysql:3306
     command:
       - bash
       - -c
@@ -77,7 +77,7 @@ services:
       - -c
       - log_disconnections=on
 
-#  # 如果你是 mysql 用户，应保留 fba_mysql 容器脚本并删除 fba_postgres 容器脚本
+#  # If you are a MySQL user, keep the fba_mysql container script and remove the fba_postgres container script
 #  fba_mysql:
 #    image: mysql:8.0.41
 #    ports:
@@ -165,7 +165,7 @@ services:
       args:
         - SERVER_TYPE=fba_celery_worker
     image: fba_celery_worker:latest
-    # 如果你需要分布式部署 Worker，则必须移除此 container_name 配置
+    # If you need to deploy Workers in a distributed setup, you must remove this container_name configuration
     container_name: fba_celery_worker
     restart: always
     environment:

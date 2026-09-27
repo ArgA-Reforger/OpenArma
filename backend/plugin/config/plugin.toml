@@ -11,4 +11,4 @@ extend = "admin"
 
 [api.config]
 prefix = "/configs"
-tags = "系统参数配置"
+tags = "System Parameters"

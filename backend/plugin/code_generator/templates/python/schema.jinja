@@ -23,7 +23,7 @@ from backend.common.schema import SchemaBase
 
 
 class {{ schema_name }}SchemaBase(SchemaBase):
-    """{{ doc_comment }}基础模型"""
+    """{{ doc_comment }} base model"""
     {% for model in models %}
     {{ model.name }}: {% if model.is_nullable %}{{ model.pd_type }} | None = Field(None, description='{{ model.comment }}'){% else %}{{ model.pd_type }} = Field(description='{{ model.comment }}'){% endif %}
 
@@ -31,21 +31,21 @@ class {{ schema_name }}SchemaBase(SchemaBase):
 
 
 class Create{{ schema_name }}Param({{ schema_name }}SchemaBase):
-    """创建{{ doc_comment }}参数"""
+    """Create {{ doc_comment }} params"""
 
 
 class Update{{ schema_name }}Param({{ schema_name }}SchemaBase):
-    """更新{{ doc_comment }}参数"""
+    """Update {{ doc_comment }} params"""
 
 
 class Delete{{ schema_name }}Param(SchemaBase):
-    """删除{{ doc_comment }}参数"""
+    """Delete {{ doc_comment }} params"""
 
-    pks: list[int] = Field(description='{{ doc_comment }} ID 列表')
+    pks: list[int] = Field(description='{{ doc_comment }} ID list')
 
 
 class Get{{ schema_name }}Detail({{ schema_name }}SchemaBase):
-    """{{ doc_comment }}详情"""
+    """{{ doc_comment }} detail"""
 
     model_config = ConfigDict(from_attributes=True)
 

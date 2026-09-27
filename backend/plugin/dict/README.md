@@ -1,3 +1,3 @@
 # Dict
 
-数据字典插件，通常用于约束前端工程数据展示
+Data dictionary plugin, typically used to standardize data display in frontend projects.
