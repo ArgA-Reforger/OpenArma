@@ -73,7 +73,11 @@ async def build_history(
             pass
         elif llm_config and total > threshold:
             summary_text = await _generate_summary(
-                db, conversation_id, context_window, llm_config, is_arma,
+                db,
+                conversation_id,
+                context_window,
+                llm_config,
+                is_arma,
             )
             if summary_text:
                 await _save_summary(db, conversation_id, summary_text, total - context_window)
@@ -159,7 +163,9 @@ async def _generate_summary(
         if summary:
             log.info(
                 'Generated context summary for conv=%s (%s older msgs → %s chars)',
-                conversation_id, len(older_messages), len(summary),
+                conversation_id,
+                len(older_messages),
+                len(summary),
             )
         return summary or None
     except Exception:
@@ -176,13 +182,15 @@ async def _save_summary(
     """Persist the summary as a system message with context_summary metadata."""
     from backend.app.conversation.model.message import Message
 
-    db.add(Message(
-        conversation_id=conversation_id,
-        role='system',
-        content=summary_text,
-        metadata_={
-            'type': 'context_summary',
-            'summarized_count': summarized_count,
-        },
-    ))
+    db.add(
+        Message(
+            conversation_id=conversation_id,
+            role='system',
+            content=summary_text,
+            metadata_={
+                'type': 'context_summary',
+                'summarized_count': summarized_count,
+            },
+        )
+    )
     await db.flush()

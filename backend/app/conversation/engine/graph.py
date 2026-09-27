@@ -5,17 +5,19 @@ import asyncio
 import json
 import logging
 import time
+
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
 from langgraph.graph import END, StateGraph
 
-from backend.app.conversation.engine.llm import acompletion, acompletion_stream
+from backend.app.conversation.engine.llm import acompletion
 
 log = logging.getLogger(__name__)
 
 MAX_TOOL_ROUNDS = 10
+OLLAMA_NUM_CTX = 32768
 
 
 def _extract_usage(usage_obj) -> dict:
@@ -38,6 +40,7 @@ def _extract_usage(usage_obj) -> dict:
         if reasoning:
             result['reasoning_tokens'] = reasoning
     return result
+
 
 _SENTINEL = object()
 
@@ -123,9 +126,7 @@ class ConversationState:
     _tool_call_log: list[dict] = field(default_factory=list)
 
 
-def _build_system_message_from_parts(
-    system_prompt: str, rules: list[str], rag_context: str
-) -> dict:
+def _build_system_message_from_parts(system_prompt: str, rules: list[str], rag_context: str) -> dict:
     parts = []
     if system_prompt:
         parts.append(system_prompt)
@@ -146,6 +147,13 @@ def _optional_llm_params(obj: AgentConfig | ConversationState) -> dict:
         params['presence_penalty'] = obj.presence_penalty
     if obj.frequency_penalty is not None:
         params['frequency_penalty'] = obj.frequency_penalty
+    if obj.provider_type == 'ollama':
+        # Ollama defaults num_ctx to whatever the Modelfile declares (often 4096),
+        # which is too small for Arma situation reports + history. Ask for more room.
+        params['num_ctx'] = OLLAMA_NUM_CTX
+        # Extended reasoning models otherwise spend thousands of tokens "thinking"
+        # before emitting the tactical response, blowing past the decision interval.
+        params['think'] = False
     return params
 
 
@@ -175,7 +183,7 @@ def _sanitize_tool_messages(history: list[dict]) -> list[dict]:
         if msg.get('role') == 'assistant' and msg.get('tool_calls'):
             expected_ids = {tc['id'] for tc in msg['tool_calls'] if tc.get('id')}
             found_ids = set()
-            for later in cleaned[i + 1:]:
+            for later in cleaned[i + 1 :]:
                 if later.get('role') == 'tool' and later.get('tool_call_id') in expected_ids:
                     found_ids.add(later['tool_call_id'])
                 elif later.get('role') != 'tool':
@@ -189,11 +197,7 @@ def _sanitize_tool_messages(history: list[dict]) -> list[dict]:
 
 
 def _build_messages(state: ConversationState) -> list[dict]:
-    messages = [
-        _build_system_message_from_parts(
-            state.system_prompt, state.rules, state.rag_context
-        )
-    ]
+    messages = [_build_system_message_from_parts(state.system_prompt, state.rules, state.rag_context)]
     messages.extend(_sanitize_tool_messages(state.history))
     if state.user_input:
         messages.append({'role': 'user', 'content': state.user_input})
@@ -203,11 +207,7 @@ def _build_messages(state: ConversationState) -> list[dict]:
 def _build_messages_for_agent(
     config: AgentConfig, history: list[dict], user_input: str, rag_context: str
 ) -> list[dict]:
-    messages = [
-        _build_system_message_from_parts(
-            config.system_prompt, config.rules, rag_context
-        )
-    ]
+    messages = [_build_system_message_from_parts(config.system_prompt, config.rules, rag_context)]
     messages.extend(history)
     if user_input:
         messages.append({'role': 'user', 'content': user_input})
@@ -215,31 +215,33 @@ def _build_messages_for_agent(
 
 
 def _build_openai_tools(tools: list[dict]) -> list[dict]:
-    openai_tools = []
-    for tool in tools:
-        openai_tools.append({
+    openai_tools = [
+        {
             'type': 'function',
             'function': {
                 'name': tool['name'],
                 'description': tool.get('description', ''),
                 'parameters': tool.get('input_schema', {}),
             },
-        })
+        }
+        for tool in tools
+    ]
     return openai_tools
 
 
 def _build_tool_call_history(message) -> list[dict]:
     assistant_msg: dict[str, Any] = {'role': 'assistant', 'content': message.content or ''}
-    tool_calls_data = []
-    for tc in message.tool_calls:
-        tool_calls_data.append({
+    tool_calls_data = [
+        {
             'id': tc.id,
             'type': 'function',
             'function': {
                 'name': tc.function.name,
                 'arguments': tc.function.arguments,
             },
-        })
+        }
+        for tc in message.tool_calls
+    ]
     assistant_msg['tool_calls'] = tool_calls_data
     return [assistant_msg]
 
@@ -254,12 +256,16 @@ async def _push_event(state: ConversationState, event: dict) -> None:
 # Single-Agent node (supports streaming output + tool call loop)
 # ---------------------------------------------------------------------------
 
+
 async def agent_node(state: ConversationState) -> dict[str, Any]:
     """Agent execution node: streams the LLM call, supports a tool call loop."""
     messages = _build_messages(state)
 
     if state._tool_rounds > 0:
-        roles = [f"{m.get('role')}({'tc:' + str(len(m.get('tool_calls', []))) if m.get('tool_calls') else m.get('tool_call_id', '')[:8] if m.get('role') == 'tool' else ''})" for m in messages]
+        roles = [
+            f'{m.get("role")}({"tc:" + str(len(m.get("tool_calls", []))) if m.get("tool_calls") else m.get("tool_call_id", "")[:8] if m.get("role") == "tool" else ""})'
+            for m in messages
+        ]
         log.debug(f'agent_node round={state._tool_rounds} messages=[{", ".join(roles)}]')
 
     kwargs: dict[str, Any] = _optional_llm_params(state)
@@ -341,14 +347,16 @@ async def agent_node(state: ConversationState) -> dict[str, Any]:
                 full_content.append(content)
                 await _push_event(state, {'type': 'token', 'content': content})
             if msg.tool_calls:
-                for tc in msg.tool_calls:
-                    tool_calls_raw.append({
+                tool_calls_raw.extend(
+                    {
                         'id': tc.id,
                         'function': {
                             'name': tc.function.name,
                             'arguments': tc.function.arguments,
                         },
-                    })
+                    }
+                    for tc in msg.tool_calls
+                )
             if fallback.usage:
                 usage = _extract_usage(fallback.usage)
     except Exception as e:
@@ -363,10 +371,7 @@ async def agent_node(state: ConversationState) -> dict[str, Any]:
         assistant_msg: dict[str, Any] = {
             'role': 'assistant',
             'content': ''.join(full_content),
-            'tool_calls': [
-                {'id': tc['id'], 'type': 'function', 'function': tc['function']}
-                for tc in tool_calls_raw
-            ],
+            'tool_calls': [{'id': tc['id'], 'type': 'function', 'function': tc['function']} for tc in tool_calls_raw],
         }
         new_history = list(state.history)
         if state.user_input:
@@ -380,15 +385,18 @@ async def agent_node(state: ConversationState) -> dict[str, Any]:
             '_tool_rounds': state._tool_rounds + 1,
         }
 
-    await _push_event(state, {
-        'type': 'usage',
-        'model_name': state.model_name,
-        'provider_type': state.provider_type,
-        'status': call_status,
-        'error_message': error_msg,
-        'duration_ms': duration_ms,
-        **usage,
-    })
+    await _push_event(
+        state,
+        {
+            'type': 'usage',
+            'model_name': state.model_name,
+            'provider_type': state.provider_type,
+            'status': call_status,
+            'error_message': error_msg,
+            'duration_ms': duration_ms,
+            **usage,
+        },
+    )
 
     return {'response': ''.join(full_content), 'usage': usage}
 
@@ -397,6 +405,7 @@ def _resolve_display_name(tool_name: str) -> str:
     """Resolve human-readable display name from builtin registry."""
     try:
         from backend.app.conversation.engine.builtin_tools import builtin_registry
+
         tool_def = builtin_registry.get(tool_name)
         if tool_def and tool_def.display_name:
             return tool_def.display_name
@@ -431,7 +440,9 @@ def _log_tool_call(
     if error:
         entry['error'] = error[:500]
     state._tool_call_log.append(entry)
-    log.info(f'Tool call: {tool_name}({tool_type}) round={state._tool_rounds} {status} {duration_ms}ms result_len={len(result_text)}')
+    log.info(
+        f'Tool call: {tool_name}({tool_type}) round={state._tool_rounds} {status} {duration_ms}ms result_len={len(result_text)}'
+    )
 
 
 async def _execute_tool_call(
@@ -464,23 +475,29 @@ async def _execute_tool_call(
     builtin_handler = state.builtin_tool_handlers.get(tool_name)
     if builtin_handler:
         try:
-            await _push_event(state, {
-                'type': 'tool_call',
-                'tool_name': tool_name,
-                'tool_type': 'builtin',
-                'display_name': display_name,
-                'arguments': arguments,
-            })
+            await _push_event(
+                state,
+                {
+                    'type': 'tool_call',
+                    'tool_name': tool_name,
+                    'tool_type': 'builtin',
+                    'display_name': display_name,
+                    'arguments': arguments,
+                },
+            )
             result = await builtin_handler(**arguments)
             result_text = str(result)
             ms = int((time.monotonic() - t0) * 1000)
-            await _push_event(state, {
-                'type': 'tool_result',
-                'tool_name': tool_name,
-                'tool_type': 'builtin',
-                'display_name': display_name,
-                'result': result_text[:500],
-            })
+            await _push_event(
+                state,
+                {
+                    'type': 'tool_result',
+                    'tool_name': tool_name,
+                    'tool_type': 'builtin',
+                    'display_name': display_name,
+                    'result': result_text[:500],
+                },
+            )
             _log_tool_call(state, tool_name, 'builtin', arguments, result_text, ms)
             return result_text
         except Exception as e:
@@ -494,13 +511,16 @@ async def _execute_tool_call(
         try:
             from backend.app.mcp.service.mcp_client import call_tool
 
-            await _push_event(state, {
-                'type': 'tool_call',
-                'tool_name': tool_name,
-                'tool_type': 'mcp',
-                'display_name': display_name,
-                'arguments': arguments,
-            })
+            await _push_event(
+                state,
+                {
+                    'type': 'tool_call',
+                    'tool_name': tool_name,
+                    'tool_type': 'mcp',
+                    'display_name': display_name,
+                    'arguments': arguments,
+                },
+            )
             result = await call_tool(
                 mcp_config['transport_type'],
                 mcp_config['connection_config'],
@@ -509,13 +529,16 @@ async def _execute_tool_call(
             )
             result_text = str(result)
             ms = int((time.monotonic() - t0) * 1000)
-            await _push_event(state, {
-                'type': 'tool_result',
-                'tool_name': tool_name,
-                'tool_type': 'mcp',
-                'display_name': display_name,
-                'result': result_text[:500],
-            })
+            await _push_event(
+                state,
+                {
+                    'type': 'tool_result',
+                    'tool_name': tool_name,
+                    'tool_type': 'mcp',
+                    'display_name': display_name,
+                    'result': result_text[:500],
+                },
+            )
             _log_tool_call(state, tool_name, 'mcp', arguments, result_text, ms)
             return result_text
         except Exception as e:
@@ -570,7 +593,7 @@ def _should_call_tools(state: ConversationState) -> str:
         return END
     expected_ids = {tc['id'] for tc in state.history[last_assistant_idx]['tool_calls']}
     found_ids = set()
-    for msg in state.history[last_assistant_idx + 1:]:
+    for msg in state.history[last_assistant_idx + 1 :]:
         if msg.get('role') == 'tool' and msg.get('tool_call_id') in expected_ids:
             found_ids.add(msg['tool_call_id'])
     if found_ids >= expected_ids:
@@ -581,6 +604,7 @@ def _should_call_tools(state: ConversationState) -> str:
 # ---------------------------------------------------------------------------
 # Multi-Agent node
 # ---------------------------------------------------------------------------
+
 
 async def _execute_agent_tool_calls(
     cfg: AgentConfig,
@@ -605,10 +629,15 @@ async def _execute_agent_tool_calls(
         tc_config = cfg.tool_configs.get(tool_name, {})
         if builtin_h:
             try:
-                await _push_event(state, {
-                    'type': 'tool_call', 'tool_name': tool_name,
-                    'tool_type': 'builtin', 'agent_id': cfg.agent_id,
-                })
+                await _push_event(
+                    state,
+                    {
+                        'type': 'tool_call',
+                        'tool_name': tool_name,
+                        'tool_type': 'builtin',
+                        'agent_id': cfg.agent_id,
+                    },
+                )
                 result = await builtin_h(**arguments)
                 results.append(f'[Tool: {tool_name}] {result}')
             except Exception:
@@ -617,10 +646,16 @@ async def _execute_agent_tool_calls(
         elif tc_config:
             try:
                 from backend.app.mcp.service.mcp_client import call_tool
-                await _push_event(state, {
-                    'type': 'tool_call', 'tool_name': tool_name,
-                    'tool_type': 'mcp', 'agent_id': cfg.agent_id,
-                })
+
+                await _push_event(
+                    state,
+                    {
+                        'type': 'tool_call',
+                        'tool_name': tool_name,
+                        'tool_type': 'mcp',
+                        'agent_id': cfg.agent_id,
+                    },
+                )
                 result = await call_tool(
                     tc_config['transport_type'],
                     tc_config['connection_config'],
@@ -654,7 +689,13 @@ async def _agent_llm_with_tool_loop(
     if tool_defs:
         kwargs['tools'] = tool_defs
 
-    cumulative_usage: dict = {'prompt_tokens': 0, 'completion_tokens': 0, 'total_tokens': 0, 'cached_tokens': 0, 'reasoning_tokens': 0}
+    cumulative_usage: dict = {
+        'prompt_tokens': 0,
+        'completion_tokens': 0,
+        'total_tokens': 0,
+        'cached_tokens': 0,
+        'reasoning_tokens': 0,
+    }
 
     for _round in range(MAX_TOOL_ROUNDS):
         full_content: list[str] = []
@@ -720,11 +761,13 @@ async def _agent_llm_with_tool_loop(
                 full_content.append(msg.content)
                 await _push_event(state, {'type': 'token', 'content': msg.content, **extra})
             if msg.tool_calls:
-                for tc in msg.tool_calls:
-                    tool_calls_raw.append({
+                tool_calls_raw.extend(
+                    {
                         'id': tc.id,
                         'function': {'name': tc.function.name, 'arguments': tc.function.arguments},
-                    })
+                    }
+                    for tc in msg.tool_calls
+                )
             if fallback.usage:
                 usage = _extract_usage(fallback.usage)
 
@@ -742,10 +785,7 @@ async def _agent_llm_with_tool_loop(
         messages.append({
             'role': 'assistant',
             'content': assistant_content,
-            'tool_calls': [
-                {'id': tc['id'], 'type': 'function', 'function': tc['function']}
-                for tc in tool_calls_raw
-            ],
+            'tool_calls': [{'id': tc['id'], 'type': 'function', 'function': tc['function']} for tc in tool_calls_raw],
         })
         for i, tc in enumerate(tool_calls_raw):
             messages.append({
@@ -765,15 +805,16 @@ def _make_agent_executor(config_index: int) -> Callable:
             return {}
 
         cfg = AgentConfig(**state.agent_configs[config_index])
-        messages = _build_messages_for_agent(
-            cfg, state.history, state.user_input, state.rag_context
-        )
+        messages = _build_messages_for_agent(cfg, state.history, state.user_input, state.rag_context)
 
-        await _push_event(state, {
-            'type': 'agent_start',
-            'agent_id': cfg.agent_id,
-            'agent_name': cfg.agent_name,
-        })
+        await _push_event(
+            state,
+            {
+                'type': 'agent_start',
+                'agent_id': cfg.agent_id,
+                'agent_name': cfg.agent_name,
+            },
+        )
 
         call_status = 'success'
         error_msg: str | None = None
@@ -781,7 +822,9 @@ def _make_agent_executor(config_index: int) -> Callable:
 
         try:
             output_text, usage = await _agent_llm_with_tool_loop(
-                cfg, messages, state,
+                cfg,
+                messages,
+                state,
                 event_extra={'agent_id': cfg.agent_id},
             )
         except Exception as e:
@@ -793,26 +836,32 @@ def _make_agent_executor(config_index: int) -> Callable:
 
         duration_ms = int((time.monotonic() - t0) * 1000)
 
-        await _push_event(state, {
-            'type': 'usage',
-            'agent_id': cfg.agent_id,
-            'agent_name': cfg.agent_name,
-            'model_name': cfg.model_name,
-            'provider_type': cfg.provider_type,
-            'status': call_status,
-            'error_message': error_msg,
-            'duration_ms': duration_ms,
-            **usage,
-        })
+        await _push_event(
+            state,
+            {
+                'type': 'usage',
+                'agent_id': cfg.agent_id,
+                'agent_name': cfg.agent_name,
+                'model_name': cfg.model_name,
+                'provider_type': cfg.provider_type,
+                'status': call_status,
+                'error_message': error_msg,
+                'duration_ms': duration_ms,
+                **usage,
+            },
+        )
 
         agent_outputs = dict(state.agent_outputs)
         agent_outputs[cfg.agent_id] = output_text
 
-        await _push_event(state, {
-            'type': 'agent_end',
-            'agent_id': cfg.agent_id,
-            'agent_name': cfg.agent_name,
-        })
+        await _push_event(
+            state,
+            {
+                'type': 'agent_end',
+                'agent_id': cfg.agent_id,
+                'agent_name': cfg.agent_name,
+            },
+        )
 
         return {'agent_outputs': agent_outputs}
 
@@ -859,7 +908,7 @@ async def coordinator_node(state: ConversationState) -> dict[str, Any]:
 
     base_system = state.coordinator_prompt or (
         'You are a coordinator synthesizing multiple expert analyses. '
-        'Review each expert\'s output below. Identify key agreements, contradictions, '
+        "Review each expert's output below. Identify key agreements, contradictions, "
         'potential blind spots, and biases. Produce a comprehensive, balanced synthesis '
         'that integrates the strongest insights from all experts.'
     )
@@ -879,16 +928,22 @@ async def coordinator_node(state: ConversationState) -> dict[str, Any]:
 
     messages = [
         {'role': 'system', 'content': coordinator_system},
-        {'role': 'user', 'content': f'Here are the expert analyses:\n\n{combined}\n\nPlease synthesize these into a comprehensive response.'},
+        {
+            'role': 'user',
+            'content': f'Here are the expert analyses:\n\n{combined}\n\nPlease synthesize these into a comprehensive response.',
+        },
     ]
 
     cfg = AgentConfig(**state.agent_configs[0]) if state.agent_configs else AgentConfig()
 
-    await _push_event(state, {
-        'type': 'coordinator_start',
-        'round': current_round,
-        'max_rounds': max_rounds,
-    })
+    await _push_event(
+        state,
+        {
+            'type': 'coordinator_start',
+            'round': current_round,
+            'max_rounds': max_rounds,
+        },
+    )
 
     full_content: list[str] = []
     usage: dict = {}
@@ -950,33 +1005,39 @@ async def coordinator_node(state: ConversationState) -> dict[str, Any]:
 
     duration_ms = int((time.monotonic() - t0) * 1000)
 
-    await _push_event(state, {
-        'type': 'usage',
-        'role': 'coordinator',
-        'model_name': cfg.model_name,
-        'provider_type': cfg.provider_type,
-        'status': call_status,
-        'error_message': error_msg,
-        'duration_ms': duration_ms,
-        **usage,
-    })
+    await _push_event(
+        state,
+        {
+            'type': 'usage',
+            'role': 'coordinator',
+            'model_name': cfg.model_name,
+            'provider_type': cfg.provider_type,
+            'status': call_status,
+            'error_message': error_msg,
+            'duration_ms': duration_ms,
+            **usage,
+        },
+    )
 
     result_text = ''.join(full_content)
     updates: dict[str, Any] = {'_coordination_round': current_round}
 
     if result_text.startswith('[NEEDS_MORE]') and current_round < max_rounds:
-        follow_up = result_text[len('[NEEDS_MORE]'):].strip()
-        await _push_event(state, {
-            'type': 'coordinator_followup',
-            'round': current_round,
-            'content': follow_up,
-        })
+        follow_up = result_text[len('[NEEDS_MORE]') :].strip()
+        await _push_event(
+            state,
+            {
+                'type': 'coordinator_followup',
+                'round': current_round,
+                'content': follow_up,
+            },
+        )
         updates['user_input'] = follow_up
         updates['agent_outputs'] = {}
         updates['response'] = result_text
     else:
         if result_text.startswith('[NEEDS_MORE]'):
-            result_text = result_text[len('[NEEDS_MORE]'):].strip()
+            result_text = result_text[len('[NEEDS_MORE]') :].strip()
         updates['response'] = result_text
 
     await _push_event(state, {'type': 'coordinator_end', 'round': current_round})
@@ -1002,7 +1063,10 @@ async def aggregator_node(state: ConversationState) -> dict[str, Any]:
     cfg = AgentConfig(**state.agent_configs[0]) if state.agent_configs else AgentConfig()
 
     summary_messages = [
-        {'role': 'system', 'content': 'Summarize the following expert analyses into a concise, actionable conclusion. Preserve key details from each expert.'},
+        {
+            'role': 'system',
+            'content': 'Summarize the following expert analyses into a concise, actionable conclusion. Preserve key details from each expert.',
+        },
         {'role': 'user', 'content': combined},
     ]
 
@@ -1068,16 +1132,19 @@ async def aggregator_node(state: ConversationState) -> dict[str, Any]:
 
     duration_ms = int((time.monotonic() - t0) * 1000)
 
-    await _push_event(state, {
-        'type': 'usage',
-        'role': 'aggregator',
-        'model_name': cfg.model_name,
-        'provider_type': cfg.provider_type,
-        'status': call_status,
-        'error_message': error_msg,
-        'duration_ms': duration_ms,
-        **usage,
-    })
+    await _push_event(
+        state,
+        {
+            'type': 'usage',
+            'role': 'aggregator',
+            'model_name': cfg.model_name,
+            'provider_type': cfg.provider_type,
+            'status': call_status,
+            'error_message': error_msg,
+            'duration_ms': duration_ms,
+            **usage,
+        },
+    )
 
     await _push_event(state, {'type': 'aggregator_end'})
 
@@ -1105,7 +1172,7 @@ def build_spawn_agent_tool_schema() -> dict:
                     },
                     'system_prompt': {
                         'type': 'string',
-                        'description': 'The system prompt defining the sub-agent\'s role and expertise',
+                        'description': "The system prompt defining the sub-agent's role and expertise",
                     },
                     'task': {
                         'type': 'string',
@@ -1151,11 +1218,14 @@ async def execute_dynamic_sub_agent(
         {'role': 'user', 'content': task},
     ]
 
-    await _push_event(state, {
-        'type': 'sub_agent_start',
-        'agent_name': name,
-        'task': task[:200],
-    })
+    await _push_event(
+        state,
+        {
+            'type': 'sub_agent_start',
+            'agent_name': name,
+            'task': task[:200],
+        },
+    )
 
     call_status = 'success'
     error_msg: str | None = None
@@ -1163,7 +1233,9 @@ async def execute_dynamic_sub_agent(
 
     try:
         output_text, usage = await _agent_llm_with_tool_loop(
-            sub_cfg, messages, state,
+            sub_cfg,
+            messages,
+            state,
             event_extra={'agent_name': name, 'is_sub_agent': True},
         )
     except Exception as e:
@@ -1175,22 +1247,28 @@ async def execute_dynamic_sub_agent(
 
     duration_ms = int((time.monotonic() - t0) * 1000)
 
-    await _push_event(state, {
-        'type': 'usage',
-        'agent_name': name,
-        'model_name': sub_cfg.model_name,
-        'provider_type': sub_cfg.provider_type,
-        'status': call_status,
-        'error_message': error_msg,
-        'duration_ms': duration_ms,
-        'is_sub_agent': True,
-        **usage,
-    })
+    await _push_event(
+        state,
+        {
+            'type': 'usage',
+            'agent_name': name,
+            'model_name': sub_cfg.model_name,
+            'provider_type': sub_cfg.provider_type,
+            'status': call_status,
+            'error_message': error_msg,
+            'duration_ms': duration_ms,
+            'is_sub_agent': True,
+            **usage,
+        },
+    )
 
-    await _push_event(state, {
-        'type': 'sub_agent_end',
-        'agent_name': name,
-    })
+    await _push_event(
+        state,
+        {
+            'type': 'sub_agent_end',
+            'agent_name': name,
+        },
+    )
 
     return output_text
 
@@ -1202,10 +1280,7 @@ async def dynamic_sub_agent_node(state: ConversationState) -> dict[str, Any]:
 
     parent_cfg = AgentConfig(**state.agent_configs[0]) if state.agent_configs else AgentConfig()
 
-    tasks = [
-        execute_dynamic_sub_agent(parent_cfg, sub_def, state)
-        for sub_def in state._dynamic_sub_agents
-    ]
+    tasks = [execute_dynamic_sub_agent(parent_cfg, sub_def, state) for sub_def in state._dynamic_sub_agents]
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -1253,6 +1328,7 @@ def _route_after_parallel(state: ConversationState) -> str:
 # Graph construction
 # ---------------------------------------------------------------------------
 
+
 def build_single_agent_graph() -> Any:
     """Build a single-Agent conversation graph supporting tool calls + streaming output."""
     graph = StateGraph(ConversationState)
@@ -1277,21 +1353,33 @@ def build_multi_agent_graph() -> Any:
 
     graph.set_entry_point('router')
 
-    graph.add_conditional_edges('router', _route_decision, {
-        'single_agent': 'single_agent',
-        'parallel_start': 'parallel',
-    })
+    graph.add_conditional_edges(
+        'router',
+        _route_decision,
+        {
+            'single_agent': 'single_agent',
+            'parallel_start': 'parallel',
+        },
+    )
 
-    graph.add_conditional_edges('single_agent', _should_call_tools, {
-        END: END,
-        'tool': 'single_tool',
-    })
+    graph.add_conditional_edges(
+        'single_agent',
+        _should_call_tools,
+        {
+            END: END,
+            'tool': 'single_tool',
+        },
+    )
     graph.add_edge('single_tool', 'single_agent')
 
-    graph.add_conditional_edges('parallel', _route_after_parallel, {
-        'coordinator': 'coordinator',
-        'aggregator': 'aggregator',
-    })
+    graph.add_conditional_edges(
+        'parallel',
+        _route_after_parallel,
+        {
+            'coordinator': 'coordinator',
+            'aggregator': 'aggregator',
+        },
+    )
 
     def _should_iterate_coordination(state: ConversationState) -> str:
         if (
@@ -1303,10 +1391,14 @@ def build_multi_agent_graph() -> Any:
             return 'parallel'
         return END
 
-    graph.add_conditional_edges('coordinator', _should_iterate_coordination, {
-        'parallel': 'parallel',
-        END: END,
-    })
+    graph.add_conditional_edges(
+        'coordinator',
+        _should_iterate_coordination,
+        {
+            'parallel': 'parallel',
+            END: END,
+        },
+    )
     graph.add_edge('aggregator', END)
 
     return graph.compile()
@@ -1315,6 +1407,7 @@ def build_multi_agent_graph() -> Any:
 # ---------------------------------------------------------------------------
 # Streaming execution bridge
 # ---------------------------------------------------------------------------
+
 
 async def run_graph_streaming(
     initial_state: ConversationState,
@@ -1339,7 +1432,7 @@ async def run_graph_streaming(
     else:
         graph = build_single_agent_graph()
 
-    async def _run():
+    async def _run() -> None:
         try:
             await graph.ainvoke(initial_state)
         except Exception:

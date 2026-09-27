@@ -88,6 +88,17 @@ def _split_groups_by_control(groups: list[dict]) -> tuple[list[dict], list[dict]
     return llm_groups, other_groups
 
 
+def _normalize_group_id(raw_id) -> str:
+    """Strip trailing garbage from Enfusion RplId.ToString() output (e.g. '0x...B {}' -> '0x...B').
+
+    The mod normalizes new IDs at the source (OA_Ids.Clean), but older snapshots/messages
+    saved before that fix may still carry the raw suffixed form, so match defensively here too.
+    """
+    if not raw_id:
+        return ''
+    return str(raw_id).split(' ', 1)[0]
+
+
 def _assign_tactical_roles(groups: list[dict]) -> None:
     """Assign tactical roles based on member_count.
 
@@ -683,12 +694,14 @@ async def process_situation_task(
                     orders_json['tool_calls'] = tool_call_log
 
                 llm_group_ids = {
-                    g['id']
+                    _normalize_group_id(g['id'])
                     for g in situation_data.get('groups', [])
                     if g.get('control', 'llm') == 'llm' and g.get('id')
                 }
                 raw_count = len(orders_json.get('orders', []))
-                orders_json['orders'] = [o for o in orders_json.get('orders', []) if o.get('group_id') in llm_group_ids]
+                orders_json['orders'] = [
+                    o for o in orders_json.get('orders', []) if _normalize_group_id(o.get('group_id')) in llm_group_ids
+                ]
                 filtered = raw_count - len(orders_json['orders'])
                 if filtered > 0:
                     log.info(
