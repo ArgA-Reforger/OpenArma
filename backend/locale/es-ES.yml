@@ -1,0 +1,114 @@
+error:
+  captcha:
+    error: Error de captcha
+    invalid: Captcha inválido, por favor inténtelo de nuevo
+    expired: El captcha ha expirado, por favor inténtelo de nuevo
+  language_not_found: El paquete de idioma actual no está inicializado o no existe
+pydantic:
+  # Mensajes de error de validación personalizados, referencia:
+  # https://github.com/pydantic/pydantic-core/blob/a5cb7382643415b716b1a7a5392914e50f726528/tests/test_errors.py#L266
+  # https://github.com/pydantic/pydantic/blob/caa78016433ec9b16a973f92f187a7b6bfde6cb5/docs/errors/errors.md?plain=1#L232
+  arguments_type: Los argumentos deben ser una tupla, lista o diccionario
+  assertion_error: 'Error de aserción, {error}'
+  bool_parsing: La entrada debe ser un valor booleano válido, no se pudo interpretar la entrada
+  bool_type: La entrada debe ser un valor booleano válido
+  bytes_too_long: 'Los datos deben tener como máximo {max_length} bytes'
+  bytes_too_short: 'Los datos deben tener al menos {min_length} bytes'
+  bytes_type: La entrada debe ser bytes válidos
+  callable_type: La entrada debe ser un objeto invocable
+  dataclass_exact_type: 'La entrada debe ser una instancia de {class_name}'
+  dataclass_type: 'La entrada debe ser un diccionario o una instancia de {class_name}'
+  date_from_datetime_inexact: La fecha y hora proporcionada a la fecha debe tener hora cero, por ejemplo, ser una fecha exacta
+  date_from_datetime_parsing: 'La entrada debe ser una fecha o fecha y hora válida, {error}'
+  date_future: La fecha debe estar en el futuro
+  date_past: La fecha debe estar en el pasado
+  date_parsing: 'La entrada debe ser una fecha válida en formato AAAA-MM-DD, {error}'
+  date_type: La entrada debe ser una fecha válida
+  datetime_future: La entrada debe estar en el futuro
+  datetime_object_invalid: 'Objeto de fecha y hora inválido, se obtuvo {error}'
+  datetime_past: La entrada debe estar en el pasado
+  datetime_parsing: 'La entrada debe ser una fecha y hora válida, {error}'
+  datetime_type: La entrada debe ser una fecha y hora válida
+  decimal_max_digits: 'La entrada decimal no debe tener más de {max_digits} dígitos en total'
+  decimal_max_places: 'La entrada decimal no debe tener más de {decimal_places} decimales'
+  decimal_parsing: La entrada debe ser un número decimal válido
+  decimal_type: La entrada decimal debe ser un entero, flotante, cadena u objeto Decimal
+  decimal_whole_digits: 'La entrada decimal no debe tener más de {whole_digits} dígitos antes del punto decimal'
+  dict_type: La entrada debe ser un diccionario válido
+  email_parsing: 'La entrada debe ser una dirección de correo electrónico válida, {error}'
+  email_type: La entrada debe ser una dirección de correo electrónico válida
+  enum: 'La entrada debe ser {expected}'
+  extra_forbidden: No se permiten entradas adicionales
+  finite_number: La entrada debe ser un número finito
+  float_parsing: La entrada debe ser un número válido, no se pudo interpretar la cadena como un número
+  float_type: La entrada debe ser un número válido
+  frozen_field: El campo está congelado
+  frozen_instance: La instancia está congelada
+  frozen_set_type: La entrada debe ser un conjunto congelado válido
+  get_attribute_error: 'Error al extraer el atributo: {error}'
+  greater_than: 'La entrada debe ser mayor que {gt}'
+  greater_than_equal: 'La entrada debe ser mayor o igual que {ge}'
+  int_from_float: La entrada debe ser un entero válido, se obtuvo un número con parte decimal
+  int_parsing: La entrada debe ser un entero válido, no se pudo interpretar la cadena como un entero
+  int_parsing_size: No se pudo interpretar la cadena de entrada como un entero, excede el tamaño máximo
+  int_type: La entrada debe ser un entero válido
+  invalid_key: La clave debe ser una cadena
+  is_instance_of: 'La entrada debe ser una instancia de {class}'
+  is_subclass_of: 'La entrada debe ser una subclase de {class}'
+  iteration_error: 'Error al iterar el objeto, error: {error}'
+  iterable_type: La entrada debe ser iterable
+  json_invalid: 'JSON inválido: {error}'
+  json_type: La entrada JSON debe ser una cadena, bytes o arreglo de bytes
+  less_than: 'La entrada debe ser menor que {lt}'
+  less_than_equal: 'La entrada debe ser menor o igual que {le}'
+  list_type: La entrada debe ser una lista válida
+  literal_error: 'La entrada debe ser {expected}'
+  mapping_type: 'La entrada debe ser un mapeo válido, error: {error}'
+  missing: El campo es obligatorio
+  missing_argument: Falta un argumento requerido
+  missing_keyword_only_argument: Falta un argumento requerido de solo palabra clave
+  missing_positional_only_argument: Falta un argumento requerido de solo posición
+  model_attributes_type: La entrada debe ser un diccionario válido o un objeto del que se puedan extraer campos
+  model_type: 'La entrada debe ser un diccionario válido o una instancia de {class_name}'
+  multiple_argument_values: Se proporcionaron múltiples valores para el argumento
+  multiple_of: 'La entrada debe ser un múltiplo de {multiple_of}'
+  no_such_attribute: 'El objeto no tiene el atributo ''{attribute}'''
+  none_required: La entrada debe ser None
+  recursion_loop: 'Error de recursión: se detectó una referencia cíclica'
+  set_type: La entrada debe ser un conjunto válido
+  string_pattern_mismatch: 'La cadena debe coincidir con el patrón ''{pattern}'''
+  string_sub_type: La entrada debe ser una cadena, no una instancia de una subclase de str
+  string_too_long: 'La cadena debe tener como máximo {max_length} caracteres'
+  string_too_short: 'La cadena debe tener al menos {min_length} caracteres'
+  string_type: La entrada debe ser una cadena válida
+  string_unicode: La entrada debe ser una cadena válida, no se pudo interpretar los datos originales como una cadena Unicode
+  time_delta_parsing: 'La entrada debe ser una diferencia de tiempo válida, {error}'
+  time_delta_type: La entrada debe ser una diferencia de tiempo válida
+  time_parsing: 'La entrada debe tener un formato de hora válido, {error}'
+  time_type: La entrada debe ser una hora válida
+  timezone_aware: La entrada debe incluir información de zona horaria
+  timezone_naive: La entrada no debe incluir información de zona horaria
+  timezone_offset: 'Se requiere un desfase de zona horaria de {tz_expected}, se obtuvo {tz_actual}'
+  too_long: '{field_type} debe tener como máximo {max_length} elementos después de la validación, no {actual_length}'
+  too_short: '{field_type} debe tener al menos {min_length} elementos después de la validación, no {actual_length}'
+  tuple_type: La entrada debe ser una tupla válida
+  union_tag_invalid: 'La etiqueta de entrada ''{tag}'' encontrada usando {discriminator} no coincide con ninguna de las etiquetas esperadas: {expected_tags}'
+  union_tag_not_found: 'No se pudo extraer la etiqueta usando el discriminador {discriminator}'
+  unexpected_keyword_argument: Argumento de palabra clave inesperado
+  unexpected_positional_argument: Argumento posicional inesperado
+  url_parsing: 'La entrada debe ser una URL válida, {error}'
+  url_scheme: 'El esquema de la URL debe ser {expected_schemes}'
+  url_syntax_violation: 'La entrada viola las reglas estrictas de sintaxis de URL, {error}'
+  url_too_long: 'La URL debe tener como máximo {max_length} caracteres'
+  url_type: La entrada URL debe ser una cadena o URL
+  uuid_parsing: 'La entrada debe ser un UUID válido, {error}'
+  uuid_type: La entrada UUID debe ser una cadena, bytes u objeto UUID
+  uuid_version: 'Se esperaba la versión de UUID {expected_version}'
+  value_error: 'Error de valor, {error}'
+response:
+  error: Error en la solicitud
+  success: Solicitud exitosa
+success:
+  login:
+    oauth2_success: Inicio de sesión exitoso (OAuth2)
+    success: Inicio de sesión exitoso
