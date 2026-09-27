@@ -12,7 +12,7 @@ from backend.plugin.settings_source import PluginSettingsSource
 
 
 class Settings(BaseSettings):
-    """全局配置"""
+    """Global configuration"""
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE_PATH,
@@ -30,10 +30,10 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        """自定义配置源优先级"""
+        """Customize the configuration source priority"""
         return env_settings, dotenv_settings, PluginSettingsSource(settings_cls)
 
-    # .env 当前环境
+    # .env current environment
     ENVIRONMENT: Literal['dev', 'prod']
 
     # FastAPI
@@ -45,14 +45,14 @@ class Settings(BaseSettings):
     FASTAPI_OPENAPI_URL: str | None = '/openapi'
     FASTAPI_STATIC_FILES: bool = True
 
-    # .env 数据库
+    # .env database
     DATABASE_TYPE: Literal['mysql', 'postgresql']
     DATABASE_HOST: str
     DATABASE_PORT: int
     DATABASE_USER: str
     DATABASE_PASSWORD: str
 
-    # 数据库
+    # Database
     DATABASE_ECHO: bool | Literal['debug'] = False
     DATABASE_POOL_ECHO: bool | Literal['debug'] = False
     DATABASE_SCHEMA: str = 'openarma'
@@ -68,16 +68,16 @@ class Settings(BaseSettings):
     # Redis
     REDIS_TIMEOUT: int = 5
 
-    # 缓存
+    # Cache
     CACHE_LOCAL_ENABLED: bool = True
     CACHE_LOCAL_MAXSIZE: int = 100000
-    CACHE_LOCAL_TTL: int = 60 * 60 * 2  # 2 小时
-    CACHE_REDIS_TTL: int = 60 * 60 * 2  # 2 小时
+    CACHE_LOCAL_TTL: int = 60 * 60 * 2  # 2 hours
+    CACHE_REDIS_TTL: int = 60 * 60 * 2  # 2 hours
     CACHE_CONFIG_REDIS_PREFIX: str = 'fba:cache:config'
     CACHE_DICT_REDIS_PREFIX: str = 'fba:cache:dict'
     CACHE_PUBSUB_CHANNEL: str = 'fba:cache:invalidate'
-    CACHE_PUBSUB_RECONNECT_DELAY: int = 5  # 重连延迟（秒）
-    CACHE_PUBSUB_MAX_RECONNECT_ATTEMPTS: int = 10  # 最大重连次数
+    CACHE_PUBSUB_RECONNECT_DELAY: int = 5  # reconnect delay (seconds)
+    CACHE_PUBSUB_MAX_RECONNECT_ATTEMPTS: int = 10  # maximum reconnect attempts
 
     # .env Snowflake
     SNOWFLAKE_DATACENTER_ID: int | None = None
@@ -89,39 +89,39 @@ class Settings(BaseSettings):
     SNOWFLAKE_NODE_TTL_SECONDS: int = 60
 
     # .env Token
-    TOKEN_SECRET_KEY: str  # 密钥 secrets.token_urlsafe(32)
+    TOKEN_SECRET_KEY: str  # secret key secrets.token_urlsafe(32)
 
     # Token
     TOKEN_ALGORITHM: str = 'HS256'
-    TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 24  # 1 天
-    TOKEN_REFRESH_EXPIRE_SECONDS: int = 60 * 60 * 24 * 7  # 7 天
+    TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 24  # 1 day
+    TOKEN_REFRESH_EXPIRE_SECONDS: int = 60 * 60 * 24 * 7  # 7 days
     TOKEN_REDIS_PREFIX: str = 'fba:token'
     TOKEN_EXTRA_INFO_REDIS_PREFIX: str = 'fba:token_extra_info'
     TOKEN_ONLINE_REDIS_PREFIX: str = 'fba:token_online'
     TOKEN_REFRESH_REDIS_PREFIX: str = 'fba:refresh_token'
-    TOKEN_REQUEST_PATH_EXCLUDE: list[str] = [  # JWT / RBAC 路由白名单
+    TOKEN_REQUEST_PATH_EXCLUDE: list[str] = [  # JWT / RBAC route whitelist
         f'{FASTAPI_API_V1_PATH}/auth/login',
     ]
-    TOKEN_REQUEST_PATH_EXCLUDE_PATTERN: list[Pattern[str]] = [  # JWT / RBAC 路由白名单（正则）
+    TOKEN_REQUEST_PATH_EXCLUDE_PATTERN: list[Pattern[str]] = [  # JWT / RBAC route whitelist (regex)
         rf'^{FASTAPI_API_V1_PATH}/monitors/(redis|server)$',
         rf'^{FASTAPI_API_V1_PATH}/open/command$',
     ]
 
-    # 用户安全
+    # User security
     USER_LOCK_REDIS_PREFIX: str = 'fba:user:lock'
-    USER_LOCK_THRESHOLD: int = 5  # 用户密码错误锁定阈值，0 表示禁用锁定
-    USER_LOCK_SECONDS: int = 60 * 5  # 5 分钟
-    USER_PASSWORD_EXPIRY_DAYS: int = 365  # 用户密码有效期，0 表示永不过期
-    USER_PASSWORD_REMINDER_DAYS: int = 7  # 用户密码到期提醒，0 表示不提醒
+    USER_LOCK_THRESHOLD: int = 5  # User password failure lock threshold, 0 disables locking
+    USER_LOCK_SECONDS: int = 60 * 5  # 5 minutes
+    USER_PASSWORD_EXPIRY_DAYS: int = 365  # User password validity period, 0 means never expires
+    USER_PASSWORD_REMINDER_DAYS: int = 7  # User password expiry reminder, 0 means no reminder
     USER_PASSWORD_HISTORY_CHECK_COUNT: int = 3
     USER_PASSWORD_MIN_LENGTH: int = 6
     USER_PASSWORD_MAX_LENGTH: int = 32
     USER_PASSWORD_REQUIRE_SPECIAL_CHAR: bool = False
 
-    # 登录
+    # Login
     LOGIN_CAPTCHA_ENABLED: bool = True
     LOGIN_CAPTCHA_REDIS_PREFIX: str = 'fba:login:captcha'
-    LOGIN_CAPTCHA_EXPIRE_SECONDS: int = 60 * 5  # 5 分钟
+    LOGIN_CAPTCHA_EXPIRE_SECONDS: int = 60 * 5  # 5 minutes
     LOGIN_FAILURE_PREFIX: str = 'fba:login:failure'
 
     # JWT
@@ -136,40 +136,42 @@ class Settings(BaseSettings):
 
     # Cookie
     COOKIE_REFRESH_TOKEN_KEY: str = 'fba_refresh_token'
-    COOKIE_REFRESH_TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 24 * 7  # 7 天
+    COOKIE_REFRESH_TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 24 * 7  # 7 days
 
-    # 数据权限
-    DATA_PERMISSION_MODEL_EXCLUDE: list[str] = [  # 排除允许进行数据过滤的 SQLA 模型
+    # Data permissions
+    DATA_PERMISSION_MODEL_EXCLUDE: list[str] = [  # SQLA models excluded from data filtering
         'DataScope',
         'DataRule',
         'sys_role_data_scope',
         'sys_data_scope_rule',
     ]
-    DATA_PERMISSION_COLUMN_EXCLUDE: list[str] = [  # 排除允许进行数据过滤的 SQLA 模型列
+    DATA_PERMISSION_COLUMN_EXCLUDE: list[str] = [  # SQLA model columns excluded from data filtering
         'id',
         'sort',
         'del_flag',
         'created_time',
         'updated_time',
     ]
-    DATA_PERMISSION_MODEL_TEMPLATE_VARIABLES: list[dict[str, str]] = [  # 数据规则模型可用模板变量
-        {'key': '__ALL__', 'comment': '所有模型'},
+    # Template variables available for data rule models
+    DATA_PERMISSION_MODEL_TEMPLATE_VARIABLES: list[dict[str, str]] = [
+        {'key': '__ALL__', 'comment': 'All models'},
     ]
-    DATA_PERMISSION_COLUMN_TEMPLATE_VARIABLES: list[dict[str, str]] = [  # 数据规则字段可用模板变量
-        {'key': '__dept_id__', 'comment': '部门 ID'},
-        {'key': '__created_by__', 'comment': '创建者'},
+    # Template variables available for data rule columns
+    DATA_PERMISSION_COLUMN_TEMPLATE_VARIABLES: list[dict[str, str]] = [
+        {'key': '__dept_id__', 'comment': 'Department ID'},
+        {'key': '__created_by__', 'comment': 'Creator'},
     ]
-    DATA_PERMISSION_TEMPLATE_VARIABLES: list[dict[str, str]] = [  # 数据规则值可用模板变量
-        {'key': '${user_id}', 'comment': '当前登录用户 ID'},
-        {'key': '${dept_id}', 'comment': '当前登录用户部门 ID'},
-        {'key': '${now}', 'comment': '当前时间'},
+    DATA_PERMISSION_TEMPLATE_VARIABLES: list[dict[str, str]] = [  # Template variables available for data rule values
+        {'key': '${user_id}', 'comment': 'Current logged-in user ID'},
+        {'key': '${dept_id}', 'comment': "Current logged-in user's department ID"},
+        {'key': '${now}', 'comment': 'Current time'},
     ]
 
     # Socket.IO
     WS_NO_AUTH_MARKER: str = 'internal'
 
     # CORS
-    CORS_ALLOWED_ORIGINS: list[str] = [  # 末尾不带斜杠
+    CORS_ALLOWED_ORIGINS: list[str] = [  # No trailing slash
         'http://127.0.0.1',
         'http://localhost:3000',
         'http://localhost:23000',
@@ -182,24 +184,24 @@ class Settings(BaseSettings):
         'X-Request-ID',
     ]
 
-    # 中间件配置
+    # Middleware configuration
     MIDDLEWARE_CORS: bool = True
 
-    # 请求限制配置
+    # Request limiter configuration
     REQUEST_LIMITER_REDIS_PREFIX: str = 'fba:limiter'
 
-    # 时间配置
+    # Time configuration
     DATETIME_TIMEZONE: str = 'Asia/Shanghai'
     DATETIME_FORMAT: str = '%Y-%m-%d %H:%M:%S'
 
-    # 文件上传
+    # File upload
     UPLOAD_READ_SIZE: int = 1024
     UPLOAD_IMAGE_EXT_INCLUDE: list[str] = ['jpg', 'jpeg', 'png', 'gif', 'webp']
     UPLOAD_IMAGE_SIZE_MAX: int = 5 * 1024 * 1024  # 5 MB
     UPLOAD_VIDEO_EXT_INCLUDE: list[str] = ['mp4', 'mov', 'avi', 'flv']
     UPLOAD_VIDEO_SIZE_MAX: int = 20 * 1024 * 1024  # 20 MB
 
-    # 演示模式配置
+    # Demo mode configuration
     DEMO_MODE: bool = False
     DEMO_MODE_EXCLUDE: set[tuple[str, str]] = {
         ('POST', f'{FASTAPI_API_V1_PATH}/auth/login'),
@@ -208,35 +210,35 @@ class Settings(BaseSettings):
         ('POST', f'{FASTAPI_API_V1_PATH}/auth/refresh'),
     }
 
-    # IP 定位配置
+    # IP location configuration
     # 'online' queries ip-api.com (Spanish place names) over plain HTTP, so client IPs
     # leave the server; the free tier is rate-limited (~45 req/min). 'offline' uses the
     # bundled ip2region database, which only returns Chinese names. 'false' disables it.
     IP_LOCATION_PARSE: Literal['online', 'offline', 'false'] = 'online'
     IP_LOCATION_REDIS_PREFIX: str = 'fba:ip:location'
-    IP_LOCATION_EXPIRE_SECONDS: int = 60 * 60 * 24  # 1 天
+    IP_LOCATION_EXPIRE_SECONDS: int = 60 * 60 * 24  # 1 day
     IP_LOCATION_FAILURE_EXPIRE_SECONDS: int = 60 * 5  # failed online lookups are retried after 5 minutes
 
     # Trace ID
     TRACE_ID_REQUEST_HEADER_KEY: str = 'X-Request-ID'
-    TRACE_ID_LOG_LENGTH: int = 32  # UUID 长度，必须小于等于 32
+    TRACE_ID_LOG_LENGTH: int = 32  # UUID length, must be <= 32
     TRACE_ID_LOG_DEFAULT_VALUE: str = '-'
 
-    # 日志
+    # Log
     LOG_FORMAT: str = (
         '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</> | <lvl>{level: <8}</> | <cyan>{request_id}</> | <lvl>{message}</>'
     )
 
-    # 日志（控制台）
+    # Log (console)
     LOG_STD_LEVEL: str = 'INFO'
 
-    # 日志（文件）
+    # Log (file)
     LOG_FILE_ACCESS_LEVEL: str = 'INFO'
     LOG_FILE_ERROR_LEVEL: str = 'ERROR'
     LOG_ACCESS_FILENAME: str = 'fba_access.log'
     LOG_ERROR_FILENAME: str = 'fba_error.log'
 
-    # 操作日志
+    # Operation log
     OPERA_LOG_PATH_EXCLUDE: list[str] = [
         '/favicon.ico',
         '/docs',
@@ -254,15 +256,15 @@ class Settings(BaseSettings):
     ]
     OPERA_LOG_QUEUE_MAXSIZE: int = 100000
     OPERA_LOG_QUEUE_BATCH_CONSUME_SIZE: int = 100
-    OPERA_LOG_QUEUE_TIMEOUT: int = 60  # 1 分钟
+    OPERA_LOG_QUEUE_TIMEOUT: int = 60  # 1 minute
 
-    # Plugin 配置
+    # Plugin configuration
     PLUGIN_PIP_CHINA: bool = False  # When True, plugin installs use PLUGIN_PIP_INDEX_URL as the package index
     PLUGIN_PIP_INDEX_URL: str = 'https://pypi.org/simple/'
     PLUGIN_PIP_MAX_RETRY: int = 3
     PLUGIN_REDIS_PREFIX: str = 'fba:plugin'
 
-    # I18n 配置
+    # I18n configuration
     I18N_DEFAULT_LANGUAGE: str = 'es-ES'
 
     # Grafana
@@ -304,7 +306,7 @@ class Settings(BaseSettings):
     CELERY_RABBITMQ_USERNAME: str
     CELERY_RABBITMQ_PASSWORD: str
 
-    # 基础配置
+    # Base configuration
     CELERY_BROKER: Literal['rabbitmq', 'redis'] = 'redis'
     CELERY_RABBITMQ_VHOST: str = ''
     CELERY_REDIS_PREFIX: str = 'fba:celery'
@@ -324,7 +326,7 @@ class Settings(BaseSettings):
     OAUTH2_GOOGLE_CLIENT_ID: str
     OAUTH2_GOOGLE_CLIENT_SECRET: str
 
-    # 基础配置（in plugin.toml）
+    # Base configuration (in plugin.toml)
     OAUTH2_STATE_REDIS_PREFIX: str
     OAUTH2_STATE_EXPIRE_SECONDS: int
     OAUTH2_GITHUB_REDIRECT_URI: str
@@ -339,7 +341,7 @@ class Settings(BaseSettings):
     EMAIL_USERNAME: str
     EMAIL_PASSWORD: str
 
-    # 基础配置（in plugin.toml）
+    # Base configuration (in plugin.toml)
     EMAIL_HOST: str
     EMAIL_PORT: int
     EMAIL_SSL: bool
@@ -349,7 +351,7 @@ class Settings(BaseSettings):
     @model_validator(mode='before')
     @classmethod
     def check_env(cls, values: Any) -> Any:
-        """检查环境变量"""
+        """Check environment variables"""
         if values.get('ENVIRONMENT') == 'prod':
             # FastAPI
             values['FASTAPI_OPENAPI_URL'] = None
@@ -366,11 +368,11 @@ class Settings(BaseSettings):
 
 @cache
 def get_settings() -> Settings:
-    """获取全局配置单例"""
+    """Get the global configuration singleton"""
     if not ENV_FILE_PATH.exists():
         shutil.copy(ENV_EXAMPLE_FILE_PATH, ENV_FILE_PATH)
     return Settings()
 
 
-# 创建全局配置实例
+# Create the global configuration instance
 settings = get_settings()

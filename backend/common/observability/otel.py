@@ -28,9 +28,9 @@ from backend.database.redis import redis_client
 
 def init_resource(service_name: str) -> Resource:
     """
-    初始化资源
+    Initialize the resource
 
-    :param service_name: 服务名称
+    :param service_name: service name
     :return:
     """
     from backend import __version__
@@ -46,9 +46,9 @@ def init_resource(service_name: str) -> Resource:
 
 def init_tracer(resource: Resource) -> None:
     """
-    初始化追踪器
+    Initialize the tracer
 
-    :param resource: 遥测资源
+    :param resource: telemetry resource
     :return:
     """
     provider = TracerProvider(resource=resource)
@@ -61,9 +61,9 @@ def init_tracer(resource: Resource) -> None:
 
 def init_metrics(resource: Resource) -> None:
     """
-    初始化指标
+    Initialize the metrics
 
-    :param resource: 遥测资源
+    :param resource: telemetry resource
     :return:
     """
     exporter = OTLPMetricExporter(endpoint=settings.GRAFANA_OTLP_GRPC_ENDPOINT, insecure=True)
@@ -75,9 +75,9 @@ def init_metrics(resource: Resource) -> None:
 
 def init_logging(resource: Resource) -> None:
     """
-    初始化日志
+    Initialize the logging
 
-    :param resource: 遥测资源
+    :param resource: telemetry resource
     :return:
     """
     provider = LoggerProvider(resource=resource)
@@ -98,9 +98,9 @@ def init_logging(resource: Resource) -> None:
 
 def init_otel(app: FastAPI) -> None:
     """
-    初始化 OpenTelemetry
+    Initialize OpenTelemetry
 
-    :param app: FastAPI 应用实例
+    :param app: FastAPI application instance
     :return:
     """
     resource = init_resource(PROMETHEUS_APP_NAME)

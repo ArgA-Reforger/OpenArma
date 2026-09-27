@@ -29,16 +29,16 @@ from backend.utils.trace_id import get_request_trace_id
 
 
 class OperaLogMiddleware(BaseHTTPMiddleware):
-    """操作日志中间件"""
+    """Operation log middleware"""
 
     opera_log_queue: Queue = Queue(maxsize=settings.OPERA_LOG_QUEUE_MAXSIZE)
 
     async def dispatch(self, request: Request, call_next: Any) -> Response:  # noqa: C901
         """
-        处理请求并记录操作日志
+        Process the request and record the operation log
 
-        :param request: FastAPI 请求对象
-        :param call_next: 下一个中间件或路由处理函数
+        :param request: FastAPI request object
+        :param call_next: next middleware or route handler function
         :return:
         """
         path = request.url.path
@@ -60,7 +60,7 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
         except Exception as e:
             elapsed = round((time.perf_counter() - ctx.perf_time) * 1000, 3)
-            log.error(f'请求异常: {e!s}')
+            log.error(f'Request exception: {e!s}')
 
             if should_log_opera:
                 code = getattr(e, 'code', StandardResponseCode.HTTP_500)
@@ -80,7 +80,7 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
             elapsed = round((time.perf_counter() - ctx.perf_time) * 1000, 3)
 
             if should_log_opera:
-                # 检查上下文中的异常信息
+                # Check exception information in the context
                 for exception_key in [
                     '__request_http_exception__',
                     '__request_validation_exception__',
@@ -92,7 +92,7 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
                         code = exception.get('code')
                         msg = exception.get('msg')
                         status = StatusType.disable
-                        log.error(f'请求异常: {msg}')
+                        log.error(f'Request exception: {msg}')
                         break
 
             if path.startswith(settings.FASTAPI_API_V1_PATH):
@@ -100,16 +100,16 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
                     app_name=PROMETHEUS_APP_NAME, method=method, path=path
                 ).observe(amount=elapsed, exemplar={'TraceID': get_request_trace_id()})
         finally:
-            # summary 只能在请求后获取
+            # summary can only be obtained after the request
             route = request.scope.get('route')
             summary = route.summary or '' if route else ''
 
-            log.debug(f'接口摘要：[{summary}]')
-            log.debug(f'请求地址：[{ctx.ip}]')
-            log.debug(f'请求参数：{args}')
+            log.debug(f'Endpoint summary: [{summary}]')
+            log.debug(f'Request address: [{ctx.ip}]')
+            log.debug(f'Request parameters: {args}')
 
             if request.method != 'OPTIONS':
-                log.debug('<-- 请求结束')
+                log.debug('<-- Request ended')
 
             if path.startswith(settings.FASTAPI_API_V1_PATH):
                 log.info(f'{ctx.ip: <15} | {method: <8} | {code!s: <6} | {path} | {elapsed:.3f}ms')
@@ -150,31 +150,31 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
 
     async def get_request_args(self, request: Request) -> dict[str, Any] | None:  # noqa: C901
         """
-        获取请求参数
+        Get the request parameters
 
-        :param request: FastAPI 请求对象
+        :param request: FastAPI request object
         :return:
         """
         args = {}
 
-        # 查询参数
+        # Query parameters
         query_params = dict(request.query_params)
         if query_params:
             args['query_params'] = self.desensitization(query_params)
 
-        # 路径参数
+        # Path parameters
         path_params = request.path_params
         if path_params:
             args['path_params'] = self.desensitization(path_params)
 
-        # Tip: .body() 必须在 .form() 之前获取
+        # Tip: .body() must be obtained before .form()
         # https://github.com/encode/starlette/discussions/1933
         content_type = request.headers.get('Content-Type', '').split(';')
 
-        # 请求体
+        # Request body
         body_data = await request.body()
         if body_data:
-            # 注意：非 json 数据默认使用 data 作为键
+            # Note: non-json data uses "data" as the key by default
             if 'application/json' not in content_type:
                 args['data'] = body_data.decode('utf-8', 'ignore') if isinstance(body_data, bytes) else str(body_data)
             else:
@@ -184,7 +184,7 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
                 else:
                     args['data'] = str(json_data)
 
-        # 表单参数
+        # Form parameters
         form_data = await request.form()
         if len(form_data) > 0:
             serialized_form = {}
@@ -210,12 +210,12 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
     @staticmethod
     def truncate(args: dict[str, Any]) -> dict[str, Any]:
         """
-        截断处理
+        Truncation handling
 
-        :param args: 需要截断的请求参数字典
+        :param args: request parameter dict that needs truncating
         :return:
         """
-        max_size = 10240  # 数据最大大小（字节）
+        max_size = 10240  # Maximum data size (bytes)
 
         try:
             args_str = json.dumps(args, ensure_ascii=False)
@@ -227,20 +227,21 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
                     '_truncated': True,
                     '_original_size': args_size,
                     '_max_size': max_size,
-                    '_message': f'数据过大已截断：原始大小 {args_size} 字节，限制 {max_size} 字节',
+                    '_message': f'Data too large and was truncated: original size {args_size} bytes, '
+                    f'limit {max_size} bytes',
                     'data_preview': truncated_str,
                 }
         except Exception as e:
-            log.error(f'请求参数截断处理失败：{e}')
+            log.error(f'Failed to truncate request parameters: {e}')
 
         return args
 
     @staticmethod
     def desensitization(args: dict[str, Any]) -> dict[str, Any]:
         """
-        脱敏处理
+        Desensitization handling
 
-        :param args: 需要脱敏的参数字典
+        :param args: parameter dict that needs desensitizing
         :return:
         """
         for key in args:
@@ -250,7 +251,7 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
 
     @classmethod
     async def consumer(cls) -> None:
-        """操作日志消费者"""
+        """Operation log consumer"""
         while True:
             logs = await batch_dequeue(
                 cls.opera_log_queue,
@@ -260,11 +261,11 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
             if logs:
                 try:
                     if settings.DATABASE_ECHO:
-                        log.info('自动执行【操作日志批量创建】任务...')
+                        log.info('Automatically running the [bulk create operation log] task...')
                     async with async_db_session.begin() as db:
                         await opera_log_service.bulk_create(db=db, objs=logs)
                 except Exception as e:
-                    log.error(f'操作日志入库失败，丢失 {len(logs)} 条日志: {e}')
+                    log.error(f'Failed to persist operation logs, lost {len(logs)} log entries: {e}')
                 finally:
                     for _ in range(len(logs)):
                         cls.opera_log_queue.task_done()

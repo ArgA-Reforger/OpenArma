@@ -7,11 +7,11 @@ from backend.common.log import log
 
 async def batch_dequeue(queue: Queue, max_items: int, timeout: float) -> list:
     """
-    从异步队列中获取多个项目
+    Get multiple items from an async queue
 
-    :param queue: 用于获取项目的 `asyncio.Queue` 队列
-    :param max_items: 从队列中获取的最大项目数量
-    :param timeout: 总的等待超时时间（秒）
+    :param queue: the `asyncio.Queue` to get items from
+    :param max_items: maximum number of items to get from the queue
+    :param timeout: total wait timeout (seconds)
     :return:
     """
     items = []
@@ -26,6 +26,6 @@ async def batch_dequeue(queue: Queue, max_items: int, timeout: float) -> list:
     except asyncio.TimeoutError:
         pass
     except Exception as e:
-        log.error(f'队列批量获取失败: {e}')
+        log.error(f'Batch queue retrieval failed: {e}')
 
     return items

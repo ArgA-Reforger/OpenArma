@@ -1,4 +1,4 @@
-"""Qdrant 客户端封装，提供向量集合管理和检索操作。"""
+"""Qdrant client wrapper, providing vector collection management and retrieval operations."""
 
 from qdrant_client import QdrantClient, models
 
@@ -19,7 +19,7 @@ def get_client() -> QdrantClient:
 
 
 def ensure_collection(collection_name: str, vector_size: int = 1536) -> None:
-    """确保 Qdrant collection 存在，不存在则创建。"""
+    """Ensure the Qdrant collection exists, creating it if it does not."""
     client = get_client()
     if not client.collection_exists(collection_name):
         client.create_collection(
@@ -43,7 +43,7 @@ def upsert_vectors(
     vectors: list[list[float]],
     payloads: list[dict],
 ) -> None:
-    """批量写入向量到 Qdrant。"""
+    """Batch write vectors to Qdrant."""
     client = get_client()
     points = [
         models.PointStruct(id=id_, vector=vec, payload=payload)
@@ -59,7 +59,7 @@ def search_vectors(
     score_threshold: float | None = None,
     filter_conditions: models.Filter | None = None,
 ) -> list[models.ScoredPoint]:
-    """语义检索：返回最相似的向量。"""
+    """Semantic search: return the most similar vectors."""
     client = get_client()
     return client.query_points(
         collection_name=collection_name,

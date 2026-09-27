@@ -11,7 +11,7 @@ from backend.core.conf import settings
 from backend.utils.snowflake import snowflake
 from backend.utils.timezone import timezone
 
-# 通用 Mapped 类型主键, 需手动添加，参考以下使用方式
+# Generic Mapped-type primary key, must be added manually, see the usage below
 # MappedBase -> id: Mapped[id_key]
 # DataClassBase && Base -> id: Mapped[id_key] = mapped_column(init=False)
 id_key = Annotated[
@@ -23,11 +23,11 @@ id_key = Annotated[
         index=True,
         autoincrement=True,
         sort_order=-999,
-        comment='主键 ID',
+        comment='Primary key ID',
     )
     if PrimaryKeyType.autoincrement == settings.DATABASE_PK_MODE
-    # 雪花算法 Mapped 类型主键
-    # 详情：https://fastapi-practices.github.io/fastapi_best_architecture_docs/backend/reference/pk.html
+    # Snowflake algorithm Mapped-type primary key
+    # Details: https://fastapi-practices.github.io/fastapi_best_architecture_docs/backend/reference/pk.html
     else mapped_column(
         BigInteger,
         primary_key=True,
@@ -35,13 +35,13 @@ id_key = Annotated[
         index=True,
         default=snowflake.generate,
         sort_order=-999,
-        comment='雪花算法主键 ID',
+        comment='Snowflake algorithm primary key ID',
     ),
 ]
 
 
 class UniversalText(TypeDecorator[str]):
-    """PostgreSQL、MySQL 兼容性（长）文本类型"""
+    """PostgreSQL / MySQL compatible (long) text type"""
 
     impl = LONGTEXT if DataBaseType.mysql == settings.DATABASE_TYPE else Text
     cache_ok = True
@@ -54,7 +54,7 @@ class UniversalText(TypeDecorator[str]):
 
 
 class TimeZone(TypeDecorator[datetime]):
-    """PostgreSQL、MySQL 兼容性时区感知类型"""
+    """PostgreSQL / MySQL compatible timezone-aware type"""
 
     impl = DateTime(timezone=True)
     cache_ok = True
@@ -65,7 +65,7 @@ class TimeZone(TypeDecorator[datetime]):
 
     def process_bind_param(self, value: datetime | None, dialect) -> datetime | None:  # noqa: ANN001
         if value is not None and value.utcoffset() != timezone.now().utcoffset():
-            # TODO 处理夏令时偏移
+            # TODO handle daylight saving time offset
             value = timezone.from_datetime(value)
         return value
 
@@ -75,42 +75,44 @@ class TimeZone(TypeDecorator[datetime]):
         return value
 
 
-# Mixin: 一种面向对象编程概念, 使结构变得更加清晰, `Wiki <https://en.wikipedia.org/wiki/Mixin/>`__
+# Mixin: an object-oriented programming concept that makes the structure clearer, `Wiki <https://en.wikipedia.org/wiki/Mixin/>`__
 class UserMixin(MappedAsDataclass):
-    """用户 Mixin 数据类"""
+    """User Mixin data class"""
 
-    created_by: Mapped[int] = mapped_column(sort_order=998, comment='创建者')
-    updated_by: Mapped[int | None] = mapped_column(init=False, default=None, sort_order=998, comment='修改者')
+    created_by: Mapped[int] = mapped_column(sort_order=998, comment='Creator')
+    updated_by: Mapped[int | None] = mapped_column(init=False, default=None, sort_order=998, comment='Last modifier')
 
 
 class DateTimeMixin(MappedAsDataclass):
-    """日期时间 Mixin 数据类"""
+    """Date/time Mixin data class"""
 
     created_time: Mapped[datetime] = mapped_column(
         TimeZone,
         init=False,
         default_factory=timezone.now,
         sort_order=999,
-        comment='创建时间',
+        comment='Creation time',
     )
     updated_time: Mapped[datetime | None] = mapped_column(
         TimeZone,
         init=False,
         onupdate=timezone.now,
         sort_order=999,
-        comment='更新时间',
+        comment='Last update time',
     )
 
 
 class SoftDeleteMixin(MappedAsDataclass):
-    """软删除 Mixin 数据类，OA 业务表统一使用"""
+    """Soft-delete Mixin data class, used uniformly by OA business tables"""
 
-    del_flag: Mapped[bool] = mapped_column(init=False, default=False, sort_order=999, comment='删除标志（False 存在 True 已删除）')
+    del_flag: Mapped[bool] = mapped_column(
+        init=False, default=False, sort_order=999, comment='Delete flag (False = exists, True = deleted)'
+    )
 
 
 class MappedBase(AsyncAttrs, DeclarativeBase):
     """
-    声明式基类, 作为所有基类或数据模型类的父类而存在
+    Declarative base class, serving as the parent of all base or data model classes
 
     `AsyncAttrs <https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html#sqlalchemy.ext.asyncio.AsyncAttrs>`__
 
@@ -121,18 +123,19 @@ class MappedBase(AsyncAttrs, DeclarativeBase):
 
     @declared_attr.directive
     def __tablename__(self) -> str:
-        """生成表名"""
+        """Generate the table name"""
         return self.__name__.lower()
 
     @declared_attr.directive
     def __table_args__(self) -> dict:
-        """表配置"""
+        """Table configuration"""
         return {'comment': self.__doc__ or ''}
 
 
 class DataClassBase(MappedAsDataclass, MappedBase):
     """
-    声明性数据类基类, 带有数据类集成, 允许使用更高级配置, 但你必须注意它的一些特性, 尤其是和 DeclarativeBase 一起使用时
+    Declarative data class base class with dataclass integration, allowing more advanced configuration, but you
+    must be aware of some of its characteristics, especially when used together with DeclarativeBase
 
     `MappedAsDataclass <https://docs.sqlalchemy.org/en/20/orm/dataclasses.html#orm-declarative-native-dataclasses>`__
     """
@@ -142,7 +145,7 @@ class DataClassBase(MappedAsDataclass, MappedBase):
 
 class Base(DataClassBase, DateTimeMixin):
     """
-    声明性数据类基类, 带有数据类集成, 并包含 MiXin 数据类基础表结构
+    Declarative data class base class with dataclass integration, including the Mixin data class base table structure
     """
 
     __abstract__ = True
