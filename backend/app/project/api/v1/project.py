@@ -12,7 +12,7 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.post('', summary='创建项目', dependencies=[DependsJwtAuth])
+@router.post('', summary='Create project', dependencies=[DependsJwtAuth])
 async def create_project(
     db: CurrentSessionTransaction,
     request: Request,
@@ -24,7 +24,7 @@ async def create_project(
 
 @router.get(
     '',
-    summary='项目列表',
+    summary='Project list',
     dependencies=[
         DependsJwtAuth,
         DependsPagination,
@@ -33,28 +33,28 @@ async def create_project(
 async def get_projects(
     db: CurrentSession,
     request: Request,
-    name: Annotated[str | None, Query(description='项目名称')] = None,
-    status: Annotated[str | None, Query(description='状态')] = None,
+    name: Annotated[str | None, Query(description='Project name')] = None,
+    status: Annotated[str | None, Query(description='Status')] = None,
 ) -> ResponseSchemaModel[PageData[GetProjectDetail]]:
     page_data = await project_service.get_list(db=db, owner_id=request.user.id, name=name, status=status)
     return response_base.success(data=page_data)
 
 
-@router.get('/{pk}', summary='项目详情', dependencies=[DependsJwtAuth])
+@router.get('/{pk}', summary='Project details', dependencies=[DependsJwtAuth])
 async def get_project(
     db: CurrentSession,
     request: Request,
-    pk: Annotated[int, Path(description='项目 ID')],
+    pk: Annotated[int, Path(description='Project ID')],
 ) -> ResponseSchemaModel[GetProjectDetail]:
     data = await project_service.get(db=db, pk=pk, owner_id=request.user.id)
     return response_base.success(data=data)
 
 
-@router.put('/{pk}', summary='更新项目', dependencies=[DependsJwtAuth])
+@router.put('/{pk}', summary='Update project', dependencies=[DependsJwtAuth])
 async def update_project(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='项目 ID')],
+    pk: Annotated[int, Path(description='Project ID')],
     obj: UpdateProjectParam,
 ) -> ResponseModel:
     count = await project_service.update(db=db, pk=pk, obj=obj, owner_id=request.user.id)
@@ -63,11 +63,11 @@ async def update_project(
     return response_base.fail()
 
 
-@router.delete('/{pk}', summary='删除项目', dependencies=[DependsJwtAuth])
+@router.delete('/{pk}', summary='Delete project', dependencies=[DependsJwtAuth])
 async def delete_project(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='项目 ID')],
+    pk: Annotated[int, Path(description='Project ID')],
 ) -> ResponseModel:
     count = await project_service.delete(db=db, pk=pk, owner_id=request.user.id)
     if count > 0:

@@ -17,13 +17,13 @@ class MCPBindingService:
     ) -> None:
         agent = await agent_dao.get(db, agent_id)
         if not agent or agent.user_id != user_id:
-            raise errors.NotFoundError(msg='Agent 不存在')
+            raise errors.NotFoundError(msg='Agent does not exist')
         tool = await mcp_tool_dao.get(db, mcp_tool_id)
         if not tool:
-            raise errors.NotFoundError(msg='MCP 工具不存在')
+            raise errors.NotFoundError(msg='MCP tool does not exist')
         existing = await agent_tool_dao.get_binding(db, agent_id, mcp_tool_id)
         if existing:
-            raise errors.ConflictError(msg='已绑定该工具')
+            raise errors.ConflictError(msg='Tool already bound')
         await agent_tool_dao.create(db, agent_id=agent_id, mcp_tool_id=mcp_tool_id)
 
     @staticmethod
@@ -36,7 +36,7 @@ class MCPBindingService:
     ) -> int:
         agent = await agent_dao.get(db, agent_id)
         if not agent or agent.user_id != user_id:
-            raise errors.NotFoundError(msg='Agent 不存在')
+            raise errors.NotFoundError(msg='Agent does not exist')
         return await agent_tool_dao.delete_binding(db, agent_id, mcp_tool_id)
 
 

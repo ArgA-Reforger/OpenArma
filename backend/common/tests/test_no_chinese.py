@@ -24,6 +24,17 @@ TRANSLATED_PACKAGES = [
     'backend/utils',
     'backend/app/task',
     'backend/app/conversation',
+    'backend/app/map',
+    'backend/app/knowledge',
+    'backend/app/mcp',
+    'backend/app/llm',
+    'backend/app/open',
+    'backend/app/agent',
+    'backend/app/builtin_tool',
+    'backend/app/project',
+    'backend/app/billing',
+    'backend/app/topology',
+    'backend/app/showcase',
 ]
 
 

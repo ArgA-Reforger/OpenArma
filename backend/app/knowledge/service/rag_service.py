@@ -1,4 +1,4 @@
-"""RAG 检索服务：从 Qdrant 检索相关知识，注入对话上下文。"""
+"""RAG retrieval service: retrieve relevant knowledge from Qdrant and inject into conversation context."""
 
 import logging
 from typing import Any
@@ -24,15 +24,15 @@ async def retrieve_context(
     embedding_kwargs: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """
-    从多个知识库中检索与 query 最相关的文本块。
+    Retrieve text chunks most relevant to query from multiple knowledge bases.
 
-    :param query: 用户查询文本
-    :param kb_ids: 要检索的知识库 ID 列表
-    :param top_k: 每个知识库返回的最大结果数
-    :param score_threshold: 最低相似度阈值
-    :param embedding_model: Embedding 模型
-    :param embedding_kwargs: 传给 litellm.embedding 的额外参数
-    :return: 按相似度排序的检索结果列表
+    :param query: user query text
+    :param kb_ids: list of knowledge base IDs to retrieve from
+    :param top_k: maximum results per knowledge base
+    :param score_threshold: minimum similarity threshold
+    :param embedding_model: embedding model
+    :param embedding_kwargs: extra keyword arguments for litellm.embedding
+    :return: list of retrieval results sorted by similarity
     """
     if not kb_ids or not query.strip():
         return []
@@ -77,7 +77,7 @@ async def retrieve_context(
 
 
 def build_rag_context(results: list[dict[str, Any]], max_chars: int = 4000) -> str:
-    """将检索结果格式化为可注入 system prompt 的上下文文本。"""
+    """Format retrieval results into context text that can be injected into system prompt."""
     if not results:
         return ''
 

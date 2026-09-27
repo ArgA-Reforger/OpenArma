@@ -14,7 +14,7 @@ class BuiltinToolService:
     async def get(*, db: AsyncSession, pk: int) -> BuiltinTool:
         obj = await builtin_tool_dao.get(db, pk)
         if not obj:
-            raise errors.NotFoundError(msg='内置工具不存在')
+            raise errors.NotFoundError(msg='Builtin tool does not exist')
         return obj
 
     @staticmethod
@@ -30,23 +30,23 @@ class BuiltinToolService:
     async def create(*, db: AsyncSession, obj: CreateBuiltinToolParam) -> BuiltinTool:
         existing = await builtin_tool_dao.get_by_name(db, obj.name)
         if existing:
-            raise errors.RequestError(msg=f'工具名 {obj.name} 已存在')
+            raise errors.RequestError(msg=f'Tool name {obj.name} already exists')
         return await builtin_tool_dao.create(db, obj)
 
     @staticmethod
     async def update(*, db: AsyncSession, pk: int, obj: UpdateBuiltinToolParam) -> int:
         tool = await builtin_tool_dao.get(db, pk)
         if not tool:
-            raise errors.NotFoundError(msg='内置工具不存在')
+            raise errors.NotFoundError(msg='Builtin tool does not exist')
         return await builtin_tool_dao.update(db, pk, obj)
 
     @staticmethod
     async def delete(*, db: AsyncSession, pk: int) -> int:
         tool = await builtin_tool_dao.get(db, pk)
         if not tool:
-            raise errors.NotFoundError(msg='内置工具不存在')
+            raise errors.NotFoundError(msg='Builtin tool does not exist')
         if tool.is_system:
-            raise errors.RequestError(msg='系统预置工具不可删除')
+            raise errors.RequestError(msg='System preset tools cannot be deleted')
         return await builtin_tool_dao.delete(db, pk)
 
 

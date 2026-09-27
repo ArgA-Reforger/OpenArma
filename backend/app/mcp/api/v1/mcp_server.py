@@ -13,7 +13,7 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.post('', summary='注册 MCP 服务器', dependencies=[DependsJwtAuth])
+@router.post('', summary='Register MCP server', dependencies=[DependsJwtAuth])
 async def create_mcp_server(
     db: CurrentSessionTransaction,
     request: Request,
@@ -26,7 +26,7 @@ async def create_mcp_server(
 
 @router.get(
     '',
-    summary='MCP 服务器列表',
+    summary='MCP server list',
     dependencies=[
         DependsJwtAuth,
         DependsPagination,
@@ -35,27 +35,27 @@ async def create_mcp_server(
 async def get_mcp_servers(
     db: CurrentSession,
     request: Request,
-    visibility: Annotated[str | None, Query(description='可见性过滤: private/public/official')] = None,
+    visibility: Annotated[str | None, Query(description='Visibility filter: private/public/official')] = None,
 ) -> ResponseSchemaModel[PageData[GetMCPServerDetail]]:
     page_data = await mcp_server_service.get_list(db=db, user_id=request.user.id, visibility=visibility)
     return response_base.success(data=page_data)
 
 
-@router.get('/{pk}', summary='MCP 服务器详情', dependencies=[DependsJwtAuth])
+@router.get('/{pk}', summary='MCP server details', dependencies=[DependsJwtAuth])
 async def get_mcp_server(
     db: CurrentSession,
     request: Request,
-    pk: Annotated[int, Path(description='主键 ID')],
+    pk: Annotated[int, Path(description='Primary key ID')],
 ) -> ResponseSchemaModel[GetMCPServerDetail]:
     data = await mcp_server_service.get(db=db, pk=pk, user_id=request.user.id)
     return response_base.success(data=data)
 
 
-@router.put('/{pk}', summary='更新 MCP 服务器', dependencies=[DependsJwtAuth])
+@router.put('/{pk}', summary='Update MCP server', dependencies=[DependsJwtAuth])
 async def update_mcp_server(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='主键 ID')],
+    pk: Annotated[int, Path(description='Primary key ID')],
     obj: UpdateMCPServerParam,
 ) -> ResponseModel:
     count = await mcp_server_service.update(db=db, pk=pk, obj=obj, user_id=request.user.id)
@@ -64,11 +64,11 @@ async def update_mcp_server(
     return response_base.fail()
 
 
-@router.delete('/{pk}', summary='删除 MCP 服务器', dependencies=[DependsJwtAuth])
+@router.delete('/{pk}', summary='Delete MCP server', dependencies=[DependsJwtAuth])
 async def delete_mcp_server(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='主键 ID')],
+    pk: Annotated[int, Path(description='Primary key ID')],
 ) -> ResponseModel:
     count = await mcp_server_service.delete(db=db, pk=pk, user_id=request.user.id)
     if count > 0:
@@ -76,21 +76,21 @@ async def delete_mcp_server(
     return response_base.fail()
 
 
-@router.post('/{pk}/discover', summary='发现工具', dependencies=[DependsJwtAuth])
+@router.post('/{pk}/discover', summary='Discover tools', dependencies=[DependsJwtAuth])
 async def discover_mcp_tools(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='主键 ID')],
+    pk: Annotated[int, Path(description='Primary key ID')],
 ) -> ResponseSchemaModel[list[GetMCPToolDetail]]:
     tools = await mcp_server_service.discover(db=db, pk=pk, user_id=request.user.id)
     return response_base.success(data=tools)
 
 
-@router.post('/{pk}/clone', summary='克隆 MCP 服务器', dependencies=[DependsJwtAuth])
+@router.post('/{pk}/clone', summary='Clone MCP server', dependencies=[DependsJwtAuth])
 async def clone_mcp_server(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='源 MCP 服务器 ID')],
+    pk: Annotated[int, Path(description='Source MCP server ID')],
 ) -> ResponseSchemaModel[GetMCPServerDetail]:
     server = await mcp_server_service.clone(db=db, pk=pk, user_id=request.user.id)
     data = GetMCPServerDetail.model_validate(server)

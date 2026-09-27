@@ -1,4 +1,4 @@
-"""MCP 客户端：连接 MCP Server，发现工具，调用工具。"""
+"""MCP client: connect to MCP Server, discover tools, and call tools."""
 
 import logging
 from typing import Any
@@ -15,11 +15,11 @@ async def discover_tools(
     connection_config: dict,
 ) -> list[dict[str, Any]]:
     """
-    连接 MCP Server 并获取 tools/list。
+    Connect to MCP Server and get tools/list.
 
-    :param transport_type: 传输类型 (sse / streamable_http / stdio)
-    :param connection_config: 连接配置 (url, command, args, env 等)
-    :return: 工具列表 [{name, description, input_schema}, ...]
+    :param transport_type: Transport type (sse / streamable_http / stdio)
+    :param connection_config: Connection config (url, command, args, env, etc.)
+    :return: Tool list [{name, description, input_schema}, ...]
     """
     url = connection_config.get('url', '')
 
@@ -82,13 +82,13 @@ async def call_tool(
     arguments: dict[str, Any],
 ) -> Any:
     """
-    调用 MCP Server 上的指定工具。
+    Call the specified tool on the MCP Server.
 
-    :param transport_type: 传输类型
-    :param connection_config: 连接配置
-    :param tool_name: 工具名称
-    :param arguments: 工具参数
-    :return: 工具调用结果
+    :param transport_type: Transport type
+    :param connection_config: Connection configuration
+    :param tool_name: Tool name
+    :param arguments: Tool arguments
+    :return: Tool call result
     """
     url = connection_config.get('url', '')
 
@@ -124,7 +124,7 @@ async def call_tool(
 
 
 def _extract_result(result) -> str:
-    """从 MCP CallToolResult 中提取文本内容。"""
+    """Extract text content from MCP CallToolResult."""
     if not result.content:
         return ''
     parts = []

@@ -1,4 +1,4 @@
-"""系统内置工具种子数据：启动时自动注册所有系统工具（幂等）。"""
+"""System builtin tools seed data: automatically register all system tools on startup (idempotent)."""
 
 import logging
 
@@ -429,7 +429,7 @@ SYSTEM_TOOLS = [
 
 
 async def seed_builtin_tools(db: AsyncSession) -> None:
-    """确保系统内置工具存在于数据库中。幂等操作。"""
+    """Ensure system builtin tools exist in the database. Idempotent operation."""
     for tool_data in SYSTEM_TOOLS:
         existing = await builtin_tool_dao.get_by_name(db, tool_data['name'])
         if existing:

@@ -1,8 +1,8 @@
-"""Arma Output Processor — 强制后处理管道。
+"""Arma Output Processor — mandatory post-processing pipeline.
 
-确保 AI 输出包含可解析的 JSON orders，无论用户如何自定义 Agent。
-有 JSON → 提取 orders → command_pool。
-没有 JSON → 返回空 orders + 原文作为 briefing。
+Ensures AI output contains parseable JSON orders, regardless of how the user customizes the Agent.
+With JSON -> extract orders -> command_pool.
+Without JSON -> return empty orders + original text as briefing.
 """
 
 import json

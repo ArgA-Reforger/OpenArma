@@ -34,7 +34,7 @@ class LanguageEnum(StrEnum):
 
 
 class SideConfigItem(SchemaBase):
-    faction: str = Field(..., description='阵营 key (US/USSR/FIA/...)')
+    faction: str = Field(..., description='Faction key (US/USSR/FIA/...)')
     control: ControlEnum = ControlEnum.llm
 
 
@@ -51,8 +51,8 @@ class CreateArmaConfigParam(SchemaBase):
     emergency_enabled: bool = True
     game_mode: GameModeEnum = GameModeEnum.game_master
     language: LanguageEnum = LanguageEnum.en
-    context_window: int = Field(default=15, ge=5, le=100, description='上下文窗口大小')
-    mission_objective: dict | None = Field(None, description='任务目标 JSON')
+    context_window: int = Field(default=15, ge=5, le=100, description='Context window size')
+    mission_objective: dict | None = Field(None, description='Mission objective JSON')
 
 
 class UpdateArmaConfigParam(SchemaBase):
@@ -65,7 +65,7 @@ class UpdateArmaConfigParam(SchemaBase):
     game_mode: GameModeEnum | None = None
     language: LanguageEnum | None = None
     context_window: int | None = Field(default=None, ge=5, le=100)
-    mission_objective: dict | None = Field(None, description='任务目标 JSON')
+    mission_objective: dict | None = Field(None, description='Mission objective JSON')
 
 
 class GetArmaConfigDetail(SchemaBase):

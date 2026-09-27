@@ -7,6 +7,6 @@ class ProjectAgent(Base):
     __tablename__ = 'oa_project_agent'
 
     id: Mapped[id_key] = mapped_column(init=False)
-    project_id: Mapped[int] = mapped_column(sa.BigInteger, comment='项目 ID')
+    project_id: Mapped[int] = mapped_column(sa.BigInteger, comment='Project ID')
     agent_id: Mapped[int] = mapped_column(sa.BigInteger, comment='Agent ID')
-    sort_order: Mapped[int] = mapped_column(sa.Integer, default=0, comment='排序')
+    sort_order: Mapped[int] = mapped_column(sa.Integer, default=0, comment='Sort order')

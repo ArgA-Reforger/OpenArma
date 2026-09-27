@@ -66,9 +66,9 @@ class LLMProviderService:
     async def get(*, db: AsyncSession, pk: int, user_id: int) -> GetLLMProviderDetail:
         provider = await llm_provider_dao.get(db, pk)
         if not provider:
-            raise errors.NotFoundError(msg='LLM 服务商不存在')
+            raise errors.NotFoundError(msg='LLM provider does not exist')
         if provider.user_id != user_id and provider.visibility == 'private':
-            raise errors.NotFoundError(msg='LLM 服务商不存在')
+            raise errors.NotFoundError(msg='LLM provider does not exist')
         return _model_to_detail(provider)
 
     @staticmethod
@@ -104,9 +104,9 @@ class LLMProviderService:
     async def update(*, db: AsyncSession, pk: int, obj: UpdateLLMProviderParam, user_id: int) -> int:
         provider = await llm_provider_dao.get(db, pk)
         if not provider:
-            raise errors.NotFoundError(msg='LLM 服务商不存在')
+            raise errors.NotFoundError(msg='LLM provider does not exist')
         if provider.user_id != user_id:
-            raise errors.NotFoundError(msg='LLM 服务商不存在')
+            raise errors.NotFoundError(msg='LLM provider does not exist')
         update_data = obj.model_dump(exclude_unset=True, exclude={'api_key'}, mode='json')
         if 'api_key' in obj.model_fields_set:
             update_data['api_key_encrypted'] = _encrypt_api_key(obj.api_key) if obj.api_key else None
@@ -116,9 +116,9 @@ class LLMProviderService:
     async def delete(*, db: AsyncSession, pk: int, user_id: int) -> int:
         provider = await llm_provider_dao.get(db, pk)
         if not provider:
-            raise errors.NotFoundError(msg='LLM 服务商不存在')
+            raise errors.NotFoundError(msg='LLM provider does not exist')
         if provider.user_id != user_id:
-            raise errors.NotFoundError(msg='LLM 服务商不存在')
+            raise errors.NotFoundError(msg='LLM provider does not exist')
         return await llm_provider_dao.delete(db, pk)
 
     _EMBEDDING_KEYWORDS = ('embed', 'embedding', 'text-embedding')
@@ -138,14 +138,14 @@ class LLMProviderService:
     ) -> dict[str, Any]:
         provider = await llm_provider_dao.get(db, pk)
         if not provider:
-            raise errors.NotFoundError(msg='LLM 服务商不存在')
+            raise errors.NotFoundError(msg='LLM provider does not exist')
         if provider.user_id != user_id:
-            raise errors.NotFoundError(msg='LLM 服务商不存在')
+            raise errors.NotFoundError(msg='LLM provider does not exist')
 
         try:
             api_key = _decrypt_api_key(provider.api_key_encrypted) if provider.api_key_encrypted else None
         except Exception:
-            return {'success': False, 'message': 'API Key 解密失败，请重新设置 API Key'}
+            return {'success': False, 'message': 'Failed to decrypt API key, please reconfigure API key'}
 
         api_base = provider.api_base
 
@@ -170,7 +170,7 @@ class LLMProviderService:
                 resp = await litellm.aembedding(**params)
                 dim = len(resp.data[0]['embedding']) if resp.data else 0
                 success = True
-                message = f'连接成功 (model={model_name}, embedding dim={dim})'
+                message = f'Connection successful (model={model_name}, embedding dim={dim})'
             else:
                 params = {
                     'model': model,
@@ -186,7 +186,7 @@ class LLMProviderService:
                 resp = await litellm.acompletion(**params)
                 content = resp.choices[0].message.content or ''
                 success = True
-                message = f'连接成功 (model={model_name}, reply={content[:50]})'
+                message = f'Connection successful (model={model_name}, reply={content[:50]})'
         except Exception as e:
             message = str(e)[:200]
 
@@ -213,19 +213,19 @@ class LLMProviderService:
     ) -> dict[str, Any]:
         provider = await llm_provider_dao.get(db, pk)
         if not provider:
-            raise errors.NotFoundError(msg='LLM 服务商不存在')
+            raise errors.NotFoundError(msg='LLM provider does not exist')
         if provider.user_id != user_id:
-            raise errors.NotFoundError(msg='LLM 服务商不存在')
+            raise errors.NotFoundError(msg='LLM provider does not exist')
 
         try:
             api_key = _decrypt_api_key(provider.api_key_encrypted) if provider.api_key_encrypted else None
         except Exception:
-            return {'success': False, 'models': [], 'message': 'API Key 解密失败，请重新设置 API Key'}
+            return {'success': False, 'models': [], 'message': 'Failed to decrypt API key, please reconfigure API key'}
 
         api_base = (provider.api_base or '').rstrip('/')
 
         if not api_base:
-            return {'success': False, 'models': [], 'message': '未配置 API 地址'}
+            return {'success': False, 'models': [], 'message': 'API base URL not configured'}
 
         url = f'{api_base}/models'
         headers: dict[str, str] = {}
@@ -249,7 +249,7 @@ class LLMProviderService:
                     model_ids.append(mid)
 
         model_ids.sort()
-        return {'success': True, 'models': model_ids, 'message': f'获取到 {len(model_ids)} 个模型'}
+        return {'success': True, 'models': model_ids, 'message': f'Fetched {len(model_ids)} models'}
 
 
 llm_provider_service: LLMProviderService = LLMProviderService()

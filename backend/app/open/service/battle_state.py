@@ -1,7 +1,7 @@
-"""战场状态机：peaceful → engaged → critical.
+"""Battle state machine: peaceful -> engaged -> critical.
 
-基于后端规则判定（零延迟），不经过 LLM。
-状态跃迁才是紧急，持续状态不是。
+Based on backend rules evaluation (zero latency), does not go through LLM.
+Only state transitions are urgent; sustained states are not.
 """
 
 import logging

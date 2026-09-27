@@ -16,7 +16,7 @@ class TopologyPayload(BaseModel):
 
 @router.post(
     '/topologies/validate',
-    summary='验证拓扑配置',
+    summary='Validate topology configuration',
     dependencies=[DependsJwtAuth],
 )
 async def validate_topology_endpoint(

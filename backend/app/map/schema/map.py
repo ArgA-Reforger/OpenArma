@@ -6,35 +6,35 @@ from backend.common.schema import SchemaBase
 
 
 class CreateMapParam(SchemaBase):
-    """从 Scanner JSON 导入地图的参数"""
+    """Parameters for importing map from Scanner JSON"""
 
-    name: str = Field(description='地图名称')
-    size_x: float = Field(description='地图宽度（米）')
-    size_z: float = Field(description='地图深度（米）')
-    max_elevation: float = Field(default=0, description='最大海拔（米）')
-    offset_x: float = Field(default=0, description='X 偏移')
-    offset_z: float = Field(default=0, description='Z 偏移')
-    description: str | None = Field(None, description='地图描述')
+    name: str = Field(description='Map name')
+    size_x: float = Field(description='Map width (meters)')
+    size_z: float = Field(description='Map depth (meters)')
+    max_elevation: float = Field(default=0, description='Max elevation (meters)')
+    offset_x: float = Field(default=0, description='X offset')
+    offset_z: float = Field(default=0, description='Z offset')
+    description: str | None = Field(None, description='Map description')
 
 
 class CreateMapManualParam(SchemaBase):
-    """手动创建地图的参数"""
+    """Parameters for manually creating map"""
 
-    name: str = Field(description='地图名称', min_length=1, max_length=64)
-    size_x: float = Field(description='地图宽度（米）', gt=0)
-    size_z: float = Field(description='地图深度（米）', gt=0)
-    max_elevation: float = Field(default=0, description='最大海拔（米）')
-    offset_x: float = Field(default=0, description='X 偏移')
-    offset_z: float = Field(default=0, description='Z 偏移')
-    description: str | None = Field(None, description='地图描述')
+    name: str = Field(description='Map name', min_length=1, max_length=64)
+    size_x: float = Field(description='Map width (meters)', gt=0)
+    size_z: float = Field(description='Map depth (meters)', gt=0)
+    max_elevation: float = Field(default=0, description='Max elevation (meters)')
+    offset_x: float = Field(default=0, description='X offset')
+    offset_z: float = Field(default=0, description='Z offset')
+    description: str | None = Field(None, description='Map description')
 
 
 class UpdateMapParam(SchemaBase):
-    description: str | None = Field(None, description='地图描述')
-    status: str | None = Field(None, description='状态 draft/published')
-    has_satellite_tiles: bool | None = Field(None, description='是否存在卫星瓦片')
-    tile_min_zoom: int | None = Field(None, ge=0, le=10, description='瓦片最小缩放级别')
-    tile_max_zoom: int | None = Field(None, ge=0, le=10, description='瓦片最大缩放级别')
+    description: str | None = Field(None, description='Map description')
+    status: str | None = Field(None, description='Status draft/published')
+    has_satellite_tiles: bool | None = Field(None, description='Whether satellite tiles exist')
+    tile_min_zoom: int | None = Field(None, ge=0, le=10, description='Tile min zoom level')
+    tile_max_zoom: int | None = Field(None, ge=0, le=10, description='Tile max zoom level')
 
 
 class GetMapDetail(SchemaBase):
@@ -113,9 +113,9 @@ class GetLandmarkDetail(SchemaBase):
 
 
 class UpdateLandmarkParam(SchemaBase):
-    tactical_value: str | None = Field(None, description='战术价值 high/medium/low')
-    tactical_description: str | None = Field(None, description='战术描述')
-    tags: list | None = Field(None, description='标签列表')
+    tactical_value: str | None = Field(None, description='Tactical value high/medium/low')
+    tactical_description: str | None = Field(None, description='Tactical description')
+    tags: list | None = Field(None, description='Tags list')
 
 
 class GetRoadDetail(SchemaBase):
@@ -153,41 +153,41 @@ class GetZoneDetail(SchemaBase):
 
 
 class UpdateZoneParam(SchemaBase):
-    tactical_notes: str | None = Field(None, description='战术备注')
-    boundary: list | None = Field(None, description='多边形边界')
+    tactical_notes: str | None = Field(None, description='Tactical notes')
+    boundary: list | None = Field(None, description='Polygon boundary')
 
 
 class CreateLandmarkParam(SchemaBase):
-    """手动添加地标"""
+    """Manually add landmark"""
 
-    name: str = Field(description='地标名称', min_length=1, max_length=128)
-    type: str = Field(description='地标类型 (city/village/hill/military_base/...)', min_length=1)
-    position_x: float = Field(description='世界坐标 X（米）')
-    position_z: float = Field(description='世界坐标 Z（米）')
-    position_y: float = Field(default=0, description='海拔（米）')
-    description: str | None = Field(None, description='描述')
-    tags: list[str] | None = Field(None, description='标签列表')
+    name: str = Field(description='Landmark name', min_length=1, max_length=128)
+    type: str = Field(description='Landmark type (city/village/hill/military_base/...)', min_length=1)
+    position_x: float = Field(description='World coordinate X (meters)')
+    position_z: float = Field(description='World coordinate Z (meters)')
+    position_y: float = Field(default=0, description='Elevation (meters)')
+    description: str | None = Field(None, description='Description')
+    tags: list[str] | None = Field(None, description='Tags list')
 
 
 class CreateRoadParam(SchemaBase):
-    """手动添加道路"""
+    """Manually add road"""
 
-    points: list[list[float]] = Field(description='路径点序列 [[x,z], ...]', min_length=2)
-    name: str | None = Field(None, description='道路名称')
-    type: str = Field(default='road', description='道路类型 main_road/secondary/track/path')
-    width: float = Field(default=4.0, description='道路宽度（米）')
+    points: list[list[float]] = Field(description='Waypoint sequence [[x,z], ...]', min_length=2)
+    name: str | None = Field(None, description='Road name')
+    type: str = Field(default='road', description='Road type main_road/secondary/track/path')
+    width: float = Field(default=4.0, description='Road width (meters)')
 
 
 class CreateZoneParam(SchemaBase):
-    """手动添加区域"""
+    """Manually add zone"""
 
-    name: str = Field(description='区域名称', min_length=1, max_length=128)
-    type: str = Field(description='区域类型 urban/suburban/forest/open_field/mountain/water')
-    center_x: float = Field(description='中心坐标 X（米）')
-    center_z: float = Field(description='中心坐标 Z（米）')
-    radius: float = Field(default=250.0, description='区域半径（米）')
-    boundary: list | None = Field(None, description='多边形边界')
-    tactical_notes: str | None = Field(None, description='备注')
+    name: str = Field(description='Zone name', min_length=1, max_length=128)
+    type: str = Field(description='Zone type urban/suburban/forest/open_field/mountain/water')
+    center_x: float = Field(description='Center coordinate X (meters)')
+    center_z: float = Field(description='Center coordinate Z (meters)')
+    radius: float = Field(default=250.0, description='Zone radius (meters)')
+    boundary: list | None = Field(None, description='Polygon boundary')
+    tactical_notes: str | None = Field(None, description='Notes')
 
 
 class CreateLayerParam(SchemaBase):
@@ -263,16 +263,16 @@ class GetEntityDetail(SchemaBase):
 
 
 class MapImportRequest(SchemaBase):
-    """Scanner JSON 导入请求（接受完整 JSON 文件内容, 兼容 v1.0-v1.2）"""
+    """Scanner JSON import request (accepts full JSON file content, compatible with v1.0-v1.2)"""
 
-    format_version: str = Field(description='格式版本')
-    scanner_version: str = Field(description='扫描器版本')
-    scan_date: str = Field(description='扫描时间')
-    map: dict = Field(description='地图元信息 {name, size, offset, ...}')
-    landmarks: list[dict] = Field(default_factory=list, description='地标列表')
-    buildings: list[dict] = Field(default_factory=list, description='建筑列表 (legacy)')
-    roads: list[dict] = Field(default_factory=list, description='道路列表')
-    height_grid: dict | None = Field(None, description='高度网格数据')
-    water_grid: dict | None = Field(None, description='水面网格数据 (v1.2)')
-    zones: list[dict] = Field(default_factory=list, description='区域列表')
-    entity_chunks: list[dict] = Field(default_factory=list, description='实体 chunk 引用 (v1.2)')
+    format_version: str = Field(description='Format version')
+    scanner_version: str = Field(description='Scanner version')
+    scan_date: str = Field(description='Scan timestamp')
+    map: dict = Field(description='Map metadata {name, size, offset, ...}')
+    landmarks: list[dict] = Field(default_factory=list, description='Landmarks list')
+    buildings: list[dict] = Field(default_factory=list, description='Buildings list (legacy)')
+    roads: list[dict] = Field(default_factory=list, description='Roads list')
+    height_grid: dict | None = Field(None, description='Height grid data')
+    water_grid: dict | None = Field(None, description='Water grid data (v1.2)')
+    zones: list[dict] = Field(default_factory=list, description='Zones list')
+    entity_chunks: list[dict] = Field(default_factory=list, description='Entity chunk references (v1.2)')

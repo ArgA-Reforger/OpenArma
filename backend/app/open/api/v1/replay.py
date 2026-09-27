@@ -19,15 +19,15 @@ def _build_snapshot_filter(project_id: int, group_id: int | None = None):
     return conditions
 
 
-@router.get('/replay/{project_id}/metadata', summary='回放元数据')
+@router.get('/replay/{project_id}/metadata', summary='Replay metadata')
 async def replay_metadata(
     project_id: int,
     db: CurrentSession,
-    group_id: int | None = Query(default=None, description='对话组 ID'),
+    group_id: int | None = Query(default=None, description='Conversation group ID'),
 ) -> ResponseSchemaModel:
     project = await project_dao.get(db, project_id)
     if not project:
-        raise errors.NotFoundError(msg='项目不存在')
+        raise errors.NotFoundError(msg='Project does not exist')
 
     conditions = _build_snapshot_filter(project_id, group_id)
     stmt = (
@@ -76,7 +76,7 @@ async def replay_metadata(
     })
 
 
-@router.get('/replay/{project_id}/frames', summary='批量帧数据(轻量)')
+@router.get('/replay/{project_id}/frames', summary='Batch frame data (lightweight)')
 async def replay_frames(
     project_id: int,
     db: CurrentSession,
@@ -86,10 +86,10 @@ async def replay_frames(
 ) -> ResponseSchemaModel:
     project = await project_dao.get(db, project_id)
     if not project:
-        raise errors.NotFoundError(msg='项目不存在')
+        raise errors.NotFoundError(msg='Project does not exist')
 
     if to_frame - from_frame > 200:
-        raise errors.RequestError(msg='单次最多请求200帧')
+        raise errors.RequestError(msg='At most 200 frames can be requested at once')
 
     conditions = _build_snapshot_filter(project_id, group_id)
     stmt = (
@@ -156,7 +156,7 @@ async def replay_frames(
     return response_base.success(data={'frames': frames})
 
 
-@router.get('/replay/{project_id}/frame/{request_id}', summary='单帧完整数据')
+@router.get('/replay/{project_id}/frame/{request_id}', summary='Single frame full data')
 async def replay_frame_detail(
     project_id: int,
     request_id: int,
@@ -165,7 +165,7 @@ async def replay_frame_detail(
 ) -> ResponseSchemaModel:
     project = await project_dao.get(db, project_id)
     if not project:
-        raise errors.NotFoundError(msg='项目不存在')
+        raise errors.NotFoundError(msg='Project does not exist')
 
     conditions = _build_snapshot_filter(project_id, group_id)
     stmt = (
@@ -176,7 +176,7 @@ async def replay_frame_detail(
     snapshot = result.scalar_one_or_none()
 
     if not snapshot:
-        raise errors.NotFoundError(msg='帧数据不存在')
+        raise errors.NotFoundError(msg='Frame data does not exist')
 
     return response_base.success(data={
         'request_id': snapshot.request_id,

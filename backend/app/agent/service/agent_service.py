@@ -14,7 +14,7 @@ class AgentService:
     async def get(*, db: AsyncSession, pk: int, user_id: int) -> Agent:
         obj = await agent_dao.get(db, pk)
         if not obj or (obj.user_id != user_id and obj.visibility == 'private'):
-            raise errors.NotFoundError(msg='Agent 不存在')
+            raise errors.NotFoundError(msg='Agent does not exist')
         return obj
 
     @staticmethod
@@ -30,30 +30,30 @@ class AgentService:
     async def update(*, db: AsyncSession, pk: int, obj: UpdateAgentParam, user_id: int) -> int:
         agent = await agent_dao.get(db, pk)
         if not agent or agent.user_id != user_id:
-            raise errors.NotFoundError(msg='Agent 不存在')
+            raise errors.NotFoundError(msg='Agent does not exist')
         return await agent_dao.update(db, pk, obj)
 
     @staticmethod
     async def delete(*, db: AsyncSession, pk: int, user_id: int) -> int:
         agent = await agent_dao.get(db, pk)
         if not agent or agent.user_id != user_id:
-            raise errors.NotFoundError(msg='Agent 不存在')
+            raise errors.NotFoundError(msg='Agent does not exist')
         return await agent_dao.delete(db, pk)
 
     @staticmethod
     async def set_default(*, db: AsyncSession, pk: int, user_id: int) -> None:
         agent = await agent_dao.get(db, pk)
         if not agent or agent.user_id != user_id:
-            raise errors.NotFoundError(msg='Agent 不存在')
+            raise errors.NotFoundError(msg='Agent does not exist')
         await agent_dao.set_default(db, user_id=user_id, agent_id=pk)
 
     @staticmethod
     async def clone(*, db: AsyncSession, pk: int, user_id: int) -> Agent:
         source = await agent_dao.get(db, pk)
         if not source:
-            raise errors.NotFoundError(msg='Agent 不存在')
+            raise errors.NotFoundError(msg='Agent does not exist')
         if source.user_id != user_id and source.visibility == 'private':
-            raise errors.NotFoundError(msg='Agent 不存在')
+            raise errors.NotFoundError(msg='Agent does not exist')
         clone_data = CreateAgentParam(
             name=f'{source.name} (Copy)',
             description=source.description,
@@ -68,6 +68,7 @@ class AgentService:
             presence_penalty=source.presence_penalty,
             frequency_penalty=source.frequency_penalty,
             sort_order=0,
+            is_default=False,
             visibility='private',
             builtin_tools=source.builtin_tools,
             enable_sub_agents=source.enable_sub_agents,

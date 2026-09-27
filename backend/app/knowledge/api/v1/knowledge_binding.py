@@ -14,15 +14,15 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.get('/{pid}/knowledge-bases', summary='项目绑定的知识库列表', dependencies=[DependsJwtAuth])
+@router.get('/{pid}/knowledge-bases', summary='List of knowledge bases bound to project', dependencies=[DependsJwtAuth])
 async def get_project_knowledge_bases(
     db: CurrentSession,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
 ) -> ResponseSchemaModel[list[GetKnowledgeBaseDetail]]:
     project = await project_dao.get(db, pid)
     if not project or project.owner_id != request.user.id:
-        raise errors.NotFoundError(msg='项目不存在')
+        raise errors.NotFoundError(msg='Project does not exist')
     bindings = await project_knowledge_base_dao.get_by_project(db, pid)
     items = []
     for b in bindings:
@@ -32,19 +32,19 @@ async def get_project_knowledge_bases(
     return response_base.success(data=items)
 
 
-@router.post('/{pid}/knowledge-bases', summary='绑定知识库到项目', dependencies=[DependsJwtAuth])
+@router.post('/{pid}/knowledge-bases', summary='Bind knowledge base to project', dependencies=[DependsJwtAuth])
 async def bind_knowledge_base(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    kb_id: Annotated[int, Query(description='知识库 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    kb_id: Annotated[int, Query(description='Knowledge base ID')],
 ) -> ResponseModel:
     project = await project_dao.get(db, pid)
     if not project or project.owner_id != request.user.id:
-        raise errors.NotFoundError(msg='项目不存在')
+        raise errors.NotFoundError(msg='Project does not exist')
     kb = await knowledge_base_dao.get(db, kb_id)
     if not kb or kb.user_id != request.user.id:
-        raise errors.NotFoundError(msg='知识库不存在')
+        raise errors.NotFoundError(msg='Knowledge base does not exist')
     existing = await project_knowledge_base_dao.get_binding(db, pid, kb_id)
     if existing:
         return response_base.success()
@@ -52,16 +52,16 @@ async def bind_knowledge_base(
     return response_base.success()
 
 
-@router.delete('/{pid}/knowledge-bases/{kb_id}', summary='解绑知识库', dependencies=[DependsJwtAuth])
+@router.delete('/{pid}/knowledge-bases/{kb_id}', summary='Unbind knowledge base', dependencies=[DependsJwtAuth])
 async def unbind_knowledge_base(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    kb_id: Annotated[int, Path(description='知识库 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    kb_id: Annotated[int, Path(description='Knowledge base ID')],
 ) -> ResponseModel:
     project = await project_dao.get(db, pid)
     if not project or project.owner_id != request.user.id:
-        raise errors.NotFoundError(msg='项目不存在')
+        raise errors.NotFoundError(msg='Project does not exist')
     count = await project_knowledge_base_dao.delete_binding(db, project_id=pid, knowledge_base_id=kb_id)
     if count > 0:
         return response_base.success()

@@ -6,15 +6,15 @@ from backend.common.schema import SchemaBase
 
 
 class ModelEntry(SchemaBase):
-    """模型条目，包含验证状态"""
+    """Model entry, including verification status"""
 
-    name: str = Field(description='模型名称')
-    verified_at: str | None = Field(None, description='最后验证时间 (ISO 字符串)')
-    verified_ok: bool | None = Field(None, description='验证是否通过')
+    name: str = Field(description='Model name')
+    verified_at: str | None = Field(None, description='Last verification time (ISO string)')
+    verified_ok: bool | None = Field(None, description='Whether verification passed')
 
 
 def normalize_models(raw: list | None) -> list[dict] | None:
-    """兼容旧格式：将 ["str"] 转为 [{"name": "str", ...}]"""
+    """Compatibility for legacy format: convert ["str"] to [{"name": "str", ...}]"""
     if not raw:
         return raw
     result = []
@@ -29,51 +29,51 @@ def normalize_models(raw: list | None) -> list[dict] | None:
 
 
 class LLMProviderSchemaBase(SchemaBase):
-    """LLM 服务商基础模型"""
+    """Base LLM provider model"""
 
-    name: str = Field(description='服务商名称')
-    provider_type: str = Field(description='服务商类型')
-    api_base: str | None = Field(None, description='API 基础地址')
-    models: list[ModelEntry] | None = Field(None, description='可用模型列表')
-    rpm_limit: int | None = Field(None, ge=1, description='每分钟请求数上限（null=不限制）')
-    tpm_limit: int | None = Field(None, ge=1, description='每分钟 Token 数上限（null=不限制）')
-    is_active: bool = Field(default=True, description='是否启用')
-    visibility: str = Field(default='private', description='可见性 private/public/official')
+    name: str = Field(description='Provider name')
+    provider_type: str = Field(description='Provider type')
+    api_base: str | None = Field(None, description='API base URL')
+    models: list[ModelEntry] | None = Field(None, description='Available model list')
+    rpm_limit: int | None = Field(None, ge=1, description='RPM limit (null = unlimited)')
+    tpm_limit: int | None = Field(None, ge=1, description='TPM limit (null = unlimited)')
+    is_active: bool = Field(default=True, description='Whether enabled')
+    visibility: str = Field(default='private', description='Visibility private/public/official')
 
 
 class CreateLLMProviderParam(LLMProviderSchemaBase):
-    """创建 LLM 服务商参数"""
+    """Create LLM provider parameters"""
 
-    api_key: str | None = Field(None, description='API Key（明文，存储时加密）')
+    api_key: str | None = Field(None, description='API key (plaintext, encrypted when stored)')
 
 
 class UpdateLLMProviderParam(SchemaBase):
-    """更新 LLM 服务商参数"""
+    """Update LLM provider parameters"""
 
-    name: str | None = Field(None, description='服务商名称')
-    provider_type: str | None = Field(None, description='服务商类型')
-    api_base: str | None = Field(None, description='API 基础地址')
-    api_key: str | None = Field(None, description='API Key（明文，仅更新时提供则重新加密）')
-    models: list[ModelEntry] | None = Field(None, description='可用模型列表')
-    rpm_limit: int | None = Field(None, ge=1, description='每分钟请求数上限（null=不限制）')
-    tpm_limit: int | None = Field(None, ge=1, description='每分钟 Token 数上限（null=不限制）')
-    is_active: bool | None = Field(None, description='是否启用')
-    visibility: str | None = Field(None, description='可见性 private/public/official')
+    name: str | None = Field(None, description='Provider name')
+    provider_type: str | None = Field(None, description='Provider type')
+    api_base: str | None = Field(None, description='API base URL')
+    api_key: str | None = Field(None, description='API key (plaintext, re-encrypted if provided on update)')
+    models: list[ModelEntry] | None = Field(None, description='Available model list')
+    rpm_limit: int | None = Field(None, ge=1, description='RPM limit (null = unlimited)')
+    tpm_limit: int | None = Field(None, ge=1, description='TPM limit (null = unlimited)')
+    is_active: bool | None = Field(None, description='Whether enabled')
+    visibility: str | None = Field(None, description='Visibility private/public/official')
 
 
 class VerifyModelParam(SchemaBase):
-    """验证模型连接参数"""
+    """Verify model connection parameters"""
 
-    model_name: str = Field(description='要验证的模型名称')
+    model_name: str = Field(description='Model name to verify')
 
 
 class GetLLMProviderDetail(LLMProviderSchemaBase):
-    """LLM 服务商详情"""
+    """LLM provider details"""
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int = Field(description='主键 ID')
-    user_id: int = Field(description='用户 ID')
-    api_key_masked: str | None = Field(None, description='API Key 脱敏显示')
-    created_time: datetime = Field(description='创建时间')
-    updated_time: datetime | None = Field(None, description='更新时间')
+    id: int = Field(description='Primary key ID')
+    user_id: int = Field(description='User ID')
+    api_key_masked: str | None = Field(None, description='Masked API key')
+    created_time: datetime = Field(description='Creation time')
+    updated_time: datetime | None = Field(None, description='Update time')

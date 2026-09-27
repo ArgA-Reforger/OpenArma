@@ -1,6 +1,7 @@
-"""文档处理管线：解析 → 分块 → Embedding → 写入 Qdrant。
+"""Document processing pipeline: parse -> chunk -> embedding -> write to Qdrant.
 
-同步函数，设计为 Celery task 调用。当 Celery 不可用时直接在后台线程执行。
+Synchronous function designed for Celery task invocation.
+Runs directly in a background thread when Celery is unavailable.
 """
 
 import hashlib
@@ -23,7 +24,7 @@ def _collection_name(kb_id: int) -> str:
 
 
 def _extract_text(file_path: str | None, content: str | None, source_type: str) -> str:
-    """从文件或文本中提取纯文本内容。"""
+    """Extract plain text content from file or text."""
     if source_type == 'text' or source_type == 'url':
         return content or ''
 
@@ -81,7 +82,7 @@ def _extract_text(file_path: str | None, content: str | None, source_type: str) 
 
 
 def _chunk_text(text: str, chunk_size: int = 512, chunk_overlap: int = 64) -> list[str]:
-    """按字符数分块，保留重叠。"""
+    """Chunk by character count, preserving overlap."""
     if not text:
         return []
     chunks = []
@@ -94,7 +95,7 @@ def _chunk_text(text: str, chunk_size: int = 512, chunk_overlap: int = 64) -> li
 
 
 def _embed_chunks(chunks: list[str], model: str = 'text-embedding-3-small', **kwargs) -> list[list[float]]:
-    """调用 LiteLLM embedding 接口获取向量。"""
+    """Call LiteLLM embedding API to get vectors."""
     if not chunks:
         return []
     response = litellm.embedding(model=model, input=chunks, **kwargs)
@@ -102,7 +103,7 @@ def _embed_chunks(chunks: list[str], model: str = 'text-embedding-3-small', **kw
 
 
 def _process_document(doc_id: int, kb_id: int) -> None:
-    """同步处理单个文档的完整管线。"""
+    """Synchronous full pipeline for processing a single document."""
     import asyncio
 
     from backend.app.knowledge.crud.crud_knowledge_document import knowledge_document_dao
@@ -126,7 +127,7 @@ def _process_document(doc_id: int, kb_id: int) -> None:
             text = _extract_text(doc.file_path, doc.content, doc.source_type)
             if not text.strip():
                 async with async_db_session() as db:
-                    await knowledge_document_dao.update_status(db, doc_id, 'error', '文档内容为空')
+                    await knowledge_document_dao.update_status(db, doc_id, 'error', 'Document content is empty')
                     await db.commit()
                 return
 
@@ -198,7 +199,7 @@ def _process_document(doc_id: int, kb_id: int) -> None:
 
 
 def trigger_vectorize(doc_id: int, kb_id: int) -> None:
-    """触发文档向量化。优先使用 Celery，不可用时用后台线程。"""
+    """Trigger document vectorization. Prefers Celery, falls back to background thread."""
     try:
         from backend.app.task.tasks.knowledge.tasks import process_document_task
 
