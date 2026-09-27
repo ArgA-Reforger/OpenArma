@@ -345,10 +345,18 @@
     "newPassword": "New Password",
     "confirmResetPassword": "Reset password for {name}?",
     "passwordResetSuccess": "Password reset",
-    "confirmDelete": "Delete user {name}?",
+    "confirmDelete": "Delete user {name}? This action cannot be undone.",
     "userCreated": "User created",
     "userUpdated": "User updated",
-    "userDeleted": "User deleted"
+    "userDeleted": "User deleted",
+    "username": "Username",
+    "password": "Password",
+    "lastLogin": "Last Login",
+    "selectDept": "Select a department",
+    "creating": "Creating...",
+    "resetPasswordFor": "Reset Password - {name}",
+    "resetting": "Resetting...",
+    "confirmReset": "Confirm Reset"
   },
   "role": {
     "title": "Role Management",
@@ -356,11 +364,14 @@
     "createRole": "Create Role",
     "roleName": "Role Name",
     "menuPermission": "Menu Permission",
-    "confirmBatchDelete": "Delete {count} selected roles?",
+    "confirmBatchDelete": "Delete {count} selected roles? This action cannot be undone.",
     "roleCreated": "Role created",
     "roleUpdated": "Role updated",
     "roleDeleted": "Roles deleted",
-    "permissionUpdated": "Permissions updated"
+    "permissionUpdated": "Permissions updated",
+    "dataFilter": "Data Filter",
+    "editRole": "Edit Role",
+    "menuPermissionFor": "Menu Permission - {name}"
   },
   "dept": {
     "title": "Department Management",
@@ -401,6 +412,7 @@
     "typeLink": "Link",
     "show": "Show",
     "hide": "Hide",
+    "none": "None",
     "noParent": "None (Top Level)",
     "menuCreated": "Menu created",
     "menuUpdated": "Menu updated",
@@ -504,7 +516,14 @@
     "typeCreated": "Dict type created",
     "typeUpdated": "Dict type updated",
     "dataCreated": "Dict data created",
-    "dataUpdated": "Dict data updated"
+    "dataUpdated": "Dict data updated",
+    "typeDeleted": "Dict type deleted",
+    "dataDeleted": "Dict data deleted",
+    "dataOfType": "{name} - Dict Data",
+    "createType": "New Dict Type",
+    "editType": "Edit Dict Type",
+    "createData": "New Dict Data",
+    "editData": "Edit Dict Data"
   },
   "notice": {
     "title": "Notice Management",
@@ -550,7 +569,10 @@
     "taskUpdated": "Task updated",
     "taskDeleted": "Task deleted",
     "taskExecuted": "Task triggered",
-    "confirmDelete": "Delete task {name}?"
+    "confirmDelete": "Delete task {name}?",
+    "searchTask": "Search task name...",
+    "expression": "Expression",
+    "selectTask": "Select a task"
   },
   "dataPermission": {
     "title": "Data Permission",
@@ -567,7 +589,11 @@
     "scopeCreated": "Scope created",
     "scopeUpdated": "Scope updated",
     "ruleCreated": "Rule created",
-    "ruleUpdated": "Rule updated"
+    "ruleUpdated": "Rule updated",
+    "scopeDeleted": "Scope deleted",
+    "ruleDeleted": "Rule deleted",
+    "value": "Value",
+    "selectModel": "Select a model"
   },
   "profile": {
     "title": "Profile",

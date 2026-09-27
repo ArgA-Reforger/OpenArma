@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -79,6 +80,7 @@ interface PageData<T> {
 export default function UsersPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t, locale } = useI18n()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
@@ -108,7 +110,7 @@ export default function UsersPage() {
   const createMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post('/sys/users', body),
     onSuccess: () => {
-      toast.success('用户创建成功')
+      toast.success(t('user.userCreated'))
       qc.invalidateQueries({ queryKey: ['admin-users'] })
       setCreateOpen(false)
     },
@@ -128,7 +130,7 @@ export default function UsersPage() {
     mutationFn: ({ pk, password }: { pk: number; password: string }) =>
       api.put(`/sys/users/${pk}/password`, { password }),
     onSuccess: () => {
-      toast.success('密码重置成功')
+      toast.success(t('user.passwordResetSuccess'))
       setResetPwdUser(null)
     },
     onError: (e: Error) => toast.error(e.message),
@@ -137,7 +139,7 @@ export default function UsersPage() {
   const deleteMutation = useMutation({
     mutationFn: (pk: number) => api.delete(`/sys/users/${pk}`),
     onSuccess: () => {
-      toast.success('用户已删除')
+      toast.success(t('user.userDeleted'))
       qc.invalidateQueries({ queryKey: ['admin-users'] })
       setDeleteUser(null)
     },
@@ -147,13 +149,13 @@ export default function UsersPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">用户管理</h1>
-        <Button onClick={() => setCreateOpen(true)}>创建用户</Button>
+        <h1 className="text-2xl font-bold">{t('user.title')}</h1>
+        <Button onClick={() => setCreateOpen(true)}>{t('user.createUser')}</Button>
       </div>
 
       <div className="flex gap-2">
         <Input
-          placeholder="搜索用户名..."
+          placeholder={t('user.searchUsername')}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
@@ -167,27 +169,27 @@ export default function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>用户名</TableHead>
-              <TableHead>昵称</TableHead>
-              <TableHead>部门</TableHead>
-              <TableHead>角色</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>权限</TableHead>
-              <TableHead>最后登录</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t('user.username')}</TableHead>
+              <TableHead>{t('user.nickname')}</TableHead>
+              <TableHead>{t('user.dept')}</TableHead>
+              <TableHead>{t('user.roles')}</TableHead>
+              <TableHead>{t('common.status')}</TableHead>
+              <TableHead>{t('menu.perms')}</TableHead>
+              <TableHead>{t('user.lastLogin')}</TableHead>
+              <TableHead className="text-right">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  加载中...
+                  {t('common.loading')}
                 </TableCell>
               </TableRow>
             ) : !data?.items?.length ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  暂无数据
+                  {t('common.noData')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -211,25 +213,25 @@ export default function UsersPage() {
                       className="cursor-pointer"
                       onClick={() => toggleMutation.mutate({ pk: u.id, type: 'status' })}
                     >
-                      {u.status === 1 ? '启用' : '禁用'}
+                      {u.status === 1 ? t('common.enabled') : t('common.disabled')}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       {u.is_superuser && (
                         <Badge variant="default" className="text-xs">
-                          超管
+                          {t('user.superAdmin')}
                         </Badge>
                       )}
                       {u.is_staff && (
                         <Badge variant="outline" className="text-xs">
-                          管理
+                          {t('user.admin')}
                         </Badge>
                       )}
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {u.last_login_time ? new Date(u.last_login_time).toLocaleString('zh-CN') : '-'}
+                    {u.last_login_time ? new Date(u.last_login_time).toLocaleString(locale) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
@@ -238,7 +240,7 @@ export default function UsersPage() {
                         size="sm"
                         onClick={() => setResetPwdUser(u)}
                       >
-                        重置密码
+                        {t('user.resetPassword')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -246,7 +248,7 @@ export default function UsersPage() {
                         className="text-destructive"
                         onClick={() => setDeleteUser(u)}
                       >
-                        删除
+                        {t('common.delete')}
                       </Button>
                     </div>
                   </TableCell>
@@ -260,7 +262,7 @@ export default function UsersPage() {
       {data && data.total_pages > 1 && (
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
-            共 {data.total} 条，第 {data.page}/{data.total_pages} 页
+            {t('common.total', { total: data.total })}, {t('common.pageInfo', { page: data.page, totalPages: data.total_pages })}
           </span>
           <div className="flex gap-2">
             <Button
@@ -269,7 +271,7 @@ export default function UsersPage() {
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
-              上一页
+              {t('common.prevPage')}
             </Button>
             <Button
               variant="outline"
@@ -277,7 +279,7 @@ export default function UsersPage() {
               disabled={page >= data.total_pages}
               onClick={() => setPage((p) => p + 1)}
             >
-              下一页
+              {t('common.nextPage')}
             </Button>
           </div>
         </div>
@@ -304,17 +306,17 @@ export default function UsersPage() {
       <AlertDialog open={!!deleteUser} onOpenChange={(open) => !open && setDeleteUser(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除用户 <strong>{deleteUser?.username}</strong> 吗？此操作不可撤销。
+              {t('user.confirmDelete', { name: deleteUser?.username ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteUser && deleteMutation.mutate(deleteUser.id)}
             >
-              删除
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -338,6 +340,7 @@ function CreateUserDialog({
   roles: Role[]
   depts: { id: number; name: string; depth: number }[]
 }) {
+  const { t } = useI18n()
   const [selectedRoles, setSelectedRoles] = useState<number[]>([])
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -357,31 +360,31 @@ function CreateUserDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>创建用户</DialogTitle>
+          <DialogTitle>{t('user.createUser')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>用户名 *</Label>
+              <Label>{t('user.username')} *</Label>
               <Input name="username" required />
             </div>
             <div className="space-y-2">
-              <Label>密码 *</Label>
+              <Label>{t('user.password')} *</Label>
               <Input name="password" type="password" required />
             </div>
             <div className="space-y-2">
-              <Label>昵称</Label>
+              <Label>{t('user.nickname')}</Label>
               <Input name="nickname" />
             </div>
             <div className="space-y-2">
-              <Label>邮箱</Label>
+              <Label>{t('user.email')}</Label>
               <Input name="email" type="email" />
             </div>
             <div className="space-y-2">
-              <Label>部门 *</Label>
+              <Label>{t('user.dept')} *</Label>
               <Select name="dept_id" required>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择部门" />
+                  <SelectValue placeholder={t('user.selectDept')} />
                 </SelectTrigger>
                 <SelectContent>
                   {depts.map((d) => (
@@ -393,7 +396,7 @@ function CreateUserDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>角色</Label>
+              <Label>{t('user.roles')}</Label>
               <div className="flex flex-wrap gap-2 rounded-md border p-2 min-h-9">
                 {roles.map((r) => (
                   <Badge
@@ -414,7 +417,7 @@ function CreateUserDialog({
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? '创建中...' : '创建'}
+              {loading ? t('user.creating') : t('common.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -434,6 +437,8 @@ function ResetPasswordDialog({
   onSubmit: (password: string) => void
   loading: boolean
 }) {
+  const { t } = useI18n()
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -444,16 +449,16 @@ function ResetPasswordDialog({
     <Dialog open={!!user} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>重置密码 - {user?.username}</DialogTitle>
+          <DialogTitle>{t('user.resetPasswordFor', { name: user?.username ?? '' })}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>新密码</Label>
+            <Label>{t('user.newPassword')}</Label>
             <Input name="password" type="password" required minLength={6} />
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? '重置中...' : '确认重置'}
+              {loading ? t('user.resetting') : t('user.confirmReset')}
             </Button>
           </DialogFooter>
         </form>
