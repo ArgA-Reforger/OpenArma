@@ -6,14 +6,14 @@ from backend.common.model import Base, UniversalText, id_key
 
 
 class Config(Base):
-    """参数配置表"""
+    """Parameter config table"""
 
     __tablename__ = 'sys_config'
 
     id: Mapped[id_key] = mapped_column(init=False)
-    name: Mapped[str] = mapped_column(sa.String(32), comment='名称')
-    type: Mapped[str | None] = mapped_column(sa.String(32), server_default=None, comment='类型')
-    key: Mapped[str] = mapped_column(sa.String(64), unique=True, comment='键名')
-    value: Mapped[str] = mapped_column(UniversalText, comment='键值')
-    is_frontend: Mapped[bool] = mapped_column(default=False, comment='是否前端')
-    remark: Mapped[str | None] = mapped_column(UniversalText, default=None, comment='备注')
+    name: Mapped[str] = mapped_column(sa.String(32), comment='Name')
+    type: Mapped[str | None] = mapped_column(sa.String(32), server_default=None, comment='Type')
+    key: Mapped[str] = mapped_column(sa.String(64), unique=True, comment='Key')
+    value: Mapped[str] = mapped_column(UniversalText, comment='Value')
+    is_frontend: Mapped[bool] = mapped_column(default=False, comment='Whether it is a frontend parameter')
+    remark: Mapped[str | None] = mapped_column(UniversalText, default=None, comment='Remark')

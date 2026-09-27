@@ -21,7 +21,7 @@ router = APIRouter()
 github_client = GitHubOAuth20(settings.OAUTH2_GITHUB_CLIENT_ID, settings.OAUTH2_GITHUB_CLIENT_SECRET)
 
 
-@router.get('', summary='获取 Github 授权链接')
+@router.get('', summary='Get the Github authorization URL')
 async def get_github_oauth2_url() -> ResponseSchemaModel[str]:
     state = str(uuid.uuid4())
 
@@ -37,8 +37,9 @@ async def get_github_oauth2_url() -> ResponseSchemaModel[str]:
 
 @router.get(
     '/callback',
-    summary='Github 授权自动重定向',
-    description='Github 授权后，自动重定向到当前地址并获取用户信息，通过用户信息自动创建系统用户',
+    summary='Github authorization auto-redirect',
+    description='After Github authorization, automatically redirect back to this address, fetch the user info, '
+    'and use it to auto-create a system user',
     dependencies=[Depends(RateLimiter(Rate(5, Duration.MINUTE)))],
 )
 async def github_oauth2_callback(  # noqa: ANN201
@@ -62,11 +63,11 @@ async def github_oauth2_callback(  # noqa: ANN201
         state=state,
     )
 
-    # 绑定流程
+    # Binding flow
     if data is None:
         return RedirectResponse(url=settings.OAUTH2_FRONTEND_BINDING_REDIRECT_URI)
 
-    # 登录流程
+    # Login flow
     return RedirectResponse(
         url=f'{settings.OAUTH2_FRONTEND_LOGIN_REDIRECT_URI}?access_token={data.access_token}&session_uuid={data.session_uuid}',
     )
