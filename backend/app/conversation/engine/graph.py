@@ -1,4 +1,5 @@
-"""LangGraph 对话图引擎：支持单 Agent / 多 Agent 协作 / MCP 工具调用 / 流式输出。"""
+"""LangGraph conversation graph engine: supports single Agent / multi-Agent
+collaboration / MCP tool calls / streaming output."""
 
 import asyncio
 import json
@@ -43,7 +44,7 @@ _SENTINEL = object()
 
 @dataclass
 class AgentConfig:
-    """单个 Agent 的完整配置，包含 LLM 和工具信息。"""
+    """Complete config for a single Agent, including LLM and tool information."""
 
     agent_id: int = 0
     agent_name: str = ''
@@ -69,7 +70,7 @@ class AgentConfig:
 
 @dataclass
 class ConversationState:
-    """图状态：贯穿整个对话图的共享数据。"""
+    """Graph state: shared data flowing through the entire conversation graph."""
 
     system_prompt: str = ''
     rules: list[str] = field(default_factory=list)
@@ -99,7 +100,7 @@ class ConversationState:
     usage: dict = field(default_factory=dict)
     _tool_rounds: int = 0
 
-    # 多 Agent 协作字段
+    # Multi-Agent collaboration fields
     agent_configs: list[dict] = field(default_factory=list)
     current_agent_id: int | None = None
     agent_outputs: dict = field(default_factory=dict)
@@ -108,17 +109,17 @@ class ConversationState:
     max_coordination_rounds: int = 1
     _coordination_round: int = 0
 
-    # DAG 拓扑字段
+    # DAG topology fields
     topology: dict | None = None
     node_outputs: dict = field(default_factory=dict)
     _condition_target: str = ''
     _dynamic_sub_agents: list = field(default_factory=list)
     _dynamic_results: dict = field(default_factory=dict)
 
-    # 流式回调（由 run_graph_streaming 注入）
+    # Streaming callback (injected by run_graph_streaming)
     _stream_queue: Any = field(default=None, repr=False)
 
-    # 工具调用日志（持久化到 response_json）
+    # Tool call log (persisted to response_json)
     _tool_call_log: list[dict] = field(default_factory=list)
 
 
@@ -244,17 +245,17 @@ def _build_tool_call_history(message) -> list[dict]:
 
 
 async def _push_event(state: ConversationState, event: dict) -> None:
-    """向流式队列推送 SSE 事件。"""
+    """Push an SSE event to the streaming queue."""
     if state._stream_queue is not None:
         await state._stream_queue.put(event)
 
 
 # ---------------------------------------------------------------------------
-# 单 Agent 节点（支持流式输出 + 工具调用循环）
+# Single-Agent node (supports streaming output + tool call loop)
 # ---------------------------------------------------------------------------
 
 async def agent_node(state: ConversationState) -> dict[str, Any]:
-    """Agent 执行节点：流式调用 LLM，支持工具调用循环。"""
+    """Agent execution node: streams the LLM call, supports a tool call loop."""
     messages = _build_messages(state)
 
     if state._tool_rounds > 0:
@@ -438,7 +439,8 @@ async def _execute_tool_call(
     tool_name: str,
     arguments: dict,
 ) -> str:
-    """统一工具执行路由：内置工具直接调用 Python，MCP 工具走 MCP 协议，spawn_agent 动态生成子代理。"""
+    """Unified tool execution router: builtin tools call Python directly, MCP tools go
+    through the MCP protocol, spawn_agent dynamically generates a sub-agent."""
     t0 = time.monotonic()
 
     if tool_name == 'spawn_agent':
@@ -527,7 +529,7 @@ async def _execute_tool_call(
 
 
 async def tool_node(state: ConversationState) -> dict[str, Any]:
-    """工具执行节点：路由到内置工具或 MCP 工具。"""
+    """Tool execution node: routes to a builtin tool or an MCP tool."""
     last_assistant = None
     for msg in reversed(state.history):
         if msg.get('role') == 'assistant' and msg.get('tool_calls'):
@@ -577,7 +579,7 @@ def _should_call_tools(state: ConversationState) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 多 Agent 节点
+# Multi-Agent node
 # ---------------------------------------------------------------------------
 
 async def _execute_agent_tool_calls(
@@ -756,7 +758,7 @@ async def _agent_llm_with_tool_loop(
 
 
 def _make_agent_executor(config_index: int) -> Callable:
-    """为指定 agent_config 创建一个执行闭包，用作图节点。"""
+    """Create an execution closure for the given agent_config, used as a graph node."""
 
     async def _agent_exec(state: ConversationState) -> dict[str, Any]:
         if config_index >= len(state.agent_configs):
@@ -818,7 +820,7 @@ def _make_agent_executor(config_index: int) -> Callable:
 
 
 async def router_node(state: ConversationState) -> dict[str, Any]:
-    """路由节点：根据 agent 数量和协作模式决定执行路径。"""
+    """Router node: decides the execution path based on the number of agents and the collaboration mode."""
     return {}
 
 
@@ -833,9 +835,11 @@ def _route_decision(state: ConversationState) -> str:
 
 
 async def coordinator_node(state: ConversationState) -> dict[str, Any]:
-    """协调节点（ForumEngine "思想碰撞"）：分析各 Agent 输出，识别偏见和盲区，综合产出。
-    支持多轮迭代协调：当 max_coordination_rounds > 1 时，协调器可以判断分析是否充分，
-    若不充分则输出 [NEEDS_MORE] 前缀 + 追问指令，触发 agents 再次执行。
+    """Coordinator node (ForumEngine "idea clash"): analyzes each Agent's output, identifies biases and
+    blind spots, and produces a synthesis.
+    Supports multi-round iterative coordination: when max_coordination_rounds > 1, the coordinator can
+    judge whether the analysis is sufficient; if not, it emits a [NEEDS_MORE] prefix plus follow-up
+    instructions, triggering the agents to run again.
     """
     if not state.agent_outputs:
         return {'response': ''}
@@ -981,7 +985,7 @@ async def coordinator_node(state: ConversationState) -> dict[str, Any]:
 
 
 async def aggregator_node(state: ConversationState) -> dict[str, Any]:
-    """汇聚节点（"迟整合"）：合并各 Agent 输出，生成简要总结。"""
+    """Aggregator node ("late integration"): merges each Agent's output and produces a brief summary."""
     if not state.agent_outputs:
         return {'response': ''}
 
@@ -1220,7 +1224,7 @@ async def dynamic_sub_agent_node(state: ConversationState) -> dict[str, Any]:
 
 
 async def _parallel_dispatch(state: ConversationState) -> dict[str, Any]:
-    """并行执行所有 Agent，收集输出。"""
+    """Run all Agents in parallel and collect their outputs."""
     tasks = []
     for i in range(len(state.agent_configs)):
         executor = _make_agent_executor(i)
@@ -1246,11 +1250,11 @@ def _route_after_parallel(state: ConversationState) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 图构建
+# Graph construction
 # ---------------------------------------------------------------------------
 
 def build_single_agent_graph() -> Any:
-    """构建支持工具调用 + 流式输出的单 Agent 对话图。"""
+    """Build a single-Agent conversation graph supporting tool calls + streaming output."""
     graph = StateGraph(ConversationState)
     graph.add_node('agent', agent_node)
     graph.add_node('tool', tool_node)
@@ -1261,7 +1265,7 @@ def build_single_agent_graph() -> Any:
 
 
 def build_multi_agent_graph() -> Any:
-    """构建多 Agent 协作图：router -> parallel -> coordinator/aggregator。"""
+    """Build a multi-Agent collaboration graph: router -> parallel -> coordinator/aggregator."""
     graph = StateGraph(ConversationState)
 
     graph.add_node('router', router_node)
@@ -1309,7 +1313,7 @@ def build_multi_agent_graph() -> Any:
 
 
 # ---------------------------------------------------------------------------
-# 流式执行桥接
+# Streaming execution bridge
 # ---------------------------------------------------------------------------
 
 async def run_graph_streaming(
@@ -1319,11 +1323,11 @@ async def run_graph_streaming(
     dag_graph: Any = None,
 ) -> AsyncGenerator[dict, None]:
     """
-    执行 LangGraph 图并流式产出 SSE 事件。
+    Execute the LangGraph graph and stream out SSE events.
 
-    使用 asyncio.Queue 作为图执行与 SSE 流之间的桥梁：
-    - 图节点通过 state._stream_queue 推送事件
-    - 本函数从队列中 yield 事件
+    Uses asyncio.Queue as the bridge between graph execution and the SSE stream:
+    - graph nodes push events through state._stream_queue
+    - this function yields events from the queue
     """
     queue: asyncio.Queue = asyncio.Queue()
     initial_state._stream_queue = queue

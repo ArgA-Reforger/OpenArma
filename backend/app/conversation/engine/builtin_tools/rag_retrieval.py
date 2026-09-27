@@ -1,4 +1,4 @@
-"""内置工具：知识库检索（RAG）。让 LLM 自主决定何时查询知识库。"""
+"""Builtin tool: knowledge base retrieval (RAG). Lets the LLM decide on its own when to query the knowledge base."""
 
 import logging
 from typing import Any
@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
     },
 )
 async def rag_retrieval(query: str, _context: dict | None = None, **_: Any) -> str:
-    """知识库检索：复用现有 RAG 服务，但由 LLM 主动触发。"""
+    """Knowledge base retrieval: reuses the existing RAG service, but is triggered proactively by the LLM."""
     if not _context:
         return 'No project context available for knowledge retrieval.'
 

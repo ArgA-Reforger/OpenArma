@@ -9,7 +9,7 @@ from backend.common.log import log
 
 
 def timer(func) -> Callable:  # noqa: ANN001
-    """函数耗时计时装饰器"""
+    """Decorator that times how long a function takes"""
 
     @functools.wraps(func)
     async def async_wrapper(*args, **kwargs) -> Any:
@@ -28,7 +28,7 @@ def timer(func) -> Callable:  # noqa: ANN001
         return result
 
     def _log_time(func, elapsed: float) -> None:  # noqa: ANN001
-        # 智能选择单位（秒、毫秒、微秒、纳秒）
+        # Smart unit selection (seconds, milliseconds, microseconds, nanoseconds)
         if elapsed >= 1:
             unit, factor = 's', 1
         else:

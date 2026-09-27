@@ -9,10 +9,10 @@ from backend.database.db import CurrentSession
 router = APIRouter()
 
 
-@router.get('/{share_code}', summary='查看分享对话')
+@router.get('/{share_code}', summary='View shared conversation')
 async def get_shared_conversation(
     db: CurrentSession,
-    share_code: Annotated[str, Path(description='分享码')],
+    share_code: Annotated[str, Path(description='Share code')],
 ) -> ResponseSchemaModel:
     data = await conversation_service.get_shared(db=db, share_code=share_code)
     return response_base.success(data=data)

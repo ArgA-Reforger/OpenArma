@@ -11,9 +11,9 @@ from backend.utils.timezone import timezone
 
 def build_filename(file: UploadFile) -> str:
     """
-    构建文件名
+    Build the filename
 
-    :param file: FastAPI 上传文件对象
+    :param file: FastAPI upload file object
     :return:
     """
     timestamp = int(timezone.now().timestamp())
@@ -25,33 +25,33 @@ def build_filename(file: UploadFile) -> str:
 
 def upload_file_verify(file: UploadFile) -> None:
     """
-    文件验证
+    Validate the file
 
-    :param file: FastAPI 上传文件对象
+    :param file: FastAPI upload file object
     :return:
     """
     filename = file.filename
     file_ext = filename.split('.')[-1].lower()
     if not file_ext:
-        raise errors.RequestError(msg='未知的文件类型')
+        raise errors.RequestError(msg='Unknown file type')
 
     if file_ext == FileType.image:
         if file_ext not in settings.UPLOAD_IMAGE_EXT_INCLUDE:
-            raise errors.RequestError(msg='此图片格式暂不支持')
+            raise errors.RequestError(msg='This image format is not supported yet')
         if file.size > settings.UPLOAD_IMAGE_SIZE_MAX:
-            raise errors.RequestError(msg='图片超出最大限制，请重新选择')
+            raise errors.RequestError(msg='Image exceeds the maximum size limit, please choose another one')
     elif file_ext == FileType.video:
         if file_ext not in settings.UPLOAD_VIDEO_EXT_INCLUDE:
-            raise errors.RequestError(msg='此视频格式暂不支持')
+            raise errors.RequestError(msg='This video format is not supported yet')
         if file.size > settings.UPLOAD_VIDEO_SIZE_MAX:
-            raise errors.RequestError(msg='视频超出最大限制，请重新选择')
+            raise errors.RequestError(msg='Video exceeds the maximum size limit, please choose another one')
 
 
 async def upload_file(file: UploadFile) -> str:
     """
-    上传文件
+    Upload the file
 
-    :param file: FastAPI 上传文件对象
+    :param file: FastAPI upload file object
     :return:
     """
     filename = build_filename(file)
@@ -63,7 +63,7 @@ async def upload_file(file: UploadFile) -> str:
                     break
                 await fb.write(content)
     except Exception as e:
-        log.error(f'上传文件 {filename} 失败：{e!s}')
-        raise errors.RequestError(msg='上传文件失败')
+        log.error(f'Failed to upload file {filename}: {e!s}')
+        raise errors.RequestError(msg='Failed to upload file')
     await file.close()
     return filename

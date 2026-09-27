@@ -13,26 +13,26 @@ class TaskResultService:
     @staticmethod
     async def get(*, db: AsyncSession, pk: int) -> TaskResult:
         """
-        获取任务结果详情
+        Get task result details
 
-        :param db: 数据库会话
-        :param pk: 任务 ID
+        :param db: database session
+        :param pk: task ID
         :return:
         """
 
         result = await task_result_dao.get(db, pk)
         if not result:
-            raise errors.NotFoundError(msg='任务结果不存在')
+            raise errors.NotFoundError(msg='Task result does not exist')
         return result
 
     @staticmethod
     async def get_list(*, db: AsyncSession, name: str | None, task_id: str | None) -> dict[str, Any]:
         """
-        获取任务结果列表
+        Get the task result list
 
-        :param db: 数据库会话
-        :param name: 任务名称
-        :param task_id: 任务 ID
+        :param db: database session
+        :param name: task name
+        :param task_id: task ID
         :return:
         """
         result_select = await task_result_dao.get_select(name, task_id)
@@ -41,10 +41,10 @@ class TaskResultService:
     @staticmethod
     async def delete(*, db: AsyncSession, obj: DeleteTaskResultParam) -> int:
         """
-        批量删除任务结果
+        Batch delete task results
 
-        :param db: 数据库会话
-        :param obj: 任务结果 ID 列表
+        :param db: database session
+        :param obj: list of task result IDs
         :return:
         """
 

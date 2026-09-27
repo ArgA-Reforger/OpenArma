@@ -21,6 +21,9 @@ TRANSLATED_PACKAGES = [
     'backend/cli.py',
     'backend/run.py',
     'backend/main.py',
+    'backend/utils',
+    'backend/app/task',
+    'backend/app/conversation',
 ]
 
 

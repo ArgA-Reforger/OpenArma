@@ -20,11 +20,11 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.post('/{pid}/conversations', summary='创建对话', dependencies=[DependsJwtAuth])
+@router.post('/{pid}/conversations', summary='Create conversation', dependencies=[DependsJwtAuth])
 async def create_conversation(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
     obj: CreateConversationParam,
 ) -> ResponseSchemaModel[GetConversationDetail]:
     data = await conversation_service.create(
@@ -35,14 +35,14 @@ async def create_conversation(
 
 @router.get(
     '/{pid}/conversations',
-    summary='对话列表',
+    summary='Conversation list',
     dependencies=[DependsJwtAuth, DependsPagination],
 )
 async def get_conversations(
     db: CurrentSession,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    status: Annotated[str | None, Query(description='状态')] = None,
+    pid: Annotated[int, Path(description='Project ID')],
+    status: Annotated[str | None, Query(description='Status')] = None,
 ) -> ResponseSchemaModel[PageData[GetConversationDetail]]:
     page_data = await conversation_service.get_list(
         db=db, project_id=pid, user_id=request.user.id, status=status
@@ -50,23 +50,23 @@ async def get_conversations(
     return response_base.success(data=page_data)
 
 
-@router.get('/{pid}/conversations/{pk}', summary='对话详情', dependencies=[DependsJwtAuth])
+@router.get('/{pid}/conversations/{pk}', summary='Conversation details', dependencies=[DependsJwtAuth])
 async def get_conversation(
     db: CurrentSession,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    pk: Annotated[int, Path(description='对话 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    pk: Annotated[int, Path(description='Conversation ID')],
 ) -> ResponseSchemaModel[GetConversationDetail]:
     data = await conversation_service.get(db=db, project_id=pid, pk=pk, user_id=request.user.id)
     return response_base.success(data=data)
 
 
-@router.put('/{pid}/conversations/{pk}', summary='更新对话', dependencies=[DependsJwtAuth])
+@router.put('/{pid}/conversations/{pk}', summary='Update conversation', dependencies=[DependsJwtAuth])
 async def update_conversation(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    pk: Annotated[int, Path(description='对话 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    pk: Annotated[int, Path(description='Conversation ID')],
     obj: UpdateConversationParam,
 ) -> ResponseModel:
     count = await conversation_service.update(
@@ -77,12 +77,12 @@ async def update_conversation(
     return response_base.fail()
 
 
-@router.delete('/{pid}/conversations/{pk}', summary='删除对话', dependencies=[DependsJwtAuth])
+@router.delete('/{pid}/conversations/{pk}', summary='Delete conversation', dependencies=[DependsJwtAuth])
 async def delete_conversation(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    pk: Annotated[int, Path(description='对话 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    pk: Annotated[int, Path(description='Conversation ID')],
 ) -> ResponseModel:
     count = await conversation_service.delete(
         db=db, project_id=pid, pk=pk, user_id=request.user.id
@@ -92,12 +92,12 @@ async def delete_conversation(
     return response_base.fail()
 
 
-@router.post('/{pid}/conversations/{pk}/share', summary='分享对话', dependencies=[DependsJwtAuth])
+@router.post('/{pid}/conversations/{pk}/share', summary='Share conversation', dependencies=[DependsJwtAuth])
 async def share_conversation(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    pk: Annotated[int, Path(description='对话 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    pk: Annotated[int, Path(description='Conversation ID')],
 ) -> ResponseSchemaModel[ShareConversationResponse]:
     share_code = await conversation_service.share(
         db=db, project_id=pid, pk=pk, user_id=request.user.id
@@ -107,12 +107,12 @@ async def share_conversation(
     return response_base.success(data=ShareConversationResponse(share_code=share_code, share_url=share_url))
 
 
-@router.delete('/{pid}/conversations/{pk}/share', summary='取消分享', dependencies=[DependsJwtAuth])
+@router.delete('/{pid}/conversations/{pk}/share', summary='Unshare', dependencies=[DependsJwtAuth])
 async def unshare_conversation(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    pk: Annotated[int, Path(description='对话 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    pk: Annotated[int, Path(description='Conversation ID')],
 ) -> ResponseModel:
     await conversation_service.unshare(db=db, project_id=pid, pk=pk, user_id=request.user.id)
     return response_base.success()
@@ -120,15 +120,18 @@ async def unshare_conversation(
 
 @router.get(
     '/{pid}/conversations/{cid}/messages',
-    summary='获取历史消息',
+    summary='Get message history',
     dependencies=[DependsJwtAuth, DependsPagination],
 )
 async def get_messages(
     db: CurrentSession,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
-    after: Annotated[int | None, Query(description='只返回 ID 大于此值的消息（增量拉取）')] = None,
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
+    after: Annotated[
+        int | None,
+        Query(description='Only return messages with an ID greater than this value (incremental fetch)'),
+    ] = None,
 ) -> ResponseSchemaModel[PageData[GetMessageDetail]]:
     page_data = await conversation_service.get_messages(
         db=db, project_id=pid, conversation_id=cid, user_id=request.user.id,
@@ -139,15 +142,15 @@ async def get_messages(
 
 @router.put(
     '/{pid}/conversations/{cid}/messages/{mid}',
-    summary='更新消息',
+    summary='Update message',
     dependencies=[DependsJwtAuth],
 )
 async def update_message(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
-    mid: Annotated[int, Path(description='消息 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
+    mid: Annotated[int, Path(description='Message ID')],
     obj: UpdateMessageParam,
 ) -> ResponseModel:
     count = await conversation_service.update_message(
@@ -160,15 +163,15 @@ async def update_message(
 
 @router.post(
     '/{pid}/conversations/{cid}/messages/{mid}/edit-and-resend',
-    summary='编辑消息并截断后续（DeepSeek 模式）',
+    summary='Edit a message and truncate what follows (DeepSeek mode)',
     dependencies=[DependsJwtAuth],
 )
 async def edit_and_resend(
     request: Request,
     db: CurrentSessionTransaction,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
-    mid: Annotated[int, Path(description='消息 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
+    mid: Annotated[int, Path(description='Message ID')],
     obj: SendMessageParam,
 ) -> ResponseSchemaModel[dict]:
     content = await conversation_service.edit_and_truncate(
@@ -180,15 +183,15 @@ async def edit_and_resend(
 
 @router.delete(
     '/{pid}/conversations/{cid}/messages/{mid}',
-    summary='删除消息',
+    summary='Delete message',
     dependencies=[DependsJwtAuth],
 )
 async def delete_message(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
-    mid: Annotated[int, Path(description='消息 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
+    mid: Annotated[int, Path(description='Message ID')],
 ) -> ResponseModel:
     count = await conversation_service.delete_message(
         db=db, project_id=pid, conversation_id=cid, message_id=mid, user_id=request.user.id
@@ -200,13 +203,13 @@ async def delete_message(
 
 @router.post(
     '/{pid}/conversations/{cid}/generate-title',
-    summary='AI 生成对话标题',
+    summary='AI-generate conversation title',
     dependencies=[DependsJwtAuth],
 )
 async def generate_conversation_title(
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
 ) -> ResponseSchemaModel[dict]:
     title = await chat_service.generate_title(
         project_id=pid, conversation_id=cid, user_id=request.user.id
@@ -216,14 +219,14 @@ async def generate_conversation_title(
 
 @router.get(
     '/{pid}/conversations/{cid}/branches',
-    summary='获取对话的所有分支信息',
+    summary='Get all branch info for the conversation',
     dependencies=[DependsJwtAuth],
 )
 async def get_conversation_branches(
     db: CurrentSession,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
 ) -> ResponseSchemaModel[dict]:
     from backend.app.conversation.crud.crud_message import message_dao as msg_dao
     branch_counts = await msg_dao.get_branch_counts(db, cid)
@@ -232,15 +235,15 @@ async def get_conversation_branches(
 
 @router.get(
     '/{pid}/conversations/{cid}/messages/{mid}/branches',
-    summary='获取消息的所有分支',
+    summary='Get all branches of the message',
     dependencies=[DependsJwtAuth],
 )
 async def get_message_branches(
     db: CurrentSession,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
-    mid: Annotated[int, Path(description='用户消息 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
+    mid: Annotated[int, Path(description='User message ID')],
 ) -> ResponseSchemaModel[dict]:
     data = await conversation_service.get_message_branches(
         db=db, project_id=pid, conversation_id=cid,
@@ -251,15 +254,15 @@ async def get_message_branches(
 
 @router.post(
     '/{pid}/conversations/{cid}/messages/{mid}/switch-branch',
-    summary='切换消息分支',
+    summary='Switch message branch',
     dependencies=[DependsJwtAuth],
 )
 async def switch_message_branch(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
-    mid: Annotated[int, Path(description='用户消息 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
+    mid: Annotated[int, Path(description='User message ID')],
     obj: SwitchBranchParam,
 ) -> ResponseModel:
     count = await conversation_service.switch_message_branch(
@@ -274,13 +277,13 @@ async def switch_message_branch(
 
 @router.post(
     '/{pid}/conversations/{cid}/messages',
-    summary='发送消息（SSE 流式响应）',
+    summary='Send message (SSE streaming response)',
     dependencies=[DependsJwtAuth],
 )
 async def send_message(
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
     obj: SendMessageParam,
 ) -> StreamingResponse:
     return _build_sse_response(pid, cid, request.user.id, obj.content, resend=False)
@@ -288,13 +291,13 @@ async def send_message(
 
 @router.post(
     '/{pid}/conversations/{cid}/resend',
-    summary='重新生成 AI 回复（SSE 流式响应）',
+    summary='Regenerate AI reply (SSE streaming response)',
     dependencies=[DependsJwtAuth],
 )
 async def resend_message(
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
     obj: SendMessageParam,
 ) -> StreamingResponse:
     return _build_sse_response(pid, cid, request.user.id, obj.content, resend=True)
@@ -302,15 +305,15 @@ async def resend_message(
 
 @router.get(
     '/{pid}/conversations/{cid}/resources',
-    summary='对话绑定的资源列表',
+    summary='List of resources bound to the conversation',
     dependencies=[DependsJwtAuth],
 )
 async def get_conversation_resources(
     db: CurrentSession,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
-    resource_type: Annotated[str | None, Query(description='资源类型 knowledge_base/mcp_server')] = None,
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
+    resource_type: Annotated[str | None, Query(description='Resource type knowledge_base/mcp_server')] = None,
 ) -> ResponseSchemaModel[list[dict]]:
     data = await conversation_service.get_resources(
         db=db, project_id=pid, conversation_id=cid, user_id=request.user.id, resource_type=resource_type
@@ -320,16 +323,16 @@ async def get_conversation_resources(
 
 @router.post(
     '/{pid}/conversations/{cid}/resources',
-    summary='绑定资源到对话',
+    summary='Bind a resource to the conversation',
     dependencies=[DependsJwtAuth],
 )
 async def bind_conversation_resource(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
-    resource_type: Annotated[str, Query(description='资源类型 knowledge_base/mcp_server')],
-    resource_id: Annotated[int, Query(description='资源 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
+    resource_type: Annotated[str, Query(description='Resource type knowledge_base/mcp_server')],
+    resource_id: Annotated[int, Query(description='Resource ID')],
 ) -> ResponseModel:
     await conversation_service.bind_resource(
         db=db, project_id=pid, conversation_id=cid,
@@ -340,16 +343,16 @@ async def bind_conversation_resource(
 
 @router.delete(
     '/{pid}/conversations/{cid}/resources',
-    summary='解绑对话资源',
+    summary='Unbind a conversation resource',
     dependencies=[DependsJwtAuth],
 )
 async def unbind_conversation_resource(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
-    cid: Annotated[int, Path(description='对话 ID')],
-    resource_type: Annotated[str, Query(description='资源类型 knowledge_base/mcp_server')],
-    resource_id: Annotated[int, Query(description='资源 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
+    cid: Annotated[int, Path(description='Conversation ID')],
+    resource_type: Annotated[str, Query(description='Resource type knowledge_base/mcp_server')],
+    resource_id: Annotated[int, Query(description='Resource ID')],
 ) -> ResponseModel:
     count = await conversation_service.unbind_resource(
         db=db, project_id=pid, conversation_id=cid,

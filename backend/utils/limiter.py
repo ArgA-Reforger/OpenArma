@@ -19,9 +19,9 @@ CallbackCallable = Callable[[Request, Response, int], None] | Callable[[Request,
 
 def default_identifier(request: Request) -> str:
     """
-    默认标识符
+    Default identifier
 
-    :param request: FastAPI 请求对象
+    :param request: FastAPI request object
     :return:
     """
     ip = get_request_ip(request)
@@ -30,22 +30,22 @@ def default_identifier(request: Request) -> str:
 
 def default_callback(request: Request, response: Response, retry_after: int) -> None:
     """
-    默认回调
+    Default callback
 
-    :param request: FastAPI 请求对象
-    :param response: FastAPI 响应对象
-    :param retry_after: 下次重试秒数
+    :param request: FastAPI request object
+    :param response: FastAPI response object
+    :param retry_after: seconds until the next retry
     :return:
     """
     raise errors.HTTPError(
         code=StandardResponseCode.HTTP_429,
-        msg='请求过于频繁，请稍后重试',
+        msg='Too many requests, please try again later',
         headers={'Retry-After': str(retry_after)},
     )
 
 
 class RateLimiter:
-    """速率限制器"""
+    """Rate limiter"""
 
     def __init__(
         self,
@@ -56,17 +56,17 @@ class RateLimiter:
         callback: CallbackCallable = default_callback,
     ) -> None:
         """
-        初始化速率限制器
+        Initialize the rate limiter
 
-        :param rates: pyrate_limiter Rate 对象，支持传入单个或多个
-        :param identifier: 自定义标识符函数
-        :param bucket: pyrate_limiter AbstractBucket 实例
-        :param limiter: pyrate_limiter Limiter 实例
-        :param callback: 自定义限流回调函数
+        :param rates: pyrate_limiter Rate object(s), a single one or multiple can be passed
+        :param identifier: custom identifier function
+        :param bucket: pyrate_limiter AbstractBucket instance
+        :param limiter: pyrate_limiter Limiter instance
+        :param callback: custom rate-limit callback function
         :return:
         """
         if not rates and bucket is None:
-            raise errors.ServerError(msg='至少需要传入一个 Rate 或 bucket 实例')
+            raise errors.ServerError(msg='At least one Rate or bucket instance must be provided')
         self.rates = list(rates)
         self.identifier = identifier
         self.bucket = bucket
