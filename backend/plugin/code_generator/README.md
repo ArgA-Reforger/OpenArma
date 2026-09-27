@@ -1,53 +1,53 @@
 # Code Generator
 
-代码生成器插件，生成通用业务代码
+Code generator plugin for generating common business code.
 
 > [!TIP]
-> 当前版本仅包含后端代码生成
+> The current version only includes backend code generation.
 
 > [!WARNING]
-> 由于 jinja2 在渲染模版时，文本方式输出可能存在格式问题，所以 `preview` 接口可能无法直观预览代码，这是为前端进行的预设
+> Because Jinja2 may have formatting issues when rendering templates in text mode, the `preview` endpoint may not visually preview code accurately; this is a preset prepared for the frontend.
 
-## 全局配置
+## Global Configuration
 
-在 `backend/core/conf.py` 中添加以下内容：
+Add the following to `backend/core/conf.py`:
 
 ```python
 ##################################################
 # [ Plugin ] code_generator
 ##################################################
-# 基础配置（in plugin.toml）
+# Basic configuration (in plugin.toml)
 CODE_GENERATOR_DOWNLOAD_ZIP_FILENAME: str
 ```
 
-## 简介
+## Introduction
 
-代码生成器使用 API 调用实现，包含两个模组，设计可能存在缺陷，相关问题请直接提交 issues
+The code generator is implemented via API calls and includes two modules. The design may have limitations; please open an issue for any related problems.
 
-### 代码生成业务
+### Code Generation Business
 
-包含代码生成的相关配置，详情查看：`code_generator/model/gen_business.py`
+Contains configuration related to code generation. For details, see: `code_generator/model/gen_business.py`
 
-### 代码生成模型列
+### Code Generation Model Columns
 
-包含代码生成所需要的模型列信息，就像正常定义模型列一样，目前支持的功能有限
+Contains model column information required for code generation, just like defining model columns normally. Currently supported features are limited.
 
-## 使用方式
+## Usage
 
-1. 启动后端服务，打开 swagger 文档直接操作
-2. 通过第三方 api 调试工具发送接口请求
-3. 同时启动前后端，从页面进行操作
+1. Start the backend service and operate directly via the Swagger docs.
+2. Send API requests using a third-party API debugging tool.
+3. Start both the frontend and backend, and operate from the web interface.
 
-接口参数基本都有说明，请注意查看
+Endpoint parameters are documented; please review them carefully.
 
-### 手动模式
+### Manual Mode
 
-1. 通过创建业务接口手动添加一项业务数据
-2. 通过模型创建接口手动添加模型列
-3. 访问 `preview`（预览），`generate`（磁盘写入），`download`（下载）接口，执行后端代码生成相应工作
+1. Manually add a business record via the create business endpoint.
+2. Manually add model columns via the create model column endpoint.
+3. Access the `preview` (preview), `generate` (write to disk), and `download` (download) endpoints to perform corresponding backend code generation tasks.
 
-### 自动模式
+### Automatic Mode
 
-1. 访问 `tables` 接口，获取数据库表名列表
-2. 通过 `import` 接口，导入数据库已有的数据库表数据，将自动创建业务表数据和模型表数据
-3. 访问 `preview`（预览），`generate`（磁盘写入），`download`（下载）接口，执行后端代码生成相应工作
+1. Access the `tables` endpoint to get a list of database table names.
+2. Import existing database table data via the `import` endpoint, which automatically creates business table data and model table data.
+3. Access the `preview` (preview), `generate` (write to disk), and `download` (download) endpoints to perform corresponding backend code generation tasks.

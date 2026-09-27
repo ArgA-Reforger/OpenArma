@@ -62,3 +62,47 @@ def test_no_chinese_characters(package: str) -> None:
         all_findings.extend(_find_han_lines(py_file))
 
     assert not all_findings, 'Found untranslated Chinese text:\n' + '\n'.join(all_findings)
+
+
+NON_PY_TRANSLATED_PATHS = [
+    'backend/plugin/code_generator/README.md',
+    'backend/plugin/config/README.md',
+    'backend/plugin/dict/README.md',
+    'backend/plugin/email/README.md',
+    'backend/plugin/notice/README.md',
+    'backend/plugin/oauth2/README.md',
+    'backend/plugin/code_generator/plugin.toml',
+    'backend/plugin/config/plugin.toml',
+    'backend/plugin/dict/plugin.toml',
+    'backend/plugin/email/plugin.toml',
+    'backend/plugin/notice/plugin.toml',
+    'backend/plugin/oauth2/plugin.toml',
+    'backend/plugin/code_generator/templates/python/api.jinja',
+    'backend/plugin/code_generator/templates/python/crud.jinja',
+    'backend/plugin/code_generator/templates/python/model.jinja',
+    'backend/plugin/code_generator/templates/python/router.jinja',
+    'backend/plugin/code_generator/templates/python/schema.jinja',
+    'backend/plugin/code_generator/templates/python/service.jinja',
+    'backend/plugin/code_generator/templates/sql/mysql/init.jinja',
+    'backend/plugin/code_generator/templates/sql/mysql/init_snowflake.jinja',
+    'backend/plugin/code_generator/templates/sql/postgresql/init.jinja',
+    'backend/plugin/code_generator/templates/sql/postgresql/init_snowflake.jinja',
+    'backend/plugin/email/templates/captcha.html',
+    'docker-compose.yml',
+    'pyproject.toml',
+    'deploy/backend/nginx.conf',
+    'deploy/backend/grafana/fba_config.alloy',
+    'deploy/backend/grafana/fba_dashboards.yml',
+    'deploy/backend/grafana/fba_datasource.yml',
+    'deploy/backend/grafana/fba_grafana.ini',
+    'deploy/backend/grafana/fba_prometheus.yml',
+    'deploy/backend/grafana/fba_tempo.yml',
+    'deploy/backend/grafana/dashboards/fba_celery.json',
+    'deploy/backend/grafana/dashboards/fba_server.json',
+]
+
+
+@pytest.mark.parametrize('rel_path', NON_PY_TRANSLATED_PATHS)
+def test_no_chinese_characters_non_python(rel_path: str) -> None:
+    findings = _find_han_lines(REPO_ROOT / rel_path)
+    assert not findings, 'Found untranslated Chinese text:\n' + '\n'.join(findings)

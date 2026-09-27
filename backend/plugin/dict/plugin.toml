@@ -11,8 +11,8 @@ extend = "admin"
 
 [api.dict_data]
 prefix = "/dict-datas"
-tags = "系统字典数据"
+tags = "System Dictionary Data"
 
 [api.dict_type]
 prefix = "/dict-types"
-tags = "系统字典类型"
+tags = "System Dictionary Types"

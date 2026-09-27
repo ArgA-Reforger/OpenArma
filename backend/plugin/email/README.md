@@ -1,10 +1,10 @@
 # Email
 
-电子邮件插件，提供邮件发送功能，支持验证码、通知等场景
+Email plugin providing email sending capabilities, supporting captchas, notifications, and other scenarios.
 
-## 全局配置
+## Global Configuration
 
-在 `backend/core/conf.py` 中添加以下内容：
+Add the following to `backend/core/conf.py`:
 
 ```python
 ##################################################
@@ -14,7 +14,7 @@
 EMAIL_USERNAME: str
 EMAIL_PASSWORD: str
 
-# 基础配置（in plugin.toml）
+# Basic configuration (in plugin.toml)
 EMAIL_HOST: str
 EMAIL_PORT: int
 EMAIL_SSL: bool

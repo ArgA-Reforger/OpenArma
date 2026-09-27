@@ -1,3 +1,3 @@
 # Config
 
-参数配置插件，通常用于动态配置系统参数和前端工程数据展示
+Configuration parameter plugin, typically used for dynamically configuring system parameters and displaying frontend data.
