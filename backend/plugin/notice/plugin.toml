@@ -1,7 +1,7 @@
 [plugin]
-summary = "通知公告"
+summary = "Avisos y notificaciones"
 version = "0.0.2"
-description = "用于发布系统内部通知、公告"
+description = "Se usa para publicar avisos y notificaciones internas del sistema"
 author = "wu-clan"
 tags = ["other"]
 database = ["mysql", "postgresql"]

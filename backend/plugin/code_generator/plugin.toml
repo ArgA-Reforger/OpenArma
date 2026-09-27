@@ -1,7 +1,7 @@
 [plugin]
-summary = "代码生成"
+summary = "Generación de código"
 version = "0.1.1"
-description = "生成通用业务代码"
+description = "Genera código de negocio genérico"
 author = "wu-clan"
 tags = ["other"]
 database = ["mysql", "postgresql"]

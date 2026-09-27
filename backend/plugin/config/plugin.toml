@@ -1,7 +1,7 @@
 [plugin]
-summary = "参数配置"
+summary = "Configuración de parámetros"
 version = "0.0.2"
-description = "通常用于动态配置系统参数和前端工程数据展示"
+description = "Se usa normalmente para configurar parámetros del sistema de forma dinámica y mostrar datos en el frontend"
 author = "wu-clan"
 tags = ["other"]
 database = ["mysql", "postgresql"]

@@ -1,7 +1,7 @@
 [plugin]
-summary = "电子邮件"
+summary = "Correo electrónico"
 version = "0.0.3"
-description = "提供邮件发送功能，支持验证码、通知等场景"
+description = "Proporciona la función de envío de correos, compatible con códigos de verificación, notificaciones y otros casos de uso"
 author = "wu-clan"
 tags = ["other"]
 database = ["mysql", "postgresql"]

@@ -35,7 +35,7 @@ async def _get_map_data(map_id: int):
 
 @builtin_registry.register(
     'query_landmarks',
-    display_name='查询地标',
+    display_name='Consulta de puntos de referencia',
     description=(
         'Query landmarks near a position on the map. '
         'Returns named locations (cities, villages, hills, facilities, etc.) within the given radius. '
@@ -94,7 +94,7 @@ async def query_landmarks(
 
 @builtin_registry.register(
     'calculate_route',
-    display_name='路线计算',
+    display_name='Cálculo de ruta',
     description=(
         'Calculate the route between two positions. '
         'Determines straight-line distance and whether road connections exist between the points. '
@@ -164,7 +164,7 @@ async def calculate_route(map_id: int, from_pos: list, to_pos: list, **_: Any) -
 
 @builtin_registry.register(
     'get_terrain_profile',
-    display_name='地形剖面',
+    display_name='Perfil del terreno',
     description=(
         'Get the terrain height profile between two positions. '
         'Samples terrain heights at regular intervals along the line between from and to. '
@@ -247,7 +247,7 @@ async def get_terrain_profile(map_id: int, from_pos: list, to_pos: list, **_: An
 
 @builtin_registry.register(
     'get_area_intel',
-    display_name='区域情报',
+    display_name='Inteligencia del área',
     description=(
         'Get comprehensive intelligence about an area: landmarks, zone type, road access, and terrain info. '
         'Combines landmark query, zone data, and road proximity into a single briefing.'
@@ -318,7 +318,7 @@ async def get_area_intel(map_id: int, position: list, radius: float = 500, **_: 
 
 @builtin_registry.register(
     'get_mission_status',
-    display_name='任务状态',
+    display_name='Estado de la misión',
     description=(
         'Get the current mission objective and status from the project Arma configuration. '
         'Returns the mission type, description, targets, and constraints. '
@@ -357,7 +357,7 @@ async def get_mission_status(project_id: int, **_: Any) -> str:
 
 @builtin_registry.register(
     'estimate_travel_time',
-    display_name='行军时间估算',
+    display_name='Estimación de tiempo de marcha',
     description=(
         'Estimate travel time between two positions considering distance, terrain, and road availability. '
         'Returns estimated time at different movement speeds.'
@@ -414,7 +414,7 @@ async def estimate_travel_time(map_id: int, from_pos: list, to_pos: list, **_: A
 
 @builtin_registry.register(
     'send_message_to_human',
-    display_name='发送消息给指挥官',
+    display_name='Enviar mensaje al comandante',
     description=(
         'Send a message to the human operator via the web interface. '
         'Use this to request clarification, report important events, or suggest changes. '
@@ -442,7 +442,7 @@ async def send_message_to_human(text: str, **_: Any) -> str:
 
 @builtin_registry.register(
     'assess_threat_level',
-    display_name='区域威胁评估',
+    display_name='Evaluación de amenazas del área',
     description=(
         'Assess the threat or risk level of a specific area by combining terrain analysis, '
         'zone type (urban/open), road access, and landmark proximity. '
@@ -561,7 +561,7 @@ async def assess_threat_level(map_id: int, position: list, radius: float = 300, 
 
 @builtin_registry.register(
     'view_map_image',
-    display_name='查看地图图片',
+    display_name='Ver imagen del mapa',
     description=(
         'Get a map image of a specific area. Returns a URL to the full map image and the pixel coordinates '
         'corresponding to the requested area. Use this to visually inspect terrain before making decisions. '
@@ -628,7 +628,7 @@ async def view_map_image(map_id: int, center: list, radius: float = 500, **_: An
 
 @builtin_registry.register(
     'request_recon',
-    display_name='请求侦察',
+    display_name='Solicitud de reconocimiento',
     description=(
         'Mark an area as requiring reconnaissance. '
         'This flags the area for priority observation in subsequent decisions. '
@@ -663,7 +663,7 @@ async def request_recon(
 
 @builtin_registry.register(
     'convert_coordinates',
-    display_name='坐标转换',
+    display_name='Conversión de coordenadas',
     description=(
         'Convert between world coordinates [x, z] and 6-digit military grid references (XXXYYY). '
         'Use this when you need to translate coordinates for human-readable briefings or '
@@ -906,7 +906,7 @@ def _simplify_path(
 
 @builtin_registry.register(
     'plan_route',
-    display_name='智能路径规划',
+    display_name='Planificación inteligente de ruta',
     description=(
         'Plan an optimal movement route between two positions using A* pathfinding '
         'that considers terrain slope, water obstacles, and vegetation density. '
@@ -1012,7 +1012,7 @@ async def plan_route(
 
 @builtin_registry.register(
     'get_terrain_summary',
-    display_name='地形摘要',
+    display_name='Resumen del terreno',
     description=(
         'Get a high-level terrain summary for the entire map, divided into 9 macro-zones (NW, N, NE, W, C, E, SW, S, SE). '
         'Each zone reports vegetation density, trafficability, cover quality, and key terrain features. '
@@ -1079,7 +1079,7 @@ async def get_terrain_summary(
 
 @builtin_registry.register(
     'query_terrain_cells',
-    display_name='地形智能检索',
+    display_name='Búsqueda inteligente de terreno',
     description=(
         'Search terrain cells by location and/or natural language query. '
         'Uses H3 hexagonal grid pre-computed terrain features with semantic search. '
@@ -1152,7 +1152,7 @@ async def query_terrain_cells(
 
 @builtin_registry.register(
     'get_hex_neighbors',
-    display_name='相邻地形查询',
+    display_name='Consulta de terreno adyacente',
     description=(
         'Get terrain information for hexagonal cells adjacent to a position. '
         'Useful for tactical movement planning — check what terrain surrounds a location '

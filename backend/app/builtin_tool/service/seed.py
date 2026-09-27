@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 SYSTEM_TOOLS = [
     {
         'name': 'web_search',
-        'display_name': '联网搜索',
+        'display_name': 'Búsqueda web',
         'description': (
             'Search the internet for current information. '
             'Use this when you need up-to-date information, facts, news, '
@@ -39,7 +39,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'rag_retrieval',
-        'display_name': '知识库检索',
+        'display_name': 'Búsqueda en base de conocimiento',
         'description': (
             'Search the project knowledge base for relevant information. '
             'Use this when you need to look up specific facts, documents, '
@@ -61,7 +61,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'calculate_distance',
-        'display_name': '距离计算',
+        'display_name': 'Cálculo de distancia',
         'description': 'Calculate the Euclidean distance between two 3D positions on the battlefield.',
         'category': 'arma',
         'input_schema': {
@@ -78,7 +78,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'assess_threats',
-        'display_name': '威胁评估',
+        'display_name': 'Evaluación de amenazas',
         'description': 'Analyze a situational report and assess threats for each friendly squad.',
         'category': 'arma',
         'input_schema': {
@@ -94,7 +94,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'validate_orders',
-        'display_name': '指令验证',
+        'display_name': 'Validación de órdenes',
         'description': 'Validate a list of orders against known group IDs and valid command types.',
         'category': 'arma',
         'input_schema': {
@@ -111,7 +111,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'get_squad_summary',
-        'display_name': '小队查询',
+        'display_name': 'Resumen de escuadrón',
         'description': 'Get a concise summary of a specific squad from the situation report.',
         'category': 'arma',
         'input_schema': {
@@ -128,7 +128,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'generate_patrol_route',
-        'display_name': '巡逻路线生成',
+        'display_name': 'Generación de ruta de patrulla',
         'description': 'Generate a circular patrol route around a center point.',
         'category': 'arma',
         'input_schema': {
@@ -146,7 +146,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'query_landmarks',
-        'display_name': '查询地标',
+        'display_name': 'Consulta de puntos de referencia',
         'description': 'Query landmarks near a position on the map within a given radius.',
         'category': 'map',
         'input_schema': {
@@ -163,7 +163,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'calculate_route',
-        'display_name': '路线计算',
+        'display_name': 'Cálculo de ruta',
         'description': 'Calculate distance and road connectivity between two map positions.',
         'category': 'map',
         'input_schema': {
@@ -180,7 +180,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'get_terrain_profile',
-        'display_name': '地形剖面',
+        'display_name': 'Perfil del terreno',
         'description': 'Get terrain height profile between two positions on the map.',
         'category': 'map',
         'input_schema': {
@@ -198,7 +198,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'get_area_intel',
-        'display_name': '区域情报',
+        'display_name': 'Inteligencia del área',
         'description': 'Get comprehensive intelligence about a map area: landmarks, zones, roads, terrain.',
         'category': 'map',
         'input_schema': {
@@ -215,7 +215,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'assess_threat_level',
-        'display_name': '区域风险评估',
+        'display_name': 'Evaluación de amenazas del área',
         'description': 'Assess risk level of a map area based on terrain, zone type, and landmarks.',
         'category': 'map',
         'input_schema': {
@@ -232,7 +232,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'view_map_image',
-        'display_name': '查看地图图片',
+        'display_name': 'Ver imagen del mapa',
         'description': 'Get map image URL and nearby landmarks for a specific area.',
         'category': 'map',
         'input_schema': {
@@ -249,7 +249,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'convert_coordinates',
-        'display_name': '坐标转换',
+        'display_name': 'Conversión de coordenadas',
         'description': 'Convert between world coordinates [x, z] and 6-digit military grid references.',
         'category': 'map',
         'input_schema': {
@@ -265,7 +265,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'plan_route',
-        'display_name': '智能路径规划',
+        'display_name': 'Planificación inteligente de ruta',
         'description': (
             'Plan an optimal movement route using A* pathfinding that considers terrain slope, '
             'water obstacles, and vegetation. Returns waypoints for unit movement.'
@@ -286,7 +286,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'get_terrain_summary',
-        'display_name': '地形摘要',
+        'display_name': 'Resumen del terreno',
         'description': (
             'Get a high-level terrain summary for the entire map divided into 9 macro-zones. '
             'Reports vegetation, trafficability, cover, slope, and water for each zone.'
@@ -302,7 +302,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'get_mission_status',
-        'display_name': '任务状态',
+        'display_name': 'Estado de la misión',
         'description': (
             'Get the current mission objective and status from the project Arma configuration. '
             'Returns the mission type, description, targets, and constraints. '
@@ -322,7 +322,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'estimate_travel_time',
-        'display_name': '行军时间估算',
+        'display_name': 'Estimación de tiempo de marcha',
         'description': (
             'Estimate travel time between two positions considering distance, terrain, and road availability. '
             'Returns estimated time at different movement speeds.'
@@ -343,7 +343,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'send_message_to_human',
-        'display_name': '发送消息给指挥官',
+        'display_name': 'Enviar mensaje al comandante',
         'description': (
             'Send a message to the human operator via the web interface. '
             'Use this to request clarification, report important events, or suggest changes.'
@@ -362,7 +362,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'request_recon',
-        'display_name': '请求侦察',
+        'display_name': 'Solicitud de reconocimiento',
         'description': (
             'Mark an area as requiring reconnaissance. '
             'This flags the area for priority observation in subsequent decisions.'
@@ -384,7 +384,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'query_terrain_cells',
-        'display_name': '地形智能检索',
+        'display_name': 'Búsqueda inteligente de terreno',
         'description': (
             'Search terrain cells by location and/or natural language query. '
             'Uses H3 hexagonal grid pre-computed terrain features with semantic search.'
@@ -407,7 +407,7 @@ SYSTEM_TOOLS = [
     },
     {
         'name': 'get_hex_neighbors',
-        'display_name': '相邻地形查询',
+        'display_name': 'Consulta de terreno adyacente',
         'description': (
             'Get terrain information for hexagonal cells adjacent to a position. '
             'Returns the center cell and all 6 neighbors.'

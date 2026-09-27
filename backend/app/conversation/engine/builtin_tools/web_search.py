@@ -65,7 +65,7 @@ async def _search_duckduckgo(query: str, max_results: int = 5) -> str:
 
 @builtin_registry.register(
     'web_search',
-    display_name='联网搜索',
+    display_name='Búsqueda web',
     description=(
         'Search the internet for current information. '
         'Use this when you need up-to-date information, facts, news, '
