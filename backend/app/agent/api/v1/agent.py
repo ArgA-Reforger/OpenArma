@@ -12,7 +12,7 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.post('', summary='创建 Agent', dependencies=[DependsJwtAuth])
+@router.post('', summary='Create agent', dependencies=[DependsJwtAuth])
 async def create_agent(
     db: CurrentSessionTransaction,
     request: Request,
@@ -22,17 +22,17 @@ async def create_agent(
     return response_base.success(data=data)
 
 
-@router.get('', summary='Agent 列表', dependencies=[DependsJwtAuth, DependsPagination])
+@router.get('', summary='Agent list', dependencies=[DependsJwtAuth, DependsPagination])
 async def get_agents(
     db: CurrentSession,
     request: Request,
-    visibility: Annotated[str | None, Query(description='可见性过滤: private/public/official')] = None,
+    visibility: Annotated[str | None, Query(description='Visibility filter: private/public/official')] = None,
 ) -> ResponseSchemaModel[PageData[GetAgentDetail]]:
     page_data = await agent_service.get_list(db=db, user_id=request.user.id, visibility=visibility)
     return response_base.success(data=page_data)
 
 
-@router.get('/{pk}', summary='Agent 详情', dependencies=[DependsJwtAuth])
+@router.get('/{pk}', summary='Agent details', dependencies=[DependsJwtAuth])
 async def get_agent(
     db: CurrentSession,
     request: Request,
@@ -42,7 +42,7 @@ async def get_agent(
     return response_base.success(data=data)
 
 
-@router.put('/{pk}', summary='更新 Agent', dependencies=[DependsJwtAuth])
+@router.put('/{pk}', summary='Update agent', dependencies=[DependsJwtAuth])
 async def update_agent(
     db: CurrentSessionTransaction,
     request: Request,
@@ -55,7 +55,7 @@ async def update_agent(
     return response_base.fail()
 
 
-@router.delete('/{pk}', summary='删除 Agent', dependencies=[DependsJwtAuth])
+@router.delete('/{pk}', summary='Delete agent', dependencies=[DependsJwtAuth])
 async def delete_agent(
     db: CurrentSessionTransaction,
     request: Request,
@@ -67,7 +67,7 @@ async def delete_agent(
     return response_base.fail()
 
 
-@router.post('/{pk}/set-default', summary='设为默认 Agent', dependencies=[DependsJwtAuth])
+@router.post('/{pk}/set-default', summary='Set as default agent', dependencies=[DependsJwtAuth])
 async def set_default_agent(
     db: CurrentSessionTransaction,
     request: Request,
@@ -77,11 +77,11 @@ async def set_default_agent(
     return response_base.success()
 
 
-@router.post('/{pk}/clone', summary='克隆 Agent', dependencies=[DependsJwtAuth])
+@router.post('/{pk}/clone', summary='Clone agent', dependencies=[DependsJwtAuth])
 async def clone_agent(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='源 Agent ID')],
+    pk: Annotated[int, Path(description='Source agent ID')],
 ) -> ResponseSchemaModel[GetAgentDetail]:
     data = await agent_service.clone(db=db, pk=pk, user_id=request.user.id)
     return response_base.success(data=data)

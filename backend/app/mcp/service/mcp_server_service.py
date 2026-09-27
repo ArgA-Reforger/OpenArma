@@ -1,4 +1,4 @@
-"""MCP Server 管理服务。"""
+"""MCP Server management service."""
 
 import logging
 from typing import Any
@@ -26,9 +26,9 @@ class MCPServerService:
     async def get(*, db: AsyncSession, pk: int, user_id: int) -> GetMCPServerDetail:
         server = await mcp_server_dao.get(db, pk)
         if not server:
-            raise errors.NotFoundError(msg='MCP 服务器不存在')
+            raise errors.NotFoundError(msg='MCP server does not exist')
         if server.user_id != user_id and server.visibility == 'private':
-            raise errors.NotFoundError(msg='MCP 服务器不存在')
+            raise errors.NotFoundError(msg='MCP server does not exist')
         tools = await mcp_tool_dao.get_by_server(db, pk)
         detail = GetMCPServerDetail.model_validate(server)
         return detail.model_copy(update={'tools': [GetMCPToolDetail.model_validate(t) for t in tools]})
@@ -52,28 +52,28 @@ class MCPServerService:
     ) -> int:
         server = await mcp_server_dao.get(db, pk)
         if not server:
-            raise errors.NotFoundError(msg='MCP 服务器不存在')
+            raise errors.NotFoundError(msg='MCP server does not exist')
         if server.user_id != user_id:
-            raise errors.NotFoundError(msg='MCP 服务器不存在')
+            raise errors.NotFoundError(msg='MCP server does not exist')
         return await mcp_server_dao.update(db, pk, obj)
 
     @staticmethod
     async def delete(*, db: AsyncSession, pk: int, user_id: int) -> int:
         server = await mcp_server_dao.get(db, pk)
         if not server:
-            raise errors.NotFoundError(msg='MCP 服务器不存在')
+            raise errors.NotFoundError(msg='MCP server does not exist')
         if server.user_id != user_id:
-            raise errors.NotFoundError(msg='MCP 服务器不存在')
+            raise errors.NotFoundError(msg='MCP server does not exist')
         return await mcp_server_dao.delete(db, pk)
 
     @staticmethod
     async def discover(*, db: AsyncSession, pk: int, user_id: int) -> list[GetMCPToolDetail]:
-        """连接 MCP Server，发现并持久化工具列表。"""
+        """Connect to MCP Server, discover and persist tool list."""
         server = await mcp_server_dao.get(db, pk)
         if not server:
-            raise errors.NotFoundError(msg='MCP 服务器不存在')
+            raise errors.NotFoundError(msg='MCP server does not exist')
         if server.user_id != user_id:
-            raise errors.NotFoundError(msg='MCP 服务器不存在')
+            raise errors.NotFoundError(msg='MCP server does not exist')
 
         from backend.app.mcp.service.mcp_client import discover_tools
 
@@ -81,7 +81,7 @@ class MCPServerService:
             tools_data = await discover_tools(server.transport_type, server.connection_config)
         except Exception as e:
             log.exception(f'MCP discover failed for server {pk}')
-            raise errors.RequestError(msg=f'连接 MCP 服务器失败: {e}')
+            raise errors.RequestError(msg=f'Failed to connect to MCP server: {e}')
 
         await mcp_tool_dao.delete_by_server(db, pk)
 
@@ -104,9 +104,9 @@ class MCPServerService:
     async def clone(*, db: AsyncSession, pk: int, user_id: int) -> MCPServer:
         source = await mcp_server_dao.get(db, pk)
         if not source:
-            raise errors.NotFoundError(msg='MCP 服务器不存在')
+            raise errors.NotFoundError(msg='MCP server does not exist')
         if source.user_id != user_id and source.visibility == 'private':
-            raise errors.NotFoundError(msg='MCP 服务器不存在')
+            raise errors.NotFoundError(msg='MCP server does not exist')
         clone_data = CreateMCPServerParam(
             name=f'{source.name} (Copy)',
             description=source.description,

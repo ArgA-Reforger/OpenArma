@@ -16,36 +16,36 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.get('', summary='内置工具列表', dependencies=[DependsJwtAuth, DependsPagination])
+@router.get('', summary='Builtin tool list', dependencies=[DependsJwtAuth, DependsPagination])
 async def get_builtin_tools(
     db: CurrentSession,
 ) -> ResponseSchemaModel[PageData[GetBuiltinToolDetail]]:
-    """获取所有内置工具（管理员用）。"""
+    """Get all builtin tools (for administrators)."""
     page_data = await builtin_tool_service.get_list(db=db)
     return response_base.success(data=page_data)
 
 
-@router.get('/active', summary='可用内置工具列表', dependencies=[DependsJwtAuth])
+@router.get('/active', summary='Active builtin tool list', dependencies=[DependsJwtAuth])
 async def get_active_builtin_tools(
     db: CurrentSession,
-    category: Annotated[str | None, Query(description='逗号分隔的分类过滤，如 general,arma')] = None,
+    category: Annotated[str | None, Query(description='Comma-separated category filter, e.g. general,arma')] = None,
 ) -> ResponseSchemaModel[list[GetBuiltinToolDetail]]:
-    """获取所有启用的内置工具（用户端 Agent 配置用）。"""
+    """Get all enabled builtin tools (for user agent configuration)."""
     categories = [c.strip() for c in category.split(',') if c.strip()] if category else None
     tools = await builtin_tool_service.get_active_tools(db=db, categories=categories)
     return response_base.success(data=tools)
 
 
-@router.get('/{pk}', summary='内置工具详情', dependencies=[DependsJwtAuth])
+@router.get('/{pk}', summary='Builtin tool details', dependencies=[DependsJwtAuth])
 async def get_builtin_tool(
     db: CurrentSession,
-    pk: Annotated[int, Path(description='工具 ID')],
+    pk: Annotated[int, Path(description='Tool ID')],
 ) -> ResponseSchemaModel[GetBuiltinToolDetail]:
     data = await builtin_tool_service.get(db=db, pk=pk)
     return response_base.success(data=data)
 
 
-@router.post('', summary='创建内置工具', dependencies=[DependsJwtAuth, DependsSuperUser])
+@router.post('', summary='Create builtin tool', dependencies=[DependsJwtAuth, DependsSuperUser])
 async def create_builtin_tool(
     db: CurrentSessionTransaction,
     obj: CreateBuiltinToolParam,
@@ -54,10 +54,10 @@ async def create_builtin_tool(
     return response_base.success(data=data)
 
 
-@router.put('/{pk}', summary='更新内置工具', dependencies=[DependsJwtAuth, DependsSuperUser])
+@router.put('/{pk}', summary='Update builtin tool', dependencies=[DependsJwtAuth, DependsSuperUser])
 async def update_builtin_tool(
     db: CurrentSessionTransaction,
-    pk: Annotated[int, Path(description='工具 ID')],
+    pk: Annotated[int, Path(description='Tool ID')],
     obj: UpdateBuiltinToolParam,
 ) -> ResponseModel:
     count = await builtin_tool_service.update(db=db, pk=pk, obj=obj)
@@ -66,10 +66,10 @@ async def update_builtin_tool(
     return response_base.fail()
 
 
-@router.delete('/{pk}', summary='删除内置工具', dependencies=[DependsJwtAuth, DependsSuperUser])
+@router.delete('/{pk}', summary='Delete builtin tool', dependencies=[DependsJwtAuth, DependsSuperUser])
 async def delete_builtin_tool(
     db: CurrentSessionTransaction,
-    pk: Annotated[int, Path(description='工具 ID')],
+    pk: Annotated[int, Path(description='Tool ID')],
 ) -> ResponseModel:
     count = await builtin_tool_service.delete(db=db, pk=pk)
     if count > 0:

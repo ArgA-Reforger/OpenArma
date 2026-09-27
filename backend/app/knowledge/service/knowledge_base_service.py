@@ -14,16 +14,16 @@ class KnowledgeBaseService:
     async def _check_access(db: AsyncSession, pk: int, user_id: int) -> KnowledgeBase:
         obj = await knowledge_base_dao.get(db, pk)
         if not obj:
-            raise errors.NotFoundError(msg='知识库不存在')
+            raise errors.NotFoundError(msg='Knowledge base does not exist')
         if obj.user_id != user_id and obj.visibility == 'private':
-            raise errors.NotFoundError(msg='知识库不存在')
+            raise errors.NotFoundError(msg='Knowledge base does not exist')
         return obj
 
     @staticmethod
     async def _check_owner(db: AsyncSession, pk: int, user_id: int) -> KnowledgeBase:
         obj = await knowledge_base_dao.get(db, pk)
         if not obj or obj.user_id != user_id:
-            raise errors.NotFoundError(msg='知识库不存在')
+            raise errors.NotFoundError(msg='Knowledge base does not exist')
         return obj
 
     @staticmethod
@@ -59,9 +59,9 @@ class KnowledgeBaseService:
     async def clone(*, db: AsyncSession, pk: int, owner_id: int) -> KnowledgeBase:
         source = await knowledge_base_dao.get(db, pk)
         if not source:
-            raise errors.NotFoundError(msg='知识库不存在')
+            raise errors.NotFoundError(msg='Knowledge base does not exist')
         if source.user_id != owner_id and source.visibility == 'private':
-            raise errors.NotFoundError(msg='知识库不存在')
+            raise errors.NotFoundError(msg='Knowledge base does not exist')
         clone_data = CreateKnowledgeBaseParam(
             name=f'{source.name} (Copy)',
             description=source.description,

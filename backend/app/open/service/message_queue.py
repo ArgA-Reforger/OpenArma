@@ -1,6 +1,7 @@
-"""Arma 消息池：Redis 队列 + 分布式锁。
+"""Arma message pool: Redis queue + distributed lock.
 
-态势报告和人类消息入队 → AI 处理时出队合并 → 确保不丢失堆积期间的变化。
+Situation reports and human messages enqueued -> dequeued and merged during AI processing
+-> ensures changes during accumulation are not lost.
 """
 
 import json

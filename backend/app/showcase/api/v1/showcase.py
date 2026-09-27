@@ -32,10 +32,10 @@ class SetVisibilityParam(BaseModel):
     visibility: str
 
 
-@router.get('/agents', summary='公开/官方 Agent 列表', dependencies=[DependsJwtAuth])
+@router.get('/agents', summary='Public/official agent list', dependencies=[DependsJwtAuth])
 async def showcase_agents(
     db: CurrentSession,
-    keyword: Annotated[str | None, Query(description='搜索关键词')] = None,
+    keyword: Annotated[str | None, Query(description='Search keyword')] = None,
 ) -> ResponseSchemaModel[list[dict]]:
     stmt = select(Agent).where(
         Agent.del_flag == False,
@@ -59,10 +59,10 @@ async def showcase_agents(
     return response_base.success(data=items)
 
 
-@router.get('/knowledge-bases', summary='公开/官方知识库列表', dependencies=[DependsJwtAuth])
+@router.get('/knowledge-bases', summary='Public/official knowledge base list', dependencies=[DependsJwtAuth])
 async def showcase_knowledge_bases(
     db: CurrentSession,
-    keyword: Annotated[str | None, Query(description='搜索关键词')] = None,
+    keyword: Annotated[str | None, Query(description='Search keyword')] = None,
 ) -> ResponseSchemaModel[list[dict]]:
     stmt = select(KnowledgeBase).where(
         KnowledgeBase.del_flag == False,
@@ -88,10 +88,10 @@ async def showcase_knowledge_bases(
     return response_base.success(data=items)
 
 
-@router.get('/mcp-servers', summary='公开/官方 MCP 服务器列表', dependencies=[DependsJwtAuth])
+@router.get('/mcp-servers', summary='Public/official MCP server list', dependencies=[DependsJwtAuth])
 async def showcase_mcp_servers(
     db: CurrentSession,
-    keyword: Annotated[str | None, Query(description='搜索关键词')] = None,
+    keyword: Annotated[str | None, Query(description='Search keyword')] = None,
 ) -> ResponseSchemaModel[list[dict]]:
     stmt = select(MCPServer).where(
         MCPServer.del_flag == False,
@@ -116,10 +116,10 @@ async def showcase_mcp_servers(
     return response_base.success(data=items)
 
 
-@router.get('/llm-providers', summary='公开/官方 LLM 服务商列表', dependencies=[DependsJwtAuth])
+@router.get('/llm-providers', summary='Public/official LLM provider list', dependencies=[DependsJwtAuth])
 async def showcase_llm_providers(
     db: CurrentSession,
-    keyword: Annotated[str | None, Query(description='搜索关键词')] = None,
+    keyword: Annotated[str | None, Query(description='Search keyword')] = None,
 ) -> ResponseSchemaModel[list[dict]]:
     stmt = select(LLMProvider).where(
         LLMProvider.del_flag == False,
@@ -145,10 +145,10 @@ async def showcase_llm_providers(
     return response_base.success(data=items)
 
 
-@router.get('/topologies', summary='公开/官方拓扑列表', dependencies=[DependsJwtAuth])
+@router.get('/topologies', summary='Public/official topology list', dependencies=[DependsJwtAuth])
 async def showcase_topologies(
     db: CurrentSession,
-    keyword: Annotated[str | None, Query(description='搜索关键词')] = None,
+    keyword: Annotated[str | None, Query(description='Search keyword')] = None,
 ) -> ResponseSchemaModel[list[dict]]:
     stmt = select(Topology).where(
         Topology.del_flag == False,
@@ -173,20 +173,20 @@ async def showcase_topologies(
 
 @router.put(
     '/{resource_type}/{pk}/visibility',
-    summary='管理员设置资源可见性',
+    summary='Admin set resource visibility',
     dependencies=[DependsSuperUser],
 )
 async def set_resource_visibility(
     db: CurrentSessionTransaction,
-    resource_type: Annotated[str, Path(description='资源类型: agents/knowledge-bases/mcp-servers/llm-providers/topologies')],
-    pk: Annotated[int, Path(description='资源 ID')],
+    resource_type: Annotated[str, Path(description='Resource type: agents/knowledge-bases/mcp-servers/llm-providers/topologies')],
+    pk: Annotated[int, Path(description='Resource ID')],
     obj: SetVisibilityParam,
 ) -> ResponseModel:
     model = RESOURCE_MODEL_MAP.get(resource_type)
     if not model:
-        raise errors.NotFoundError(msg=f'不支持的资源类型: {resource_type}')
+        raise errors.NotFoundError(msg=f'Unsupported resource type: {resource_type}')
     if obj.visibility not in VALID_VISIBILITY:
-        raise errors.RequestError(msg=f'无效的可见性: {obj.visibility}')
+        raise errors.RequestError(msg=f'Invalid visibility: {obj.visibility}')
 
     stmt = (
         update(model)
@@ -195,5 +195,5 @@ async def set_resource_visibility(
     )
     result = await db.execute(stmt)
     if result.rowcount == 0:
-        raise errors.NotFoundError(msg='资源不存在')
+        raise errors.NotFoundError(msg='Resource does not exist')
     return response_base.success()

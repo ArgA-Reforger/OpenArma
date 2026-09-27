@@ -15,7 +15,7 @@ class CRUDUsage:
         *, page: int = 1, size: int = 20, call_type: str | None = None,
         status: str | None = None, provider_type: str | None = None,
     ) -> dict:
-        """分页获取详细调用记录。"""
+        """Get detailed call records with pagination."""
         conditions = [
             UsageRecord.user_id == user_id,
             UsageRecord.created_time >= start,
@@ -189,7 +189,7 @@ class CRUDUsage:
         return [
             {
                 'project_id': r.project_id,
-                'project_name': r.project_name or '(未关联项目)',
+                'project_name': r.project_name or '(No project associated)',
                 'calls': r.calls,
                 'prompt_tokens': r.prompt_tokens,
                 'completion_tokens': r.completion_tokens,

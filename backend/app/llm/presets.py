@@ -1,4 +1,4 @@
-"""LLM 服务商预设配置：常用服务商、模型、API 地址、定价信息。"""
+"""LLM provider preset configurations: common providers, models, API URLs, pricing info."""
 
 LLM_PRESETS: list[dict] = [
     {
@@ -129,7 +129,7 @@ LLM_PRESETS: list[dict] = [
     },
     {
         'provider_type': 'openai_compatible',
-        'label': '通义千问 / Qwen (百炼)',
+        'label': 'Tongyi Qianwen / Qwen (Bailian)',
         'api_base': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
         'currency': 'CNY',
         'models': [
@@ -180,7 +180,7 @@ LLM_PRESETS: list[dict] = [
     },
     {
         'provider_type': 'openai_compatible',
-        'label': 'OpenRouter (中转聚合)',
+        'label': 'OpenRouter (Aggregator)',
         'api_base': 'https://openrouter.ai/api/v1',
         'currency': 'USD',
         'models': [
@@ -216,20 +216,20 @@ LLM_PRESETS: list[dict] = [
     },
     {
         'provider_type': 'openai_compatible',
-        'label': 'API易 / Apiyi (中转)',
+        'label': 'Apiyi (Proxy)',
         'api_base': 'https://api.apiyi.com/v1',
         'currency': 'CNY',
         'models': [
             {
                 'name': 'gpt-4o',
-                'label': 'GPT-4o (中转)',
+                'label': 'GPT-4o (Proxy)',
                 'context_length': 128000,
                 'input_price': 18.00,
                 'output_price': 72.00,
             },
             {
                 'name': 'claude-sonnet-4-6',
-                'label': 'Claude Sonnet 4.6 (中转)',
+                'label': 'Claude Sonnet 4.6 (Proxy)',
                 'context_length': 200000,
                 'input_price': 21.60,
                 'output_price': 108.00,
@@ -238,7 +238,7 @@ LLM_PRESETS: list[dict] = [
     },
     {
         'provider_type': 'openai_compatible',
-        'label': 'One API / New API (自建中转)',
+        'label': 'One API / New API (Self-hosted Proxy)',
         'api_base': 'http://localhost:3000/v1',
         'currency': 'USD',
         'models': [
@@ -267,7 +267,7 @@ LLM_PRESETS: list[dict] = [
     },
     {
         'provider_type': 'ollama',
-        'label': 'Ollama (本地)',
+        'label': 'Ollama (Local)',
         'api_base': 'http://localhost:11434',
         'currency': 'USD',
         'models': [
@@ -298,7 +298,7 @@ LLM_PRESETS: list[dict] = [
 
 
 def get_pricing_map() -> dict[str, dict]:
-    """构建 (provider_type, model_name) -> pricing 的快速查找表。"""
+    """Build (provider_type, model_name) -> pricing quick lookup table."""
     result: dict[str, dict] = {}
     for preset in LLM_PRESETS:
         for model in preset['models']:

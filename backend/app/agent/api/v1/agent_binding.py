@@ -14,15 +14,15 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.get('/{pid}/agents', summary='项目绑定的 Agent 列表', dependencies=[DependsJwtAuth])
+@router.get('/{pid}/agents', summary='List of agents bound to project', dependencies=[DependsJwtAuth])
 async def get_project_agents(
     db: CurrentSession,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
 ) -> ResponseSchemaModel[list[GetAgentDetail]]:
     project = await project_dao.get(db, pid)
     if not project or project.owner_id != request.user.id:
-        raise errors.NotFoundError(msg='项目不存在')
+        raise errors.NotFoundError(msg='Project does not exist')
     bindings = await project_agent_dao.get_by_project(db, pid)
     items = []
     for b in bindings:
@@ -33,19 +33,19 @@ async def get_project_agents(
     return response_base.success(data=items)
 
 
-@router.post('/{pid}/agents', summary='绑定 Agent 到项目', dependencies=[DependsJwtAuth])
+@router.post('/{pid}/agents', summary='Bind agent to project', dependencies=[DependsJwtAuth])
 async def bind_agent(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
     agent_id: Annotated[int, Query(description='Agent ID')],
 ) -> ResponseModel:
     project = await project_dao.get(db, pid)
     if not project or project.owner_id != request.user.id:
-        raise errors.NotFoundError(msg='项目不存在')
+        raise errors.NotFoundError(msg='Project does not exist')
     agent = await agent_dao.get(db, agent_id)
     if not agent or agent.user_id != request.user.id:
-        raise errors.NotFoundError(msg='Agent 不存在')
+        raise errors.NotFoundError(msg='Agent does not exist')
     existing = await project_agent_dao.get_binding(db, pid, agent_id)
     if existing:
         return response_base.success()
@@ -53,16 +53,16 @@ async def bind_agent(
     return response_base.success()
 
 
-@router.delete('/{pid}/agents/{agent_id}', summary='解绑 Agent', dependencies=[DependsJwtAuth])
+@router.delete('/{pid}/agents/{agent_id}', summary='Unbind agent', dependencies=[DependsJwtAuth])
 async def unbind_agent(
     db: CurrentSessionTransaction,
     request: Request,
-    pid: Annotated[int, Path(description='项目 ID')],
+    pid: Annotated[int, Path(description='Project ID')],
     agent_id: Annotated[int, Path(description='Agent ID')],
 ) -> ResponseModel:
     project = await project_dao.get(db, pid)
     if not project or project.owner_id != request.user.id:
-        raise errors.NotFoundError(msg='项目不存在')
+        raise errors.NotFoundError(msg='Project does not exist')
     count = await project_agent_dao.delete_binding(db, project_id=pid, agent_id=agent_id)
     if count > 0:
         return response_base.success()

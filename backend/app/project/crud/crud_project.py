@@ -7,7 +7,7 @@ from backend.app.project.schema.project import CreateProjectParam, UpdateProject
 
 
 class CRUDProject(CRUDPlus[Project]):
-    """项目数据库操作类"""
+    """Project database operations class"""
 
     async def get(self, db: AsyncSession, pk: int) -> Project | None:
         return await self.select_model_by_column(db, id=pk, del_flag=False)

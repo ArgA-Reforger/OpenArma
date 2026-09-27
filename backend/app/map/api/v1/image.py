@@ -1,7 +1,7 @@
-"""地图图层图片上传 API。
+"""Map layer image upload API.
 
-上传图层图片后存储到 static/upload/maps/{map_id}/layers/{layer_id}/。
-支持 TGA/PNG/JPG/WEBP，TGA 自动转换为高质量 PNG。
+Uploaded layer images are stored in static/upload/maps/{map_id}/layers/{layer_id}/.
+Supports TGA/PNG/JPG/WEBP, TGA is automatically converted to high-quality PNG.
 """
 
 import io

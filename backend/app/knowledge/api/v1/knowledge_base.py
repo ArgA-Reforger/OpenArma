@@ -12,7 +12,7 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.post('', summary='创建知识库', dependencies=[DependsJwtAuth])
+@router.post('', summary='Create knowledge base', dependencies=[DependsJwtAuth])
 async def create_knowledge_base(
     db: CurrentSessionTransaction,
     request: Request,
@@ -24,7 +24,7 @@ async def create_knowledge_base(
 
 @router.get(
     '',
-    summary='知识库列表',
+    summary='Knowledge base list',
     dependencies=[
         DependsJwtAuth,
         DependsPagination,
@@ -33,27 +33,27 @@ async def create_knowledge_base(
 async def get_knowledge_bases(
     db: CurrentSession,
     request: Request,
-    visibility: Annotated[str | None, Query(description='可见性过滤: private/public/official')] = None,
+    visibility: Annotated[str | None, Query(description='Visibility filter: private/public/official')] = None,
 ) -> ResponseSchemaModel[PageData[GetKnowledgeBaseDetail]]:
     page_data = await knowledge_base_service.get_list(db=db, owner_id=request.user.id, visibility=visibility)
     return response_base.success(data=page_data)
 
 
-@router.get('/{pk}', summary='知识库详情', dependencies=[DependsJwtAuth])
+@router.get('/{pk}', summary='Knowledge base details', dependencies=[DependsJwtAuth])
 async def get_knowledge_base(
     db: CurrentSession,
     request: Request,
-    pk: Annotated[int, Path(description='知识库 ID')],
+    pk: Annotated[int, Path(description='Knowledge base ID')],
 ) -> ResponseSchemaModel[GetKnowledgeBaseDetail]:
     data = await knowledge_base_service.get(db=db, pk=pk, owner_id=request.user.id)
     return response_base.success(data=data)
 
 
-@router.put('/{pk}', summary='更新知识库', dependencies=[DependsJwtAuth])
+@router.put('/{pk}', summary='Update knowledge base', dependencies=[DependsJwtAuth])
 async def update_knowledge_base(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='知识库 ID')],
+    pk: Annotated[int, Path(description='Knowledge base ID')],
     obj: UpdateKnowledgeBaseParam,
 ) -> ResponseModel:
     count = await knowledge_base_service.update(db=db, pk=pk, obj=obj, owner_id=request.user.id)
@@ -62,11 +62,11 @@ async def update_knowledge_base(
     return response_base.fail()
 
 
-@router.delete('/{pk}', summary='删除知识库', dependencies=[DependsJwtAuth])
+@router.delete('/{pk}', summary='Delete knowledge base', dependencies=[DependsJwtAuth])
 async def delete_knowledge_base(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='知识库 ID')],
+    pk: Annotated[int, Path(description='Knowledge base ID')],
 ) -> ResponseModel:
     count = await knowledge_base_service.delete(db=db, pk=pk, owner_id=request.user.id)
     if count > 0:
@@ -74,11 +74,11 @@ async def delete_knowledge_base(
     return response_base.fail()
 
 
-@router.post('/{pk}/clone', summary='克隆知识库', dependencies=[DependsJwtAuth])
+@router.post('/{pk}/clone', summary='Clone knowledge base', dependencies=[DependsJwtAuth])
 async def clone_knowledge_base(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='源知识库 ID')],
+    pk: Annotated[int, Path(description='Source knowledge base ID')],
 ) -> ResponseSchemaModel[GetKnowledgeBaseDetail]:
     data = await knowledge_base_service.clone(db=db, pk=pk, owner_id=request.user.id)
     return response_base.success(data=data)

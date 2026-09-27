@@ -11,7 +11,7 @@ from backend.database.db import CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.post('/{aid}/tools', summary='绑定工具到 Agent', dependencies=[DependsJwtAuth])
+@router.post('/{aid}/tools', summary='Bind tool to agent', dependencies=[DependsJwtAuth])
 async def bind_agent_tool(
     db: CurrentSessionTransaction,
     request: Request,
@@ -27,12 +27,12 @@ async def bind_agent_tool(
     return response_base.success()
 
 
-@router.delete('/{aid}/tools/{tid}', summary='解绑 Agent 工具', dependencies=[DependsJwtAuth])
+@router.delete('/{aid}/tools/{tid}', summary='Unbind agent tool', dependencies=[DependsJwtAuth])
 async def unbind_agent_tool(
     db: CurrentSessionTransaction,
     request: Request,
     aid: Annotated[int, Path(description='Agent ID')],
-    tid: Annotated[int, Path(description='MCP 工具 ID')],
+    tid: Annotated[int, Path(description='MCP tool ID')],
 ) -> ResponseModel:
     count = await mcp_binding_service.unbind_agent_tool(
         db=db,

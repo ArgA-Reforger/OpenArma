@@ -18,12 +18,12 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.get('/presets', summary='获取 LLM 服务商预设配置')
+@router.get('/presets', summary='Get LLM provider preset configurations')
 async def get_presets() -> ResponseSchemaModel[list]:
     return response_base.success(data=LLM_PRESETS)
 
 
-@router.post('', summary='添加 LLM 服务商', dependencies=[DependsJwtAuth])
+@router.post('', summary='Add LLM provider', dependencies=[DependsJwtAuth])
 async def create_llm_provider(
     request: Request,
     db: CurrentSessionTransaction,
@@ -35,16 +35,16 @@ async def create_llm_provider(
 
 @router.get(
     '',
-    summary='LLM 服务商列表',
+    summary='LLM provider list',
     dependencies=[DependsJwtAuth, DependsPagination],
 )
 async def get_llm_providers(
     request: Request,
     db: CurrentSession,
-    name: Annotated[str | None, Query(description='服务商名称')] = None,
-    provider_type: Annotated[str | None, Query(description='服务商类型')] = None,
-    is_active: Annotated[bool | None, Query(description='是否启用')] = None,
-    visibility: Annotated[str | None, Query(description='可见性过滤: private/public/official')] = None,
+    name: Annotated[str | None, Query(description='Provider name')] = None,
+    provider_type: Annotated[str | None, Query(description='Provider type')] = None,
+    is_active: Annotated[bool | None, Query(description='Whether enabled')] = None,
+    visibility: Annotated[str | None, Query(description='Visibility filter: private/public/official')] = None,
 ) -> ResponseSchemaModel[PageData[GetLLMProviderDetail]]:
     page_data = await llm_provider_service.get_list(
         db=db,
@@ -57,21 +57,21 @@ async def get_llm_providers(
     return response_base.success(data=page_data)
 
 
-@router.get('/{pk}', summary='LLM 服务商详情', dependencies=[DependsJwtAuth])
+@router.get('/{pk}', summary='LLM provider details', dependencies=[DependsJwtAuth])
 async def get_llm_provider(
     request: Request,
     db: CurrentSession,
-    pk: Annotated[int, Path(description='主键 ID')],
+    pk: Annotated[int, Path(description='Primary key ID')],
 ) -> ResponseSchemaModel[GetLLMProviderDetail]:
     data = await llm_provider_service.get(db=db, pk=pk, user_id=request.user.id)
     return response_base.success(data=data)
 
 
-@router.put('/{pk}', summary='更新 LLM 服务商', dependencies=[DependsJwtAuth])
+@router.put('/{pk}', summary='Update LLM provider', dependencies=[DependsJwtAuth])
 async def update_llm_provider(
     request: Request,
     db: CurrentSessionTransaction,
-    pk: Annotated[int, Path(description='主键 ID')],
+    pk: Annotated[int, Path(description='Primary key ID')],
     obj: UpdateLLMProviderParam,
 ) -> ResponseModel:
     count = await llm_provider_service.update(db=db, pk=pk, obj=obj, user_id=request.user.id)
@@ -80,11 +80,11 @@ async def update_llm_provider(
     return response_base.fail()
 
 
-@router.delete('/{pk}', summary='删除 LLM 服务商', dependencies=[DependsJwtAuth])
+@router.delete('/{pk}', summary='Delete LLM provider', dependencies=[DependsJwtAuth])
 async def delete_llm_provider(
     request: Request,
     db: CurrentSessionTransaction,
-    pk: Annotated[int, Path(description='主键 ID')],
+    pk: Annotated[int, Path(description='Primary key ID')],
 ) -> ResponseModel:
     count = await llm_provider_service.delete(db=db, pk=pk, user_id=request.user.id)
     if count > 0:
@@ -92,11 +92,11 @@ async def delete_llm_provider(
     return response_base.fail()
 
 
-@router.post('/{pk}/verify', summary='验证 LLM 服务商模型连接', dependencies=[DependsJwtAuth])
+@router.post('/{pk}/verify', summary='Verify LLM provider model connection', dependencies=[DependsJwtAuth])
 async def verify_llm_provider(
     request: Request,
     db: CurrentSessionTransaction,
-    pk: Annotated[int, Path(description='主键 ID')],
+    pk: Annotated[int, Path(description='Primary key ID')],
     obj: VerifyModelParam,
 ) -> ResponseSchemaModel[dict]:
     result = await llm_provider_service.verify_connection(
@@ -105,11 +105,11 @@ async def verify_llm_provider(
     return response_base.success(data=result)
 
 
-@router.post('/{pk}/fetch-models', summary='获取远程模型列表', dependencies=[DependsJwtAuth])
+@router.post('/{pk}/fetch-models', summary='Fetch remote model list', dependencies=[DependsJwtAuth])
 async def fetch_remote_models(
     request: Request,
     db: CurrentSession,
-    pk: Annotated[int, Path(description='主键 ID')],
+    pk: Annotated[int, Path(description='Primary key ID')],
 ) -> ResponseSchemaModel[dict]:
     result = await llm_provider_service.fetch_remote_models(
         db=db, pk=pk, user_id=request.user.id

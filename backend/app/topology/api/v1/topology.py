@@ -12,7 +12,7 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 router = APIRouter()
 
 
-@router.post('', summary='创建拓扑', dependencies=[DependsJwtAuth])
+@router.post('', summary='Create topology', dependencies=[DependsJwtAuth])
 async def create_topology(
     db: CurrentSessionTransaction,
     request: Request,
@@ -22,17 +22,17 @@ async def create_topology(
     return response_base.success(data=data)
 
 
-@router.get('', summary='拓扑列表', dependencies=[DependsJwtAuth, DependsPagination])
+@router.get('', summary='Topology list', dependencies=[DependsJwtAuth, DependsPagination])
 async def get_topologies(
     db: CurrentSession,
     request: Request,
-    visibility: Annotated[str | None, Query(description='可见性过滤: private/public/official')] = None,
+    visibility: Annotated[str | None, Query(description='Visibility filter: private/public/official')] = None,
 ) -> ResponseSchemaModel[PageData[GetTopologyDetail]]:
     page_data = await topology_service.get_list(db=db, user_id=request.user.id, visibility=visibility)
     return response_base.success(data=page_data)
 
 
-@router.get('/{pk}', summary='拓扑详情', dependencies=[DependsJwtAuth])
+@router.get('/{pk}', summary='Topology details', dependencies=[DependsJwtAuth])
 async def get_topology(
     db: CurrentSession,
     request: Request,
@@ -42,7 +42,7 @@ async def get_topology(
     return response_base.success(data=data)
 
 
-@router.put('/{pk}', summary='更新拓扑', dependencies=[DependsJwtAuth])
+@router.put('/{pk}', summary='Update topology', dependencies=[DependsJwtAuth])
 async def update_topology(
     db: CurrentSessionTransaction,
     request: Request,
@@ -55,7 +55,7 @@ async def update_topology(
     return response_base.fail()
 
 
-@router.delete('/{pk}', summary='删除拓扑', dependencies=[DependsJwtAuth])
+@router.delete('/{pk}', summary='Delete topology', dependencies=[DependsJwtAuth])
 async def delete_topology(
     db: CurrentSessionTransaction,
     request: Request,
@@ -67,11 +67,11 @@ async def delete_topology(
     return response_base.fail()
 
 
-@router.post('/{pk}/clone', summary='克隆拓扑', dependencies=[DependsJwtAuth])
+@router.post('/{pk}/clone', summary='Clone topology', dependencies=[DependsJwtAuth])
 async def clone_topology(
     db: CurrentSessionTransaction,
     request: Request,
-    pk: Annotated[int, Path(description='源 Topology ID')],
+    pk: Annotated[int, Path(description='Source topology ID')],
 ) -> ResponseSchemaModel[GetTopologyDetail]:
     data = await topology_service.clone(db=db, pk=pk, user_id=request.user.id)
     return response_base.success(data=data)
