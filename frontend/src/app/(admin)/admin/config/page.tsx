@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,15 +22,16 @@ interface ConfigItem {
 
 type ConfigTab = 'USER_SECURITY' | 'LOGIN' | 'EMAIL'
 
-const TABS: { key: ConfigTab; label: string }[] = [
-  { key: 'USER_SECURITY', label: '用户安全' },
-  { key: 'LOGIN', label: '登录配置' },
-  { key: 'EMAIL', label: '邮箱配置' },
-]
-
 export default function ConfigPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t } = useI18n()
+
+  const TABS: { key: ConfigTab; label: string }[] = [
+    { key: 'USER_SECURITY', label: t('config.userSecurity') },
+    { key: 'LOGIN', label: t('config.loginConfig') },
+    { key: 'EMAIL', label: t('config.emailConfig') },
+  ]
   const [tab, setTab] = useState<ConfigTab>('USER_SECURITY')
   const [editing, setEditing] = useState(false)
   const [formValues, setFormValues] = useState<Record<string, string>>({})
@@ -51,7 +53,7 @@ export default function ConfigPage() {
   const saveMutation = useMutation({
     mutationFn: (items: ConfigItem[]) => api.put('/sys/configs', items),
     onSuccess: () => {
-      toast.success('配置已保存')
+      toast.success(t('config.configSaved'))
       qc.invalidateQueries({ queryKey: ['admin-config', tab] })
       setEditing(false)
     },
@@ -69,7 +71,7 @@ export default function ConfigPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">系统配置</h1>
+      <h1 className="text-2xl font-bold">{t('config.title')}</h1>
 
       <div className="flex gap-2 border-b pb-2">
         {TABS.map((t) => (
@@ -98,24 +100,24 @@ export default function ConfigPage() {
                   }
                   setEditing(false)
                 }}>
-                  取消
+                  {t('common.cancel')}
                 </Button>
                 <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
-                  {saveMutation.isPending ? '保存中...' : '保存'}
+                  {saveMutation.isPending ? t('common.saving') : t('common.save')}
                 </Button>
               </>
             ) : (
               <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                编辑
+                {t('common.edit')}
               </Button>
             )}
           </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground">加载中...</p>
+            <p className="text-muted-foreground">{t('common.loading')}</p>
           ) : !data?.length ? (
-            <p className="text-muted-foreground">暂无配置项</p>
+            <p className="text-muted-foreground">{t('config.noConfigItems')}</p>
           ) : (
             <div className="space-y-4">
               {data.map((c) => (
@@ -134,8 +136,8 @@ export default function ConfigPage() {
                           onChange={(e) => setFormValues((prev) => ({ ...prev, [c.key]: e.target.value }))}
                           className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm"
                         >
-                          <option value="true">是</option>
-                          <option value="false">否</option>
+                          <option value="true">{t('common.yes')}</option>
+                          <option value="false">{t('common.no')}</option>
                         </select>
                       ) : (
                         <Input
@@ -147,7 +149,7 @@ export default function ConfigPage() {
                       )
                     ) : (
                       <span className="text-sm font-medium">
-                        {isPassword(c.key) ? '••••••' : formatValue(c.key, c.value)}
+                        {isPassword(c.key) ? '••••••' : formatValue(c.key, c.value, t)}
                       </span>
                     )}
                   </div>
@@ -165,9 +167,9 @@ function isBoolField(key: string) {
   return key.includes('ENABLED') || key.includes('REQUIRE') || key.includes('SSL') || key === 'USER_SECURITY_CONFIG_STATUS' || key === 'LOGIN_CONFIG_STATUS' || key === 'EMAIL_CONFIG_STATUS'
 }
 
-function formatValue(key: string, value: string) {
-  if (isBoolField(key)) return value === 'true' ? '是' : '否'
-  if (value === '1') return '启用'
-  if (value === '0') return '禁用'
+function formatValue(key: string, value: string, t: (key: string) => string) {
+  if (isBoolField(key)) return value === 'true' ? t('common.yes') : t('common.no')
+  if (value === '1') return t('common.enabled')
+  if (value === '0') return t('common.disabled')
   return value
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/use-api'
+import { useI18n } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -49,6 +50,7 @@ interface DeptNode {
 export default function DeptsPage() {
   const api = useApi()
   const qc = useQueryClient()
+  const { t } = useI18n()
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editDept, setEditDept] = useState<DeptNode | null>(null)
@@ -66,7 +68,7 @@ export default function DeptsPage() {
   const createMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post('/sys/depts', body),
     onSuccess: () => {
-      toast.success('部门创建成功')
+      toast.success(t('dept.deptCreated'))
       qc.invalidateQueries({ queryKey: ['admin-depts'] })
       setFormOpen(false)
     },
@@ -77,7 +79,7 @@ export default function DeptsPage() {
     mutationFn: ({ pk, body }: { pk: number; body: Record<string, unknown> }) =>
       api.put(`/sys/depts/${pk}`, body),
     onSuccess: () => {
-      toast.success('部门更新成功')
+      toast.success(t('dept.deptUpdated'))
       qc.invalidateQueries({ queryKey: ['admin-depts'] })
       setEditDept(null)
       setFormOpen(false)
@@ -88,7 +90,7 @@ export default function DeptsPage() {
   const deleteMutation = useMutation({
     mutationFn: (pk: number) => api.delete(`/sys/depts/${pk}`),
     onSuccess: () => {
-      toast.success('部门已删除')
+      toast.success(t('dept.deptDeleted'))
       qc.invalidateQueries({ queryKey: ['admin-depts'] })
       setDeleteDept(null)
     },
@@ -110,13 +112,13 @@ export default function DeptsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">部门管理</h1>
-        <Button onClick={() => openCreate()}>创建部门</Button>
+        <h1 className="text-2xl font-bold">{t('dept.title')}</h1>
+        <Button onClick={() => openCreate()}>{t('dept.createDept')}</Button>
       </div>
 
       <div className="flex gap-2">
         <Input
-          placeholder="搜索部门名..."
+          placeholder={t('dept.searchDept')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-xs"
@@ -125,9 +127,9 @@ export default function DeptsPage() {
 
       <div className="rounded-md border">
         {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">加载中...</div>
+          <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
         ) : !deptTree?.length ? (
-          <div className="text-center py-8 text-muted-foreground">暂无数据</div>
+          <div className="text-center py-8 text-muted-foreground">{t('common.noData')}</div>
         ) : (
           <div className="divide-y">
             {deptTree.map((node) => (
@@ -161,15 +163,15 @@ export default function DeptsPage() {
       <AlertDialog open={!!deleteDept} onOpenChange={(open) => !open && setDeleteDept(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除部门 <strong>{deleteDept?.name}</strong> 吗？
+              {t('dept.confirmDelete', { name: deleteDept?.name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => deleteDept && deleteMutation.mutate(deleteDept.id)}>
-              删除
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -191,6 +193,7 @@ function DeptTreeRow({
   onDelete: (dept: DeptNode) => void
   onAddChild: (pid: number) => void
 }) {
+  const { t } = useI18n()
   const [expanded, setExpanded] = useState(true)
   const hasChildren = !!node.children?.length
 
@@ -209,20 +212,20 @@ function DeptTreeRow({
         </button>
         <span className="font-medium text-sm flex-1">{node.name}</span>
         {node.leader && (
-          <span className="text-xs text-muted-foreground">负责人: {node.leader}</span>
+          <span className="text-xs text-muted-foreground">{t('dept.leaderInline', { leader: node.leader })}</span>
         )}
         <Badge variant={node.status === 1 ? 'default' : 'destructive'} className="text-xs">
-          {node.status === 1 ? '启用' : '禁用'}
+          {node.status === 1 ? t('common.enabled') : t('common.disabled')}
         </Badge>
         <div className="flex gap-1 ml-2">
           <Button variant="ghost" size="sm" onClick={() => onAddChild(node.id)}>
-            添加子部门
+            {t('dept.addChild')}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => onEdit(node)}>
-            编辑
+            {t('common.edit')}
           </Button>
           <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(node)}>
-            删除
+            {t('common.delete')}
           </Button>
         </div>
       </div>
@@ -258,6 +261,8 @@ function DeptFormDialog({
   onSubmit: (body: Record<string, unknown>) => void
   loading: boolean
 }) {
+  const { t } = useI18n()
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -277,22 +282,22 @@ function DeptFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{dept ? '编辑部门' : '创建部门'}</DialogTitle>
+          <DialogTitle>{dept ? t('dept.editDept') : t('dept.createDept')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>部门名称 *</Label>
+              <Label>{t('common.name')} *</Label>
               <Input name="name" required defaultValue={dept?.name ?? ''} />
             </div>
             <div className="space-y-2">
-              <Label>上级部门</Label>
+              <Label>{t('dept.parentDept')}</Label>
               <Select name="parent_id" defaultValue={String(parentId ?? dept?.parent_id ?? 0)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="无" />
+                  <SelectValue placeholder={t('dept.noParent')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">无（顶级部门）</SelectItem>
+                  <SelectItem value="0">{t('dept.noParent')}</SelectItem>
                   {depts.map((d) => (
                     <SelectItem key={d.id} value={String(d.id)}>
                       {'　'.repeat(d.depth)}{d.name}
@@ -302,36 +307,36 @@ function DeptFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>负责人</Label>
+              <Label>{t('dept.leader')}</Label>
               <Input name="leader" defaultValue={dept?.leader ?? ''} />
             </div>
             <div className="space-y-2">
-              <Label>排序</Label>
+              <Label>{t('dept.sort')}</Label>
               <Input name="sort" type="number" defaultValue={dept?.sort ?? 0} />
             </div>
             <div className="space-y-2">
-              <Label>联系电话</Label>
+              <Label>{t('user.phone')}</Label>
               <Input name="phone" defaultValue={dept?.phone ?? ''} />
             </div>
             <div className="space-y-2">
-              <Label>邮箱</Label>
+              <Label>{t('user.email')}</Label>
               <Input name="email" type="email" defaultValue={dept?.email ?? ''} />
             </div>
             <div className="space-y-2">
-              <Label>状态</Label>
+              <Label>{t('common.status')}</Label>
               <select
                 name="status"
                 defaultValue={dept?.status ?? 1}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               >
-                <option value={1}>启用</option>
-                <option value={0}>禁用</option>
+                <option value={1}>{t('common.enabled')}</option>
+                <option value={0}>{t('common.disabled')}</option>
               </select>
             </div>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? '保存中...' : '保存'}
+              {loading ? t('common.saving') : t('common.save')}
             </Button>
           </DialogFooter>
         </form>
