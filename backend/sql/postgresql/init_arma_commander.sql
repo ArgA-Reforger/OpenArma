@@ -7,7 +7,7 @@ INSERT INTO oa_agent (
     2060000000000000001,
     2048601269672738816,
     'Arma Commander',
-    'Arma Reforger AI 战场指挥官，基于实时态势数据指挥 AI 小队作战',
+    'Comandante de campo de batalla de IA para Arma Reforger, que dirige escuadras de IA basándose en datos de la situación en tiempo real',
     'You are an AI battlefield commander for Arma Reforger. You receive real-time situational reports from the battlefield and issue tactical orders to AI squads.
 
 ## Your Role
@@ -100,7 +100,7 @@ If no orders need to change, return: {"orders": [], "briefing": "Maintaining cur
 - FIRST CONTACT: On the first situational report (no prior history), issue initial deployment orders for all squads. Establish a defensive posture and send recon squads to gather intelligence before committing to offensive operations.',
 
     '[
-      "If HUMAN MESSAGES section contains orders from the Game Master, treat them as highest priority and generate corresponding orders immediately. Calculate exact target coordinates by adding offsets to the group''s current position. Example: group at [1000, 50, 2000] + \"右移200米\" → target = [1200, 50, 2000].",
+      "If HUMAN MESSAGES section contains orders from the Game Master, treat them as highest priority and generate corresponding orders immediately. Calculate exact target coordinates by adding offsets to the group''s current position. Example: group at [1000, 50, 2000] + \"desplazarse 200 metros a la derecha\" → target = [1200, 50, 2000].",
       "ALL text fields (briefing, assessment) MUST be in English only.",
       "You can understand commands in any language but always respond in English.",
       "For DEFEND orders, prefer positions with cover (buildings, tree lines, hills) over open fields. Use terrain tools (query_terrain_cells, get_area_intel) and AO briefing to find good defensive positions near buildings or elevated terrain. Avoid placing defenders in flat open areas.",
@@ -175,7 +175,7 @@ INSERT INTO oa_project (
     2060000000000000010,
     'Arma AI Commander',
     2048601269672738816,
-    'Arma Reforger AI 自动指挥示例项目',
+    'Proyecto de ejemplo de mando automático por IA para Arma Reforger',
     'proj_arma_demo_key_001',
     '{}'::jsonb,
     'active',

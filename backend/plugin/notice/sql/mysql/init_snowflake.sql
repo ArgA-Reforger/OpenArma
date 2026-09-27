@@ -1,5 +1,5 @@
 insert into sys_notice (id, title, type, status, content, created_time, updated_time)
-values (2112248797756129280, 'hahahahahaahahaha', 0, 1, '你好😄
+values (2112248797756129280, 'hahahahahaahahaha', 0, 1, '¡Hola!😄
 
 ```
 print(''fba yyds'')
