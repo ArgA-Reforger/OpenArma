@@ -27,10 +27,10 @@ from backend.utils.timezone import timezone
 router = APIRouter()
 
 
-@router.get('', summary='Server 监控', dependencies=[DependsJwtAuth])
+@router.get('', summary='Server monitoring', dependencies=[DependsJwtAuth])
 async def get_server_info() -> ResponseSchemaModel[ServerMonitorInfo]:  # noqa: C901
     def get_all_info() -> ServerMonitorInfo:  # noqa: C901
-        # CPU 信息
+        # CPU info
         cpu_data = {
             'physical_num': psutil.cpu_count(logical=False) or 0,
             'logical_num': psutil.cpu_count(logical=True) or 0,
@@ -54,7 +54,7 @@ async def get_server_info() -> ResponseSchemaModel[ServerMonitorInfo]:  # noqa: 
 
         cpu = CpuInfo(**cpu_data)
 
-        # 内存信息
+        # Memory info
         mem = psutil.virtual_memory()
         gb_factor = 1024**3
         mem_info = MemInfo(
@@ -64,7 +64,7 @@ async def get_server_info() -> ResponseSchemaModel[ServerMonitorInfo]:  # noqa: 
             usage=round(mem.percent, 2),
         )
 
-        # 系统信息
+        # System info
         hostname = socket.gethostname()
         ip = '127.0.0.1'
         try:
@@ -76,15 +76,15 @@ async def get_server_info() -> ResponseSchemaModel[ServerMonitorInfo]:  # noqa: 
             pass
         sys_info = SysInfo(name=hostname, os=platform.system(), ip=ip, arch=platform.machine())
 
-        # 磁盘信息
+        # Disk info
         disk_list = []
         exclude_fstypes = {'overlay', 'overlay2', 'tmpfs', 'devtmpfs', 'shm', 'proc', 'sysfs', 'cgroup', 'cgroup2'}
         seen_devices = set()
         for partition in psutil.disk_partitions(all=False):
-            # 跳过虚拟文件系统
+            # Skip virtual file systems
             if partition.fstype.lower() in exclude_fstypes:
                 continue
-            # 跳过重复设备（同一设备的不同挂载点）
+            # Skip duplicate devices (different mount points for the same device)
             if partition.device in seen_devices:
                 continue
             try:
@@ -105,7 +105,7 @@ async def get_server_info() -> ResponseSchemaModel[ServerMonitorInfo]:  # noqa: 
             except (PermissionError, OSError):
                 continue
 
-        # 服务信息
+        # Service info
         process = psutil.Process(os.getpid())
         proc_mem = process.memory_info()
         try:

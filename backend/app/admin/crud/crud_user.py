@@ -31,56 +31,56 @@ from backend.utils.timezone import timezone
 
 
 class CRUDUser(CRUDPlus[User]):
-    """用户数据库操作类"""
+    """User database operations"""
 
     async def get(self, db: AsyncSession, user_id: int) -> User | None:
         """
-        获取用户详情
+        Get user details
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
+        :param db: database session
+        :param user_id: user ID
         :return:
         """
         return await self.select_model(db, user_id)
 
     async def get_by_username(self, db: AsyncSession, username: str) -> User | None:
         """
-        通过用户名获取用户
+        Get a user by username
 
-        :param db: 数据库会话
-        :param username: 用户名
+        :param db: database session
+        :param username: username
         :return:
         """
         return await self.select_model_by_column(db, username=username)
 
     async def get_by_nickname(self, db: AsyncSession, nickname: str) -> User | None:
         """
-        通过昵称获取用户
+        Get a user by nickname
 
-        :param db: 数据库会话
-        :param nickname: 用户昵称
+        :param db: database session
+        :param nickname: nickname
         :return:
         """
         return await self.select_model_by_column(db, nickname=nickname)
 
     async def check_email(self, db: AsyncSession, email: str) -> User | None:
         """
-        检查邮箱是否已被绑定
+        Check whether an email is already bound
 
-        :param db: 数据库会话
-        :param email: 电子邮箱
+        :param db: database session
+        :param email: email address
         :return:
         """
         return await self.select_model_by_column(db, email=email)
 
     async def get_select(self, dept: int | None, username: str | None, phone: str | None, status: int | None) -> Select:
         """
-        获取用户列表查询表达式
+        Get the query expression for the user list
 
-        :param dept: 部门 ID
-        :param username: 用户名
-        :param phone: 电话号码
-        :param status: 用户状态
+        :param dept: department ID
+        :param username: username
+        :param phone: phone number
+        :param status: user status
         :return:
         """
         filters = {}
@@ -107,10 +107,10 @@ class CRUDUser(CRUDPlus[User]):
 
     async def add(self, db: AsyncSession, obj: AddUserParam) -> None:
         """
-        添加用户
+        Add user
 
-        :param db: 数据库会话
-        :param obj: 添加用户参数
+        :param db: database session
+        :param obj: user creation params
         :return:
         """
         salt = bcrypt.gensalt()
@@ -133,10 +133,10 @@ class CRUDUser(CRUDPlus[User]):
 
     async def add_by_oauth2(self, db: AsyncSession, obj: AddOAuth2UserParam) -> None:
         """
-        通过 OAuth2 添加用户
+        Add a user via OAuth2
 
-        :param db: 数据库会话
-        :param obj: 注册用户参数
+        :param db: database session
+        :param obj: user registration params
         :return:
         """
         dict_obj = obj.model_dump()
@@ -147,18 +147,18 @@ class CRUDUser(CRUDPlus[User]):
 
         role_stmt = select(Role)
         result = await db.execute(role_stmt)
-        role = result.scalars().first()  # 默认绑定第一个角色
+        role = result.scalars().first()  # Bind the first role by default
 
         user_role_stmt = insert(user_role).values(AddUserRoleParam(user_id=new_user.id, role_id=role.id).model_dump())
         await db.execute(user_role_stmt)
 
     async def update(self, db: AsyncSession, user_id: int, obj: UpdateUserParam) -> int:
         """
-        更新用户信息
+        Update user info
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param obj: 更新用户参数
+        :param db: database session
+        :param user_id: user ID
+        :param obj: user update params
         :return:
         """
         role_ids = obj.roles
@@ -182,64 +182,64 @@ class CRUDUser(CRUDPlus[User]):
 
     async def update_login_time(self, db: AsyncSession, username: str) -> int:
         """
-        更新用户上次登录时间
+        Update the user's last login time
 
-        :param db: 数据库会话
-        :param username: 用户名
+        :param db: database session
+        :param username: username
         :return:
         """
         return await self.update_model_by_column(db, {'last_login_time': timezone.now()}, username=username)
 
     async def update_password_changed_time(self, db: AsyncSession, user_id: int) -> int:
         """
-        更新用户上次密码变更时间
+        Update the user's last password-changed time
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
+        :param db: database session
+        :param user_id: user ID
         :return:
         """
         return await self.update_model(db, user_id, {'last_password_changed_time': timezone.now()})
 
     async def update_nickname(self, db: AsyncSession, user_id: int, nickname: str) -> int:
         """
-        更新用户昵称
+        Update user nickname
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param nickname: 用户昵称
+        :param db: database session
+        :param user_id: user ID
+        :param nickname: nickname
         :return:
         """
         return await self.update_model(db, user_id, {'nickname': nickname})
 
     async def update_avatar(self, db: AsyncSession, user_id: int, avatar: str) -> int:
         """
-        更新用户头像
+        Update user avatar
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param avatar: 头像地址
+        :param db: database session
+        :param user_id: user ID
+        :param avatar: avatar URL
         :return:
         """
         return await self.update_model(db, user_id, {'avatar': avatar})
 
     async def update_email(self, db: AsyncSession, user_id: int, email: str) -> int:
         """
-        更新用户邮箱
+        Update user email
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param email: 邮箱
+        :param db: database session
+        :param user_id: user ID
+        :param email: email address
         :return:
         """
         return await self.update_model(db, user_id, {'email': email})
 
     async def reset_password(self, db: AsyncSession, pk: int, password: str) -> int:
         """
-        重置用户密码
+        Reset user password
 
-        :param db: 数据库会话
-        :param pk: 用户 ID
-        :param password: 新密码
+        :param db: database session
+        :param pk: user ID
+        :param password: new password
         :return:
         """
         salt = bcrypt.gensalt()
@@ -248,54 +248,54 @@ class CRUDUser(CRUDPlus[User]):
 
     async def set_super(self, db: AsyncSession, user_id: int, *, is_super: bool) -> int:
         """
-        设置用户超级管理员状态
+        Set the user's superuser status
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param is_super: 是否超级管理员
+        :param db: database session
+        :param user_id: user ID
+        :param is_super: whether the user is a superuser
         :return:
         """
         return await self.update_model(db, user_id, {'is_superuser': is_super})
 
     async def set_staff(self, db: AsyncSession, user_id: int, *, is_staff: bool) -> int:
         """
-        设置用户后台登录状态
+        Set the user's backend login status
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param is_staff: 是否可登录后台
+        :param db: database session
+        :param user_id: user ID
+        :param is_staff: whether the user can log in to the backend
         :return:
         """
         return await self.update_model(db, user_id, {'is_staff': is_staff})
 
     async def set_status(self, db: AsyncSession, user_id: int, status: int) -> int:
         """
-        设置用户状态
+        Set user status
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param status: 状态
+        :param db: database session
+        :param user_id: user ID
+        :param status: status
         :return:
         """
         return await self.update_model(db, user_id, {'status': status})
 
     async def set_multi_login(self, db: AsyncSession, user_id: int, *, multi_login: bool) -> int:
         """
-        设置用户多端登录状态
+        Set the user's multi-device login status
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param multi_login: 是否允许多端登录
+        :param db: database session
+        :param user_id: user ID
+        :param multi_login: whether multi-device login is allowed
         :return:
         """
         return await self.update_model(db, user_id, {'is_multi_login': multi_login})
 
     async def delete(self, db: AsyncSession, user_id: int) -> int:
         """
-        删除用户
+        Delete user
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
+        :param db: database session
+        :param user_id: user ID
         :return:
         """
         user_role_stmt = delete(user_role).where(user_role.c.user_id == user_id)
@@ -319,11 +319,11 @@ class CRUDUser(CRUDPlus[User]):
         username: str | None = None,
     ) -> Any | None:
         """
-        获取用户关联信息
+        Get user relational info
 
-        :param db: 数据库会话
-        :param user_id: 用户 ID
-        :param username: 用户名
+        :param db: database session
+        :param user_id: user ID
+        :param username: username
         :return:
         """
         filters = {}

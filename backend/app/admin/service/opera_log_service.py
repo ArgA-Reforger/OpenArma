@@ -8,17 +8,17 @@ from backend.common.pagination import paging_data
 
 
 class OperaLogService:
-    """操作日志服务类"""
+    """Operation log service class"""
 
     @staticmethod
     async def get_list(*, db: AsyncSession, username: str | None, status: int | None, ip: str | None) -> dict[str, Any]:
         """
-        获取操作日志列表
+        Get operation log list
 
-        :param db: 数据库会话
-        :param username: 用户名
-        :param status: 状态
-        :param ip: IP 地址
+        :param db: database session
+        :param username: username
+        :param status: status
+        :param ip: IP address
         :return:
         """
         log_select = await opera_log_dao.get_select(username=username, status=status, ip=ip)
@@ -27,10 +27,10 @@ class OperaLogService:
     @staticmethod
     async def create(*, db: AsyncSession, obj: CreateOperaLogParam) -> None:
         """
-        创建操作日志
+        Create operation log
 
-        :param db: 数据库会话
-        :param obj: 操作日志创建参数
+        :param db: database session
+        :param obj: operation log creation params
         :return:
         """
         await opera_log_dao.create(db, obj)
@@ -38,10 +38,10 @@ class OperaLogService:
     @staticmethod
     async def bulk_create(*, db: AsyncSession, objs: list[CreateOperaLogParam]) -> None:
         """
-        批量创建操作日志
+        Bulk create operation logs
 
-        :param db: 数据库会话
-        :param objs: 操作日志创建参数列表
+        :param db: database session
+        :param objs: list of operation log creation params
         :return:
         """
         await opera_log_dao.bulk_create(db, objs)
@@ -49,10 +49,10 @@ class OperaLogService:
     @staticmethod
     async def delete(*, db: AsyncSession, obj: DeleteOperaLogParam) -> int:
         """
-        批量删除操作日志
+        Batch delete operation logs
 
-        :param db: 数据库会话
-        :param obj: 日志 ID 列表
+        :param db: database session
+        :param obj: log ID list
         :return:
         """
         count = await opera_log_dao.delete(db, obj.pks)
@@ -61,9 +61,9 @@ class OperaLogService:
     @staticmethod
     async def delete_all(*, db: AsyncSession) -> None:
         """
-        清空所有操作日志
+        Clear all operation logs
 
-        :param db: 数据库会话
+        :param db: database session
         :return:
         """
         await opera_log_dao.delete_all(db)
