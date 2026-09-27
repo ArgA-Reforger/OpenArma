@@ -3,6 +3,7 @@ supporting single/multi-Agent collaboration + RAG + MCP + builtin tools."""
 
 import json
 import logging
+
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -32,11 +33,8 @@ TITLE_SYSTEM_PROMPT = (
 
 
 class ChatService:
-
     @staticmethod
-    async def _build_agent_config(
-        db: AsyncSession, agent: Any, project_id: int
-    ) -> dict | None:
+    async def _build_agent_config(db: AsyncSession, agent: Any, project_id: int) -> dict | None:
         """Build a single agent config dict from an Agent model instance."""
         if not agent or not agent.llm_provider_id:
             return None
@@ -81,7 +79,10 @@ class ChatService:
 
     @staticmethod
     async def _get_agents_with_providers(
-        db: AsyncSession, project_id: int, user_id: int, conversation_id: int | None = None,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+        conversation_id: int | None = None,
     ) -> tuple[Any, list[dict], Any, dict | None]:
         """
         Load the Agent / Topology and its LLM Provider and tool config from the conversation-level binding.
@@ -100,6 +101,7 @@ class ChatService:
 
         if conversation and conversation.topology_id:
             from backend.app.topology.crud.crud_topology import topology_dao
+
             topo = await topology_dao.get(db, conversation.topology_id)
             if topo and topo.topology_json:
                 topology = topo.topology_json
@@ -137,10 +139,17 @@ class ChatService:
         if map_context:
             for cfg in agent_configs:
                 has_map_tool = any(
-                    t.get('name', '') in (
-                        'query_landmarks', 'calculate_route', 'get_terrain_profile',
-                        'get_area_intel', 'assess_threat_level', 'view_map_image',
-                        'plan_route', 'get_terrain_summary', 'estimate_travel_time',
+                    t.get('name', '')
+                    in (
+                        'query_landmarks',
+                        'calculate_route',
+                        'get_terrain_profile',
+                        'get_area_intel',
+                        'assess_threat_level',
+                        'view_map_image',
+                        'plan_route',
+                        'get_terrain_summary',
+                        'estimate_travel_time',
                         'convert_coordinates',
                     )
                     for t in cfg.get('tools', [])
@@ -164,6 +173,7 @@ class ChatService:
                 return ''
 
             from backend.app.map.crud.crud_map import map_dao
+
             game_map = await map_dao.get(db, map_id)
             if not game_map:
                 return ''
@@ -197,13 +207,16 @@ class ChatService:
         conversation_id: int,
         limit: int = 20,
         llm_config: dict | None = None,
+        exclude_message_id: int | None = None,
     ) -> list[dict]:
         from backend.app.conversation.service.context_manager import build_history
 
         return await build_history(
-            db, conversation_id,
+            db,
+            conversation_id,
             context_window=limit,
             llm_config=llm_config,
+            exclude_message_id=exclude_message_id,
         )
 
     @staticmethod
@@ -232,9 +245,7 @@ class ChatService:
             return ''
 
     @staticmethod
-    async def _get_agent_tools(
-        db: AsyncSession, agent_id: int
-    ) -> tuple[list[dict], dict[str, Any]]:
+    async def _get_agent_tools(db: AsyncSession, agent_id: int) -> tuple[list[dict], dict[str, Any]]:
         try:
             from backend.app.mcp.crud.crud_agent_tool import agent_tool_dao
             from backend.app.mcp.crud.crud_mcp_server import mcp_server_dao
@@ -291,7 +302,8 @@ class ChatService:
 
         try:
             return builtin_registry.build_tools_for_agent(
-                builtin_tools_config, context=context,
+                builtin_tools_config,
+                context=context,
             )
         except Exception:
             log.exception('Failed to load builtin tools')
@@ -323,8 +335,11 @@ class ChatService:
         from backend.database.db import async_db_session
 
         async with async_db_session() as db:
-            project, agent_configs, topology, settings = await ChatService._get_agents_with_providers(
-                db, project_id, user_id, conversation_id=conversation_id,
+            _project, agent_configs, topology, settings = await ChatService._get_agents_with_providers(
+                db,
+                project_id,
+                user_id,
+                conversation_id=conversation_id,
             )
 
             conversation = await conversation_dao.get(db, conversation_id)
@@ -334,6 +349,8 @@ class ChatService:
             if resend:
                 await message_dao.soft_delete_last_assistant_replies(db, conversation_id)
                 await db.commit()
+                last_user_msg = await message_dao.get_last_user_message(db, conversation_id)
+                current_turn_message_id = last_user_msg.id if last_user_msg else None
             else:
                 user_msg = Message(
                     conversation_id=conversation_id,
@@ -342,6 +359,7 @@ class ChatService:
                 )
                 db.add(user_msg)
                 await db.commit()
+                current_turn_message_id = user_msg.id
 
             llm_cfg = {
                 'provider_type': agent_configs[0]['provider_type'],
@@ -350,7 +368,10 @@ class ChatService:
                 'model_name': agent_configs[0]['model_name'],
             }
             history = await ChatService._get_history_messages(
-                db, conversation_id, llm_config=llm_cfg,
+                db,
+                conversation_id,
+                llm_config=llm_cfg,
+                exclude_message_id=current_turn_message_id,
             )
 
             rag_as_tool = ChatService._has_rag_tool_enabled(agent_configs)
@@ -418,7 +439,6 @@ class ChatService:
 
         agent_message_buffers: dict[int, list[str]] = {}
         final_response: list[str] = []
-        current_agent_id: int | None = None
         final_role = 'assistant'
         parent_user_msg_id: int | None = None
         usage_records: list[dict] = []
@@ -449,18 +469,27 @@ class ChatService:
                 elif event_type == 'usage':
                     usage_records.append(event)
 
-                elif event_type in ('agent_start', 'agent_end', 'coordinator_start',
-                                    'coordinator_end', 'aggregator_start', 'aggregator_end',
-                                    'tool_call', 'tool_result',
-                                    'node_start', 'node_end',
-                                    'sub_agent_start', 'sub_agent_end',
-                                    'coordinator_followup'):
+                elif event_type in (
+                    'agent_start',
+                    'agent_end',
+                    'coordinator_start',
+                    'coordinator_end',
+                    'aggregator_start',
+                    'aggregator_end',
+                    'tool_call',
+                    'tool_result',
+                    'node_start',
+                    'node_end',
+                    'sub_agent_start',
+                    'sub_agent_end',
+                    'coordinator_followup',
+                ):
                     if event_type == 'agent_start':
-                        current_agent_id = event.get('agent_id')
+                        event.get('agent_id')
                     elif event_type in ('coordinator_start', 'aggregator_start'):
                         final_role = event_type.replace('_start', '')
                     elif event_type == 'node_start' and event.get('agent_id'):
-                        current_agent_id = event.get('agent_id')
+                        event.get('agent_id')
 
                     if is_multi:
                         yield json.dumps(event, ensure_ascii=False)
@@ -518,42 +547,49 @@ class ChatService:
                         aname = cfg_dict['agent_name']
                         buffer = agent_message_buffers.get(aid, [])
                         if buffer:
-                            db.add(Message(
-                                conversation_id=conversation_id,
-                                role='assistant',
-                                content=''.join(buffer),
-                                parent_message_id=parent_message_id,
-                                metadata_={
-                                    'agent_id': aid,
-                                    'agent_name': aname,
-                                    'role': 'agent',
-                                },
-                            ))
+                            db.add(
+                                Message(
+                                    conversation_id=conversation_id,
+                                    role='assistant',
+                                    content=''.join(buffer),
+                                    parent_message_id=parent_message_id,
+                                    metadata_={
+                                        'agent_id': aid,
+                                        'agent_name': aname,
+                                        'role': 'agent',
+                                    },
+                                )
+                            )
 
                     if content_to_save:
-                        db.add(Message(
-                            conversation_id=conversation_id,
-                            role='assistant',
-                            content=content_to_save,
-                            parent_message_id=parent_message_id,
-                            metadata_={
-                                'role': final_role,
-                                'is_final': True,
-                            },
-                        ))
+                        db.add(
+                            Message(
+                                conversation_id=conversation_id,
+                                role='assistant',
+                                content=content_to_save,
+                                parent_message_id=parent_message_id,
+                                metadata_={
+                                    'role': final_role,
+                                    'is_final': True,
+                                },
+                            )
+                        )
                 else:
                     if content_to_save:
                         structured, meta = ChatService._try_extract_arma_response(
-                            content_to_save, conversation_source,
+                            content_to_save,
+                            conversation_source,
                         )
-                        db.add(Message(
-                            conversation_id=conversation_id,
-                            role='assistant',
-                            content=content_to_save,
-                            structured_data=structured,
-                            parent_message_id=parent_message_id,
-                            metadata_=meta,
-                        ))
+                        db.add(
+                            Message(
+                                conversation_id=conversation_id,
+                                role='assistant',
+                                content=content_to_save,
+                                structured_data=structured,
+                                parent_message_id=parent_message_id,
+                                metadata_=meta,
+                            )
+                        )
 
                 await db.commit()
         except Exception:
@@ -561,7 +597,8 @@ class ChatService:
 
     @staticmethod
     def _try_extract_arma_response(
-        content: str, conversation_source: str | None,
+        content: str,
+        conversation_source: str | None,
     ) -> tuple[dict | None, dict | None]:
         """Try to parse Arma tactical JSON from assistant response.
 
@@ -633,32 +670,36 @@ class ChatService:
                     output_price = pricing.get('output_price', 0)
                     currency = pricing.get('currency', 'USD')
                     billable_input = prompt_t - cached_t
-                    cost = (billable_input * input_price + cached_t * cached_price + completion_t * output_price) / 1_000_000
+                    cost = (
+                        billable_input * input_price + cached_t * cached_price + completion_t * output_price
+                    ) / 1_000_000
 
-                    db.add(UsageRecord(
-                        user_id=user_id,
-                        project_id=project_id,
-                        conversation_id=conversation_id,
-                        agent_id=agent_id,
-                        llm_provider_id=cfg.get('llm_provider_id'),
-                        provider_type=pt,
-                        model_name=mn,
-                        prompt_tokens=prompt_t,
-                        completion_tokens=completion_t,
-                        total_tokens=rec.get('total_tokens', 0),
-                        cached_tokens=cached_t,
-                        reasoning_tokens=reasoning_t,
-                        estimated_cost=cost,
-                        call_type=call_type,
-                        status=rec.get('status', 'success'),
-                        error_message=rec.get('error_message'),
-                        duration_ms=rec.get('duration_ms'),
-                        metadata_={
-                            'agent_name': rec.get('agent_name') or cfg.get('agent_name'),
-                            'role': rec.get('role'),
-                            'currency': currency,
-                        },
-                    ))
+                    db.add(
+                        UsageRecord(
+                            user_id=user_id,
+                            project_id=project_id,
+                            conversation_id=conversation_id,
+                            agent_id=agent_id,
+                            llm_provider_id=cfg.get('llm_provider_id'),
+                            provider_type=pt,
+                            model_name=mn,
+                            prompt_tokens=prompt_t,
+                            completion_tokens=completion_t,
+                            total_tokens=rec.get('total_tokens', 0),
+                            cached_tokens=cached_t,
+                            reasoning_tokens=reasoning_t,
+                            estimated_cost=cost,
+                            call_type=call_type,
+                            status=rec.get('status', 'success'),
+                            error_message=rec.get('error_message'),
+                            duration_ms=rec.get('duration_ms'),
+                            metadata_={
+                                'agent_name': rec.get('agent_name') or cfg.get('agent_name'),
+                                'role': rec.get('role'),
+                                'currency': currency,
+                            },
+                        )
+                    )
                 await db.commit()
         except Exception:
             log.exception('Failed to persist usage records')
@@ -675,8 +716,11 @@ class ChatService:
         from backend.database.db import async_db_session
 
         async with async_db_session() as db:
-            project, agent_configs, _, _ = await ChatService._get_agents_with_providers(
-                db, project_id, user_id, conversation_id=conversation_id,
+            _project, agent_configs, _, _ = await ChatService._get_agents_with_providers(
+                db,
+                project_id,
+                user_id,
+                conversation_id=conversation_id,
             )
             if not agent_configs:
                 raise errors.RequestError(msg='No Agent available')
@@ -699,9 +743,7 @@ class ChatService:
                 },
                 {
                     'role': 'user',
-                    'content': '\n'.join(
-                        f"{m['role']}: {m['content'][:200]}" for m in history[:4]
-                    ),
+                    'content': '\n'.join(f'{m["role"]}: {m["content"][:200]}' for m in history[:4]),
                 },
             ]
 
@@ -719,8 +761,12 @@ class ChatService:
                 title = (history[0].get('content', '') or '')[:50]
 
             from backend.app.conversation.service.conversation_service import conversation_service
+
             await conversation_service.update(
-                db=db, project_id=project_id, pk=conversation_id, user_id=user_id,
+                db=db,
+                project_id=project_id,
+                pk=conversation_id,
+                user_id=user_id,
                 obj=UpdateConversationParam(title=title),
             )
 
@@ -730,13 +776,15 @@ class ChatService:
                     project_id=project_id,
                     conversation_id=conversation_id,
                     agent_configs=agent_configs,
-                    usage_records=[{
-                        'provider_type': cfg['provider_type'],
-                        'model_name': cfg['model_name'],
-                        'prompt_tokens': response.usage.prompt_tokens or 0,
-                        'completion_tokens': response.usage.completion_tokens or 0,
-                        'total_tokens': response.usage.total_tokens or 0,
-                    }],
+                    usage_records=[
+                        {
+                            'provider_type': cfg['provider_type'],
+                            'model_name': cfg['model_name'],
+                            'prompt_tokens': response.usage.prompt_tokens or 0,
+                            'completion_tokens': response.usage.completion_tokens or 0,
+                            'total_tokens': response.usage.total_tokens or 0,
+                        }
+                    ],
                     call_type='title_gen',
                 )
 

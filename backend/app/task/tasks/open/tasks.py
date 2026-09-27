@@ -69,7 +69,7 @@ SYSTEM_RULES = (
     'Do NOT keep sending squads to attack a dead body. Focus attack orders on MOVING or newly detected enemies only.\n'
     '17. STALLED ORDERS ESCALATION: If your attack/move orders fail for 3+ consecutive turns '
     'to the SAME squad: the squad is likely in active combat and the AI engine is refusing movement. '
-    'STOP re-issuing the same order. Instead, issue DEFEND at the squad\'s CURRENT position '
+    "STOP re-issuing the same order. Instead, issue DEFEND at the squad's CURRENT position "
     'or send a DIFFERENT squad to flank from another direction.\n'
     '18. When responding to priority: urgent requests, focus ONLY on the emergency.\n'
     '19. NEVER use coordinates that are clearly outside the map bounds.'
@@ -126,9 +126,7 @@ def format_situation_report(situation_data: dict, request_id: int, priority: str
     prev_situation = situation_data.get('_prev_situation')
 
     lines: list[str] = []
-    lines.append(f'=== SITUATION REPORT (Request #{request_id}, T={timestamp}) ===')
-    lines.append(f'Priority: {priority}')
-    lines.append('')
+    lines.extend((f'=== SITUATION REPORT (Request #{request_id}, T={timestamp}) ===', f'Priority: {priority}', ''))
 
     if game_state:
         lines.append('== GAME STATE ==')
@@ -141,8 +139,7 @@ def format_situation_report(situation_data: dict, request_id: int, priority: str
     if llm_groups:
         recon_count = sum(1 for g in llm_groups if g.get('tactical_role') == 'recon')
         fire_count = len(llm_groups) - recon_count
-        lines.append(f'== YOUR FORCES ({len(llm_groups)} squads: {recon_count} recon, {fire_count} fireteam) ==')
-        lines.append('')
+        lines.extend((f'== YOUR FORCES ({len(llm_groups)} squads: {recon_count} recon, {fire_count} fireteam) ==', ''))
         for i, g in enumerate(llm_groups, 1):
             label = g.get('label', g.get('name', 'Unknown'))
             desc = g.get('description', '')
@@ -181,10 +178,13 @@ def format_situation_report(situation_data: dict, request_id: int, priority: str
                 lines.append('  >> PATROL ACTIVE, no threats — DO NOT re-issue orders to this squad')
             if isinstance(known_enemies, list) and known_enemies:
                 lines.append(f'  Known enemies: {len(known_enemies)} contact(s)')
-                sorted_ke = sorted(known_enemies, key=lambda e: (
-                    0 if e.get('time_since_endangered', 9999) < 10 else 1,
-                    e.get('distance', 99999),
-                ))
+                sorted_ke = sorted(
+                    known_enemies,
+                    key=lambda e: (
+                        0 if e.get('time_since_endangered', 9999) < 10 else 1,
+                        e.get('distance', 99999),
+                    ),
+                )
                 for e in sorted_ke[:5]:
                     epos = e.get('position', [])
                     age = e.get('time_since_seen', 999)
@@ -223,16 +223,17 @@ def format_situation_report(situation_data: dict, request_id: int, priority: str
             if len(pos) >= 3 and len(prev_pos) >= 3:
                 dx = abs(pos[0] - prev_pos[0])
                 dz = abs(pos[2] - prev_pos[2])
-                dist = (dx ** 2 + dz ** 2) ** 0.5
+                dist = (dx**2 + dz**2) ** 0.5
                 if dist < 5.0:
                     stalled.append(g.get('label', gid))
         if stalled:
             lines.append(f'== WARNING: {len(stalled)} squad(s) have NOT moved since last report ==')
-            for name in stalled:
-                lines.append(f'  - {name}')
-            lines.append('If you previously issued move/patrol orders to these squads and they still')
-            lines.append('have not moved, the orders may have failed. Consider re-issuing orders.')
-            lines.append('')
+            lines.extend(f'  - {name}' for name in stalled)
+            lines.extend((
+                'If you previously issued move/patrol orders to these squads and they still',
+                'have not moved, the orders may have failed. Consider re-issuing orders.',
+                '',
+            ))
 
     if human_messages:
         lines.append('== HUMAN MESSAGES ==')
@@ -253,14 +254,15 @@ def format_situation_report(situation_data: dict, request_id: int, priority: str
     return '\n'.join(lines)
 
 
-async def _save_situation_as_message(db, conversation_id: int, situation_text: str, request_id: int,
-                                     situation_data: dict, priority: str):
-    """Save the formatted situation report as a user message with metadata."""
+async def _save_situation_as_message(
+    db, conversation_id: int, situation_text: str, request_id: int, situation_data: dict, priority: str
+) -> int:
+    """Save the formatted situation report as a user message with metadata. Returns the message id."""
     from backend.app.conversation.model.message import Message
 
     all_groups = situation_data.get('groups', [])
     llm_groups, other_groups = _split_groups_by_control(all_groups)
-    db.add(Message(
+    msg = Message(
         conversation_id=conversation_id,
         role='user',
         content=situation_text,
@@ -274,51 +276,62 @@ async def _save_situation_as_message(db, conversation_id: int, situation_text: s
             'human_group_count': len(other_groups),
             'has_human_messages': bool(situation_data.get('human_messages')),
         },
-    ))
+    )
+    db.add(msg)
     await db.flush()
+    return msg.id
 
 
-async def _save_ai_response(db, conversation_id: int, response_text: str, orders_json: dict):
+async def _save_ai_response(db, conversation_id: int, response_text: str, orders_json: dict) -> None:
     """Save AI response as assistant message with orders metadata."""
     from backend.app.conversation.model.message import Message
 
-    db.add(Message(
-        conversation_id=conversation_id,
-        role='assistant',
-        content=response_text,
-        structured_data=orders_json if orders_json.get('orders') else None,
-        metadata_={
-            'source': 'ai',
-            'type': 'tactical_response',
-            'has_orders': bool(orders_json.get('orders')),
-            'order_count': len(orders_json.get('orders', [])),
-        },
-    ))
+    db.add(
+        Message(
+            conversation_id=conversation_id,
+            role='assistant',
+            content=response_text,
+            structured_data=orders_json if orders_json.get('orders') else None,
+            metadata_={
+                'source': 'ai',
+                'type': 'tactical_response',
+                'has_orders': bool(orders_json.get('orders')),
+                'order_count': len(orders_json.get('orders', [])),
+            },
+        )
+    )
     await db.flush()
 
 
 async def _build_battlefield_memory(
-    db, conversation_id: str, current_request_id: int,
-    mission_objective: dict | None, map_id: int | None,
+    db,
+    conversation_id: str,
+    current_request_id: int,
+    mission_objective: dict | None,
+    map_id: int | None,
     project_id: int | None = None,
 ) -> str:
     """Build battlefield memory context from recent battle snapshots and config."""
-    from backend.app.open.model.battle_snapshot import BattleSnapshot
     from sqlalchemy import select
+
+    from backend.app.open.model.battle_snapshot import BattleSnapshot
 
     sections: list[str] = []
 
     if mission_objective and mission_objective.get('type') != 'none':
-        sections.append('== MISSION OBJECTIVE (HIGHEST PRIORITY) ==')
-        sections.append(f"Type: {mission_objective.get('type', 'unknown')}")
-        sections.append(f"Description: {mission_objective.get('description', 'N/A')}")
+        sections.extend((
+            '== MISSION OBJECTIVE (HIGHEST PRIORITY) ==',
+            f'Type: {mission_objective.get("type", "unknown")}',
+            f'Description: {mission_objective.get("description", "N/A")}',
+        ))
         targets = mission_objective.get('primary_targets', [])
         if targets:
-            for t in targets:
-                sections.append(f"  Target: {t.get('name', '?')} at {t.get('position', '?')} ({t.get('type', '?')})")
+            sections.extend(
+                f'  Target: {t.get("name", "?")} at {t.get("position", "?")} ({t.get("type", "?")})' for t in targets
+            )
         constraints = mission_objective.get('constraints')
         if constraints:
-            sections.append(f"Constraints: {constraints}")
+            sections.append(f'Constraints: {constraints}')
 
         ao = mission_objective.get('ao')
         if ao:
@@ -331,8 +344,7 @@ async def _build_battlefield_memory(
                     radius = fp.get('radius', 1000)
                     if len(pos) >= 2:
                         sections.append(
-                            f'  * {label} at coordinates [{pos[0]}, {pos[1]}], '
-                            f'operational radius {radius}m'
+                            f'  * {label} at coordinates [{pos[0]}, {pos[1]}], operational radius {radius}m'
                         )
                     else:
                         sections.append(f'  * {label}, radius {radius}m')
@@ -345,17 +357,19 @@ async def _build_battlefield_memory(
     ao_config = mission_objective.get('ao') if mission_objective else None
     if ao_config and project_id:
         from backend.app.map.service.ao_briefing import get_cached_briefing
+
         briefing = await get_cached_briefing(project_id)
         if briefing:
-            sections.append(briefing)
-            sections.append('')
+            sections.extend((briefing, ''))
 
     if map_id:
-        sections.append(f'== MAP CONTEXT == (map_id: {map_id})')
-        sections.append('Use query_landmarks, get_area_intel, query_terrain_cells, and other map tools to look up locations.')
-        sections.append('Use query_terrain_cells with natural language to find specific terrain features.')
-        sections.append('Reference landmarks by name in briefings for clarity.')
-        sections.append('')
+        sections.extend((
+            f'== MAP CONTEXT == (map_id: {map_id})',
+            'Use query_landmarks, get_area_intel, query_terrain_cells, and other map tools to look up locations.',
+            'Use query_terrain_cells with natural language to find specific terrain features.',
+            'Reference landmarks by name in briefings for clarity.',
+            '',
+        ))
 
     if project_id:
         snap_stmt = (
@@ -402,18 +416,19 @@ async def _build_battlefield_memory(
             unique_areas: dict[str, int] = {}
             for ep in all_enemy_positions:
                 pos = ep['position']
-                grid_key = f"{int(pos[0] / 200) * 200},{int(pos[2] / 200) * 200}" if len(pos) >= 3 else str(pos)
+                grid_key = f'{int(pos[0] / 200) * 200},{int(pos[2] / 200) * 200}' if len(pos) >= 3 else str(pos)
                 unique_areas[grid_key] = unique_areas.get(grid_key, 0) + 1
             for area, count in sorted(unique_areas.items(), key=lambda x: -x[1])[:5]:
-                sections.append(f"  Hot zone near [{area}]: {count} contact(s)")
+                sections.append(f'  Hot zone near [{area}]: {count} contact(s)')
             sections.append('')
 
         if total_casualties > 0:
-            sections.append(f'== CUMULATIVE CASUALTIES: {total_casualties} ==')
-            sections.append('')
+            sections.extend((f'== CUMULATIVE CASUALTIES: {total_casualties} ==', ''))
+
+    from sqlalchemy import select as sa_select
 
     from backend.app.open.model.command_pool import CommandPool
-    from sqlalchemy import select as sa_select
+
     cmd_stmt = (
         sa_select(CommandPool)
         .where(CommandPool.conversation_id == conversation_id)
@@ -427,7 +442,7 @@ async def _build_battlefield_memory(
         for cmd in reversed(recent_cmds):
             orders_data = cmd.orders_json or {}
             order_count = len(orders_data.get('orders', []))
-            sections.append(f"  Request #{cmd.request_id}: {order_count} orders, status={cmd.status}")
+            sections.append(f'  Request #{cmd.request_id}: {order_count} orders, status={cmd.status}')
         sections.append('')
 
     return '\n'.join(sections) if sections else ''
@@ -449,10 +464,13 @@ def _truncate_situation_for_llm(groups: list[dict]) -> list[dict]:
         g_copy = dict(g)
         enemies = g_copy.get('known_enemies')
         if isinstance(enemies, list) and len(enemies) > MAX_ENEMIES_PER_GROUP:
-            sorted_enemies = sorted(enemies, key=lambda e: (
-                0 if e.get('time_since_endangered', 9999) < 10 else 1,
-                e.get('distance', 99999),
-            ))
+            sorted_enemies = sorted(
+                enemies,
+                key=lambda e: (
+                    0 if e.get('time_since_endangered', 9999) < 10 else 1,
+                    e.get('distance', 99999),
+                ),
+            )
             g_copy['known_enemies'] = sorted_enemies[:MAX_ENEMIES_PER_GROUP]
         result.append(g_copy)
 
@@ -461,7 +479,7 @@ def _truncate_situation_for_llm(groups: list[dict]) -> list[dict]:
         for e in g.get('known_enemies', []):
             pos = e.get('position', [])
             if len(pos) >= 3:
-                key = f"{int(pos[0])},{int(pos[2])}"
+                key = f'{int(pos[0])},{int(pos[2])}'
                 if key not in seen_positions:
                     seen_positions.add(key)
                     global_enemies.append(e)
@@ -469,7 +487,7 @@ def _truncate_situation_for_llm(groups: list[dict]) -> list[dict]:
     if len(global_enemies) > MAX_GLOBAL_ENEMIES:
         global_enemies.sort(key=lambda e: e.get('distance', 99999))
         drop_positions = {
-            f"{int(e.get('position', [0,0,0])[0])},{int(e.get('position', [0,0,0])[2])}"
+            f'{int(e.get("position", [0, 0, 0])[0])},{int(e.get("position", [0, 0, 0])[2])}'
             for e in global_enemies[MAX_GLOBAL_ENEMIES:]
             if len(e.get('position', [])) >= 3
         }
@@ -477,9 +495,10 @@ def _truncate_situation_for_llm(groups: list[dict]) -> list[dict]:
             enemies = g.get('known_enemies')
             if isinstance(enemies, list):
                 g['known_enemies'] = [
-                    e for e in enemies
+                    e
+                    for e in enemies
                     if len(e.get('position', [])) < 3
-                    or f"{int(e['position'][0])},{int(e['position'][2])}" not in drop_positions
+                    or f'{int(e["position"][0])},{int(e["position"][2])}' not in drop_positions
                 ]
 
     return result
@@ -495,6 +514,8 @@ async def process_situation_task(
     situation_data: dict,
     priority: str = 'normal',
 ) -> str:
+    from sqlalchemy import select
+
     from backend.app.conversation.engine.graph import (
         AgentConfig,
         ConversationState,
@@ -503,9 +524,7 @@ async def process_situation_task(
     from backend.app.conversation.service.chat_service import ChatService
     from backend.app.open.crud.crud_arma_config import arma_config_dao
     from backend.app.open.crud.crud_command_pool import create_command
-    from backend.app.open.model.situation_log import SituationLog
     from backend.app.open.service.arma_output_processor import extract_orders_from_response
-    from sqlalchemy import select
     from backend.app.open.service.message_queue import acquire_lock, release_lock
     from backend.app.project.crud.crud_project import project_dao
     from backend.database.db import async_db_session
@@ -514,6 +533,7 @@ async def process_situation_task(
 
     try:
         from backend.utils.snowflake import snowflake
+
         if not snowflake._initialized:
             await snowflake.init()
 
@@ -521,6 +541,7 @@ async def process_situation_task(
         if not locked:
             log.info('Conv %s is locked, re-queuing request #%s', conversation_id, request_id)
             from backend.app.open.service.message_queue import enqueue_situation
+
             await enqueue_situation(conversation_id, request_id, situation_data, priority)
             return f'Request {request_id} re-queued (locked)'
 
@@ -535,14 +556,15 @@ async def process_situation_task(
                 if not arma_config:
                     arma_config = await arma_config_dao.get_by_project(db, project_id)
                 context_window = arma_config.context_window if arma_config else 15
-                project, agent_configs, _topology, _settings = (
-                    await ChatService._get_agents_with_providers(
-                        db, project_id, project.owner_id,
-                        conversation_id=conv_id_int,
-                    )
+                project, agent_configs, _topology, _settings = await ChatService._get_agents_with_providers(
+                    db,
+                    project_id,
+                    project.owner_id,
+                    conversation_id=conv_id_int,
                 )
 
                 from backend.app.open.model.battle_snapshot import BattleSnapshot
+
                 prev_stmt = (
                     select(BattleSnapshot)
                     .where(BattleSnapshot.project_id == project_id)
@@ -555,17 +577,22 @@ async def process_situation_task(
                 if prev_snapshot and prev_snapshot.groups:
                     situation_data['_prev_situation'] = {'groups': prev_snapshot.groups}
 
-                user_input = format_situation_report(situation_data, request_id, priority)
+                situation_text = format_situation_report(situation_data, request_id, priority)
                 situation_data.pop('_prev_situation', None)
 
                 filtered_data = dict(situation_data)
                 llm_only, _ = _split_groups_by_control(filtered_data.get('groups', []))
                 filtered_data['groups'] = _truncate_situation_for_llm(llm_only)
-                user_input += f'\n\n<raw_situation_json>\n{json.dumps(filtered_data)}\n</raw_situation_json>'
+                user_input = (
+                    situation_text + f'\n\n<raw_situation_json>\n{json.dumps(filtered_data)}\n</raw_situation_json>'
+                )
 
-                await _save_situation_as_message(db, conv_id_int, user_input, request_id, situation_data, priority)
+                situation_msg_id = await _save_situation_as_message(
+                    db, conv_id_int, situation_text, request_id, situation_data, priority
+                )
 
                 from backend.app.conversation.service.context_manager import build_history
+
                 llm_cfg = {
                     'provider_type': agent_configs[0]['provider_type'],
                     'api_base': agent_configs[0].get('api_base'),
@@ -573,26 +600,33 @@ async def process_situation_task(
                     'model_name': agent_configs[0]['model_name'],
                 }
                 history = await build_history(
-                    db, conv_id_int,
+                    db,
+                    conv_id_int,
                     context_window=context_window,
                     llm_config=llm_cfg,
                     is_arma=True,
+                    exclude_message_id=situation_msg_id,
                 )
 
                 mission_obj = getattr(arma_config, 'mission_objective', None) if arma_config else None
                 if not mission_obj:
                     from backend.app.conversation.model import Conversation
+
                     conv_mo_stmt = (
                         select(Conversation.mission_objective)
                         .where(Conversation.id == conv_id_int)
-                        .where(Conversation.del_flag == False)  # noqa: E712
+                        .where(Conversation.del_flag == False)  # ruff: ignore[true-false-comparison]
                     )
                     conv_mo_result = await db.execute(conv_mo_stmt)
                     mission_obj = conv_mo_result.scalar_one_or_none()
                 map_id_val = project.map_id if project and getattr(project, 'map_id', None) else None
 
                 battlefield_memory = await _build_battlefield_memory(
-                    db, conversation_id, request_id, mission_obj, map_id_val,
+                    db,
+                    conversation_id,
+                    request_id,
+                    mission_obj,
+                    map_id_val,
                     project_id=project_id,
                 )
 
@@ -628,7 +662,7 @@ async def process_situation_task(
                 response_text = ''
                 tool_call_log = []
                 usage_data: dict = {}
-                for _attempt in range(2):
+                for attempt in range(2):
                     result_state = await graph.ainvoke(initial_state)
                     response_text = result_state['response']
                     usage_data = result_state.get('usage', {})
@@ -637,7 +671,9 @@ async def process_situation_task(
                         break
                     log.warning(
                         'Empty LLM response for conv=%s request=%s (attempt %s), retrying...',
-                        conversation_id, request_id, _attempt + 1,
+                        conversation_id,
+                        request_id,
+                        attempt + 1,
                     )
 
                 processing_time_ms = int((time.monotonic() - t0) * 1000)
@@ -647,19 +683,19 @@ async def process_situation_task(
                     orders_json['tool_calls'] = tool_call_log
 
                 llm_group_ids = {
-                    g['id'] for g in situation_data.get('groups', [])
+                    g['id']
+                    for g in situation_data.get('groups', [])
                     if g.get('control', 'llm') == 'llm' and g.get('id')
                 }
                 raw_count = len(orders_json.get('orders', []))
-                orders_json['orders'] = [
-                    o for o in orders_json.get('orders', [])
-                    if o.get('group_id') in llm_group_ids
-                ]
+                orders_json['orders'] = [o for o in orders_json.get('orders', []) if o.get('group_id') in llm_group_ids]
                 filtered = raw_count - len(orders_json['orders'])
                 if filtered > 0:
                     log.info(
                         'Filtered %s non-LLM orders (kept %s) for conv=%s',
-                        filtered, len(orders_json['orders']), conversation_id,
+                        filtered,
+                        len(orders_json['orders']),
+                        conversation_id,
                     )
 
                 await create_command(
@@ -673,6 +709,7 @@ async def process_situation_task(
                 await _save_ai_response(db, conv_id_int, response_text, orders_json)
 
                 from backend.app.open.model.battle_snapshot import BattleSnapshot
+
                 snap_stmt = (
                     select(BattleSnapshot)
                     .where(BattleSnapshot.project_id == project_id)
@@ -694,18 +731,23 @@ async def process_situation_task(
                     project_id=project_id,
                     conversation_id=conv_id_int,
                     agent_configs=agent_configs,
-                    usage_records=[{
-                        'provider_type': agent_configs[0]['provider_type'],
-                        'model_name': agent_configs[0]['model_name'],
-                        'duration_ms': processing_time_ms,
-                        **usage_data,
-                    }],
+                    usage_records=[
+                        {
+                            'provider_type': agent_configs[0]['provider_type'],
+                            'model_name': agent_configs[0]['model_name'],
+                            'duration_ms': processing_time_ms,
+                            **usage_data,
+                        }
+                    ],
                     call_type='chat',
                 )
 
             log.info(
                 'Situation processed: conversation=%s, request=%s, time=%sms, orders=%s',
-                conversation_id, request_id, processing_time_ms, len(orders_json.get('orders', [])),
+                conversation_id,
+                request_id,
+                processing_time_ms,
+                len(orders_json.get('orders', [])),
             )
             return f'Request {request_id} processed in {processing_time_ms}ms'
 
@@ -713,13 +755,16 @@ async def process_situation_task(
             await release_lock(conversation_id)
 
             from backend.app.open.service.message_queue import dequeue_all, merge_situations
+
             queued = await dequeue_all(conversation_id)
             if queued:
                 merged = await merge_situations(queued)
                 if merged:
                     log.info(
                         'Draining queue: conv=%s, merged %s items -> request #%s',
-                        conversation_id, merged['merged_count'], merged['request_id'],
+                        conversation_id,
+                        merged['merged_count'],
+                        merged['request_id'],
                     )
                     process_situation_task.delay(
                         project_id=project_id,
@@ -731,15 +776,20 @@ async def process_situation_task(
 
     except Exception as exc:
         import traceback
+
         log.error(
             'Situation processing failed: conversation=%s, request=%s, error=%s\n%s',
-            conversation_id, request_id, exc, traceback.format_exc(),
+            conversation_id,
+            request_id,
+            exc,
+            traceback.format_exc(),
         )
         try:
             raise self.retry(exc=exc, countdown=15)
         except self.MaxRetriesExceededError:
             log.error(
                 'Situation processing permanently failed after retries: conv=%s, req=%s',
-                conversation_id, request_id,
+                conversation_id,
+                request_id,
             )
             return f'Request {request_id} failed permanently: {exc}'
