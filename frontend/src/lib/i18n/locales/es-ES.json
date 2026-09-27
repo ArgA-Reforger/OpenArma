@@ -1333,6 +1333,8 @@
     "stop": "Detener",
     "noConfig": "La configuración de Arma no está inicializada",
     "noConfigDesc": "Inicialice la configuración para establecer los bandos, los parámetros del juego y el comportamiento de la IA.",
+    "situationPanel": "Panel de situación",
+    "noSituation": "Esperando datos de la batalla...",
     "initConfig": "Inicializar configuración de Arma",
     "configCreated": "Configuración de Arma creada",
     "contextWindow": "Ventana de contexto",

@@ -1333,6 +1333,8 @@
     "stop": "Stop",
     "noConfig": "Arma configuration not initialized",
     "noConfigDesc": "Initialize configuration to set up faction sides, game settings, and AI behavior.",
+    "situationPanel": "Situation Panel",
+    "noSituation": "Waiting for battle data...",
     "initConfig": "Initialize Arma Config",
     "configCreated": "Arma configuration created",
     "contextWindow": "Context Window",
