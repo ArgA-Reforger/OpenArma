@@ -4,7 +4,7 @@ import { useI18n, type Locale } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 
 const LOCALES: { value: Locale; label: string }[] = [
-  { value: 'zh-CN', label: '中文' },
+  { value: 'es-ES', label: 'ES' },
   { value: 'en-US', label: 'EN' },
 ]
 
