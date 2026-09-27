@@ -362,7 +362,7 @@ export function ChatColumn({ pid, conversationId, title, showTitle = false, comp
     setShowNewContent(false)
   }
 
-  const DEFAULT_TITLES = ['新对话', 'New Chat', '未命名对话', 'Untitled']
+  const DEFAULT_TITLES = ['New Chat', 'Untitled']
 
   function conversationNeedsTitle(): boolean {
     const convs = queryClient.getQueryData<PageData<{ id: number; title: string | null }>>(['conversations', pid])
