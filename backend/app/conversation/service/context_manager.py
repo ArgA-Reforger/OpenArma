@@ -66,12 +66,12 @@ async def build_history(
 
     history: list[dict] = []
 
-    if total > threshold:
+    if total > threshold and not is_arma:
         existing_summary = _find_latest_summary(recent_messages)
 
         if existing_summary:
             pass
-        elif llm_config and total > threshold:
+        elif llm_config:
             summary_text = await _generate_summary(
                 db,
                 conversation_id,
