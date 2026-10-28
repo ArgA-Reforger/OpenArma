@@ -1,9 +1,11 @@
 import base64
 import hashlib
+
 from typing import Any
 
 import httpx
 import litellm
+
 from cryptography.fernet import Fernet
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -142,53 +144,23 @@ class LLMProviderService:
         if provider.user_id != user_id:
             raise errors.NotFoundError(msg='LLM provider does not exist')
 
-        try:
-            api_key = _decrypt_api_key(provider.api_key_encrypted) if provider.api_key_encrypted else None
-        except Exception:
-            return {'success': False, 'message': 'Failed to decrypt API key, please reconfigure API key'}
-
-        api_base = provider.api_base
-
-        from backend.app.conversation.engine.llm import _build_model_string
-
-        model = _build_model_string(provider.provider_type, model_name)
-        is_embedding = LLMProviderService._is_embedding_model(model_name)
-
         from datetime import datetime, timezone
 
         now = datetime.now(timezone.utc)
-        success = False
-        message = ''
 
-        try:
-            if is_embedding:
-                params: dict = {'model': model, 'input': ['hello']}
-                if api_key:
-                    params['api_key'] = api_key
-                if api_base:
-                    params['api_base'] = api_base
-                resp = await litellm.aembedding(**params)
-                dim = len(resp.data[0]['embedding']) if resp.data else 0
-                success = True
-                message = f'Connection successful (model={model_name}, embedding dim={dim})'
-            else:
-                params = {
-                    'model': model,
-                    'messages': [{'role': 'user', 'content': 'Hi'}],
-                    'max_tokens': 5,
-                    'temperature': 0,
-                    'drop_params': True,
-                }
-                if api_key:
-                    params['api_key'] = api_key
-                if api_base:
-                    params['api_base'] = api_base
-                resp = await litellm.acompletion(**params)
-                content = resp.choices[0].message.content or ''
-                success = True
-                message = f'Connection successful (model={model_name}, reply={content[:50]})'
-        except Exception as e:
-            message = str(e)[:200]
+        if provider.provider_type == 'claude_sdk':
+            success, message = await LLMProviderService._verify_claude_sdk(model_name=model_name)
+        else:
+            try:
+                api_key = _decrypt_api_key(provider.api_key_encrypted) if provider.api_key_encrypted else None
+            except Exception:
+                return {'success': False, 'message': 'Failed to decrypt API key, please reconfigure API key'}
+            success, message = await LLMProviderService._verify_litellm(
+                provider_type=provider.provider_type,
+                api_base=provider.api_base,
+                api_key=api_key,
+                model_name=model_name,
+            )
 
         models_data = normalize_models(provider.models) or []
         updated = False
@@ -205,6 +177,82 @@ class LLMProviderService:
         return {'success': success, 'message': message}
 
     @staticmethod
+    async def _verify_claude_sdk(*, model_name: str) -> tuple[bool, str]:
+        from backend.app.conversation.engine.claude_sdk import claude_sdk_completion
+
+        try:
+            resp = await claude_sdk_completion(
+                model_name=model_name,
+                messages=[{'role': 'user', 'content': 'Hi'}],
+                stream=False,
+            )
+            content = resp.choices[0].message.content or ''
+            return True, f'Connection successful (model={model_name}, reply={content[:50]})'
+        except Exception as e:
+            return False, str(e)[:200]
+
+    @staticmethod
+    async def _verify_litellm(
+        *,
+        provider_type: str,
+        api_base: str | None,
+        api_key: str | None,
+        model_name: str,
+    ) -> tuple[bool, str]:
+        from backend.app.conversation.engine.llm import _build_model_string
+
+        model = _build_model_string(provider_type, model_name)
+        is_embedding = LLMProviderService._is_embedding_model(model_name)
+
+        try:
+            if is_embedding:
+                params: dict = {'model': model, 'input': ['hello']}
+                if api_key:
+                    params['api_key'] = api_key
+                if api_base:
+                    params['api_base'] = api_base
+                resp = await litellm.aembedding(**params)
+                dim = len(resp.data[0]['embedding']) if resp.data else 0
+                return True, f'Connection successful (model={model_name}, embedding dim={dim})'
+            params = {
+                'model': model,
+                'messages': [{'role': 'user', 'content': 'Hi'}],
+                'max_tokens': 5,
+                'temperature': 0,
+                'drop_params': True,
+            }
+            if api_key:
+                params['api_key'] = api_key
+            if api_base:
+                params['api_base'] = api_base
+            resp = await litellm.acompletion(**params)
+            content = resp.choices[0].message.content or ''
+            return True, f'Connection successful (model={model_name}, reply={content[:50]})'
+        except Exception as e:
+            return False, str(e)[:200]
+
+    @staticmethod
+    async def _fetch_claude_sdk_models() -> dict[str, Any]:
+        from backend.app.conversation.engine.claude_sdk import list_claude_models
+
+        try:
+            names = await list_claude_models()
+        except Exception as e:
+            return {'success': False, 'models': [], 'message': str(e)[:200]}
+        return {'success': True, 'models': names, 'message': f'Fetched {len(names)} models'}
+
+    @staticmethod
+    def _parse_model_ids(data: Any) -> list[str]:
+        model_ids: list[str] = []
+        items = data.get('data', [])
+        if isinstance(items, list):
+            for item in items:
+                mid = item.get('id') if isinstance(item, dict) else None
+                if mid:
+                    model_ids.append(mid)
+        return model_ids
+
+    @staticmethod
     async def fetch_remote_models(
         *,
         db: AsyncSession,
@@ -216,6 +264,9 @@ class LLMProviderService:
             raise errors.NotFoundError(msg='LLM provider does not exist')
         if provider.user_id != user_id:
             raise errors.NotFoundError(msg='LLM provider does not exist')
+
+        if provider.provider_type == 'claude_sdk':
+            return await LLMProviderService._fetch_claude_sdk_models()
 
         try:
             api_key = _decrypt_api_key(provider.api_key_encrypted) if provider.api_key_encrypted else None
@@ -240,15 +291,7 @@ class LLMProviderService:
         except Exception as e:
             return {'success': False, 'models': [], 'message': str(e)[:200]}
 
-        model_ids: list[str] = []
-        items = data.get('data', [])
-        if isinstance(items, list):
-            for item in items:
-                mid = item.get('id') if isinstance(item, dict) else None
-                if mid:
-                    model_ids.append(mid)
-
-        model_ids.sort()
+        model_ids = sorted(LLMProviderService._parse_model_ids(data))
         return {'success': True, 'models': model_ids, 'message': f'Fetched {len(model_ids)} models'}
 
 
