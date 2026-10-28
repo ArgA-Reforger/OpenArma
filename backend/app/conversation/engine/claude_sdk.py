@@ -10,6 +10,7 @@ from typing import Any, cast
 from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
+    ClaudeSDKClient,
     ClaudeSDKError,
     Message,
     RateLimitEvent,
@@ -19,11 +20,12 @@ from claude_agent_sdk import (
 )
 
 from backend.common.log import log
+from backend.core.conf import settings
 
-CLAUDE_SDK_TIMEOUT_SECONDS = 300
 RATE_LIMIT_ASSISTANT_ERROR = 'rate_limit'
 RATE_LIMIT_HTTP_STATUS = 429
 RATE_LIMIT_REJECTED_STATUS = 'rejected'
+_RESTRICTED_SDK_ENV = {'ANTHROPIC_API_KEY': '', 'ENABLE_CLAUDEAI_MCP_SERVERS': 'false'}
 
 _warned_parameter_sets: set[tuple[str, ...]] = set()
 
@@ -84,18 +86,41 @@ async def claude_sdk_completion(
     """
     _warn_ignored_parameters(ignored)
     system_prompt, prompt = build_claude_prompt(messages)
+    timeout_seconds = settings.CLAUDE_SDK_TIMEOUT_SECONDS
     try:
         text, result_usage = await asyncio.wait_for(
             _query_text(model_name=model_name, system_prompt=system_prompt, prompt=prompt),
-            timeout=CLAUDE_SDK_TIMEOUT_SECONDS,
+            timeout=timeout_seconds,
         )
     except asyncio.TimeoutError as exception:
-        raise ClaudeSdkError(f'Claude query exceeded the timeout of {CLAUDE_SDK_TIMEOUT_SECONDS}s') from exception
+        raise ClaudeSdkError(f'Claude query exceeded the timeout of {timeout_seconds}s') from exception
 
     usage = _build_usage(result_usage)
     if stream:
         return _stream_chunks(text=text, usage=usage)
     return _non_stream_response(text=text, usage=usage)
+
+
+async def list_claude_models() -> list[str]:
+    """
+    List the Claude model names reported by the Claude Code server, without sending a prompt
+
+    Each model reports an alias (value) and, when known, the resolved model id (resolvedModel).
+
+    :return: sorted unique model names
+    """
+    options = ClaudeAgentOptions(
+        tools=[],
+        max_turns=1,
+        setting_sources=[],
+        env=_RESTRICTED_SDK_ENV,
+    )
+    server_info: dict[str, Any] | None = None
+    async with ClaudeSDKClient(options=options) as client:
+        server_info = await client.get_server_info()
+    models = (server_info or {}).get('models') or []
+    names = {item.get('resolvedModel') or item.get('value') for item in models if isinstance(item, dict)}
+    return sorted(name for name in names if name)
 
 
 async def _query_text(*, model_name: str, system_prompt: str, prompt: str) -> tuple[str, dict[str, Any]]:
@@ -135,14 +160,16 @@ def _warn_ignored_parameters(ignored: dict[str, Any]) -> None:
 
 
 def _build_options(*, model_name: str, system_prompt: str) -> ClaudeAgentOptions:
+    # Thinking is disabled unless CLAUDE_SDK_THINK is set; effort stays None (SDK default) unless configured
     return ClaudeAgentOptions(
         model=model_name,
         system_prompt=system_prompt,
         tools=[],
         max_turns=1,
         setting_sources=[],
-        env={'ANTHROPIC_API_KEY': '', 'ENABLE_CLAUDEAI_MCP_SERVERS': 'false'},
-        thinking={'type': 'disabled'},
+        env=_RESTRICTED_SDK_ENV,
+        thinking=None if settings.CLAUDE_SDK_THINK else {'type': 'disabled'},
+        effort=settings.CLAUDE_SDK_EFFORT,
     )
 
 

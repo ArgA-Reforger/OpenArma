@@ -14,10 +14,12 @@ from claude_agent_sdk import (
     ResultMessage,
     TextBlock,
 )
+from typing_extensions import Self
 
 from backend.app.conversation.engine import claude_sdk
 from backend.app.conversation.engine.claude_sdk import build_claude_prompt
 from backend.app.conversation.engine.graph import _extract_usage
+from backend.core.conf import Settings, settings
 
 MESSAGES = [
     {'role': 'system', 'content': 'Be brief'},
@@ -85,6 +87,11 @@ def _rate_limit_event(status: RateLimitStatus) -> RateLimitEvent:
 
 def _complete(**kwargs: Any) -> Any:
     return asyncio.run(claude_sdk.claude_sdk_completion(model_name='claude-haiku-5-5', messages=MESSAGES, **kwargs))
+
+
+def _set_claude_sdk_settings(monkeypatch: pytest.MonkeyPatch, **overrides: Any) -> None:
+    for name, value in overrides.items():
+        monkeypatch.setattr(settings, name, value)
 
 
 @pytest.fixture(autouse=True)
@@ -195,7 +202,7 @@ def test_claude_sdk_stream_emits_whole_text_then_empty_choices_usage_chunk(monke
 
 
 def test_claude_sdk_completion_maps_timeout_to_sdk_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(claude_sdk, 'CLAUDE_SDK_TIMEOUT_SECONDS', 0.01)
+    _set_claude_sdk_settings(monkeypatch, CLAUDE_SDK_TIMEOUT_SECONDS=0.01)
     _install_fake_query(monkeypatch, [HANG])
 
     with pytest.raises(claude_sdk.ClaudeSdkError, match='exceeded the timeout'):
@@ -273,6 +280,73 @@ def test_claude_sdk_completion_rejects_blank_response(monkeypatch: pytest.Monkey
         _complete()
 
 
+def _install_fake_sdk_client(monkeypatch: pytest.MonkeyPatch, server_info: Any) -> list[Any]:
+    """Replaces ClaudeSDKClient with a fake whose get_server_info returns server_info; records each client."""
+    clients: list[Any] = []
+
+    class FakeClaudeSDKClient:
+        def __init__(self, options: Any) -> None:
+            self.options = options
+            clients.append(self)
+
+        async def __aenter__(self) -> Self:
+            return self
+
+        async def __aexit__(self, *exc_info: object) -> None:
+            return None
+
+        async def get_server_info(self) -> Any:
+            return server_info
+
+    monkeypatch.setattr(claude_sdk, 'ClaudeSDKClient', FakeClaudeSDKClient)
+    return clients
+
+
+def test_list_claude_models_uses_restricted_options_without_sending_a_prompt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clients = _install_fake_sdk_client(monkeypatch, {'models': []})
+
+    def fail_query(**kwargs: Any) -> None:
+        raise AssertionError('list_claude_models must not send a prompt')
+
+    monkeypatch.setattr(claude_sdk, 'query', fail_query)
+
+    asyncio.run(claude_sdk.list_claude_models())
+
+    options = clients[0].options
+    assert options.tools == []
+    assert options.max_turns == 1
+    assert options.setting_sources == []
+    assert options.env == {'ANTHROPIC_API_KEY': '', 'ENABLE_CLAUDEAI_MCP_SERVERS': 'false'}
+
+
+def test_list_claude_models_prefers_resolved_model_and_returns_sorted_unique_names(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_fake_sdk_client(
+        monkeypatch,
+        {
+            'models': [
+                {'value': 'haiku', 'resolvedModel': 'claude-haiku-5-5', 'displayName': 'Haiku'},
+                {'value': 'sonnet', 'resolvedModel': 'claude-sonnet-5-5', 'displayName': 'Sonnet'},
+                {'value': 'claude-fable-5-1', 'resolvedModel': None, 'displayName': 'Fable'},
+                {'value': 'haiku-alias', 'resolvedModel': 'claude-haiku-5-5', 'displayName': 'Haiku again'},
+            ],
+        },
+    )
+
+    names = asyncio.run(claude_sdk.list_claude_models())
+
+    assert names == ['claude-fable-5-1', 'claude-haiku-5-5', 'claude-sonnet-5-5']
+
+
+def test_list_claude_models_returns_empty_list_when_server_reports_no_models(monkeypatch: pytest.MonkeyPatch) -> None:
+    _install_fake_sdk_client(monkeypatch, None)
+
+    assert asyncio.run(claude_sdk.list_claude_models()) == []
+
+
 class RecordingLog:
     def __init__(self) -> None:
         self.warnings: list[str] = []
@@ -324,3 +398,60 @@ def test_claude_sdk_completion_stays_silent_without_ignored_parameters(monkeypat
     _complete(max_tokens=None)
 
     assert recording_log.warnings == []
+
+
+def test_claude_sdk_settings_defaults_keep_existing_deployments_unchanged() -> None:
+    fields = Settings.model_fields
+
+    assert 'CLAUDE_SDK_THINK' in fields
+    assert fields['CLAUDE_SDK_THINK'].default is False
+    assert 'CLAUDE_SDK_EFFORT' in fields
+    assert fields['CLAUDE_SDK_EFFORT'].default is None
+    assert 'CLAUDE_SDK_TIMEOUT_SECONDS' in fields
+    assert fields['CLAUDE_SDK_TIMEOUT_SECONDS'].default == 300
+
+
+def test_claude_sdk_completion_passes_no_thinking_option_when_think_is_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_claude_sdk_settings(monkeypatch, CLAUDE_SDK_THINK=True)
+    fake_query = _install_fake_query(monkeypatch, [_assistant_message(), _result_message()])
+
+    _complete()
+
+    assert fake_query.calls[0]['options'].thinking is None
+
+
+def test_claude_sdk_completion_disables_thinking_when_think_is_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_claude_sdk_settings(monkeypatch, CLAUDE_SDK_THINK=False)
+    fake_query = _install_fake_query(monkeypatch, [_assistant_message(), _result_message()])
+
+    _complete()
+
+    assert fake_query.calls[0]['options'].thinking == {'type': 'disabled'}
+
+
+def test_claude_sdk_completion_passes_configured_effort(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_claude_sdk_settings(monkeypatch, CLAUDE_SDK_EFFORT='high')
+    fake_query = _install_fake_query(monkeypatch, [_assistant_message(), _result_message()])
+
+    _complete()
+
+    assert fake_query.calls[0]['options'].effort == 'high'
+
+
+def test_claude_sdk_completion_leaves_effort_unset_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_claude_sdk_settings(monkeypatch, CLAUDE_SDK_EFFORT=None)
+    fake_query = _install_fake_query(monkeypatch, [_assistant_message(), _result_message()])
+
+    _complete()
+
+    assert fake_query.calls[0]['options'].effort is None
+
+
+def test_claude_sdk_completion_takes_timeout_from_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_claude_sdk_settings(monkeypatch, CLAUDE_SDK_TIMEOUT_SECONDS=0.01)
+    _install_fake_query(monkeypatch, [HANG])
+
+    with pytest.raises(claude_sdk.ClaudeSdkError, match=r'exceeded the timeout of 0\.01s'):
+        _complete()
