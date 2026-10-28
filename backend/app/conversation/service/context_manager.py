@@ -39,6 +39,7 @@ async def build_history(
     context_window: int = 20,
     llm_config: dict | None = None,
     is_arma: bool = False,
+    exclude_message_id: int | None = None,
 ) -> list[dict]:
     """Build optimized history with sliding window + auto-summary.
 
@@ -52,23 +53,31 @@ async def build_history(
     :param context_window: number of recent messages to keep in full
     :param llm_config: dict with provider_type/api_base/api_key_encrypted/model_name for summary LLM
     :param is_arma: use Arma-specific summary prompt
+    :param exclude_message_id: id of the current-turn message, already handled separately
+        as the caller's user_input; excluded here to avoid sending it twice to the LLM
     :return: list of message dicts ready for LLM consumption
     """
     total = await message_dao.count_messages(db, conversation_id)
     threshold = int(context_window * SUMMARY_THRESHOLD_RATIO)
 
     recent_messages = await message_dao.get_recent(db, conversation_id, limit=context_window)
+    if exclude_message_id is not None:
+        recent_messages = [msg for msg in recent_messages if msg.id != exclude_message_id]
 
     history: list[dict] = []
 
-    if total > threshold:
+    if total > threshold and not is_arma:
         existing_summary = _find_latest_summary(recent_messages)
 
         if existing_summary:
             pass
-        elif llm_config and total > threshold:
+        elif llm_config:
             summary_text = await _generate_summary(
-                db, conversation_id, context_window, llm_config, is_arma,
+                db,
+                conversation_id,
+                context_window,
+                llm_config,
+                is_arma,
             )
             if summary_text:
                 await _save_summary(db, conversation_id, summary_text, total - context_window)
@@ -154,7 +163,9 @@ async def _generate_summary(
         if summary:
             log.info(
                 'Generated context summary for conv=%s (%s older msgs → %s chars)',
-                conversation_id, len(older_messages), len(summary),
+                conversation_id,
+                len(older_messages),
+                len(summary),
             )
         return summary or None
     except Exception:
@@ -171,13 +182,15 @@ async def _save_summary(
     """Persist the summary as a system message with context_summary metadata."""
     from backend.app.conversation.model.message import Message
 
-    db.add(Message(
-        conversation_id=conversation_id,
-        role='system',
-        content=summary_text,
-        metadata_={
-            'type': 'context_summary',
-            'summarized_count': summarized_count,
-        },
-    ))
+    db.add(
+        Message(
+            conversation_id=conversation_id,
+            role='system',
+            content=summary_text,
+            metadata_={
+                'type': 'context_summary',
+                'summarized_count': summarized_count,
+            },
+        )
+    )
     await db.flush()

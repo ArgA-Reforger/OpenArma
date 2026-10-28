@@ -223,7 +223,7 @@ docker compose build
 docker compose up -d
 ```
 
-Consulta la documentación detallada de despliegue en [DEPLOY.md](./DEPLOY.md).
+Consulta la documentación detallada de ejecución y despliegue en [docs/RUN.md](docs/RUN.md).
 
 ## 📁 Estructura del proyecto
 
@@ -477,7 +477,7 @@ docker compose build
 docker compose up -d
 ```
 
-For detailed deployment instructions, see [DEPLOY.md](./DEPLOY.md).
+For detailed execution and deployment instructions, see [docs/RUN.md](docs/RUN.md).
 
 ## 📁 Project Structure
 

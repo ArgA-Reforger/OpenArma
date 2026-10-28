@@ -11,6 +11,7 @@ venv/
 .serena/
 .agents/
 .logs/
+logs/
 
 # VSC
 .history

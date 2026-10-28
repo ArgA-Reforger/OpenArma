@@ -33,12 +33,15 @@ async def enqueue_situation(
     priority: str = 'normal',
 ) -> int:
     """Push a situation report into the queue. Returns queue length."""
-    payload = json.dumps({
-        'request_id': request_id,
-        'situation_data': situation_data,
-        'priority': priority,
-        'enqueued_at': time.time(),
-    }, ensure_ascii=False)
+    payload = json.dumps(
+        {
+            'request_id': request_id,
+            'situation_data': situation_data,
+            'priority': priority,
+            'enqueued_at': time.time(),
+        },
+        ensure_ascii=False,
+    )
 
     key = _queue_key(conversation_id)
 
@@ -49,8 +52,9 @@ async def enqueue_situation(
 
     await redis_client.expire(key, QUEUE_TTL)
     length = await redis_client.llen(key)
-    log.info('Enqueued situation #%s for conv=%s, priority=%s, queue_len=%s',
-             request_id, conversation_id, priority, length)
+    log.info(
+        'Enqueued situation #%s for conv=%s, priority=%s, queue_len=%s', request_id, conversation_id, priority, length
+    )
     return length
 
 
@@ -129,3 +133,13 @@ async def is_locked(conversation_id: str) -> bool:
 async def get_queue_length(conversation_id: str) -> int:
     key = _queue_key(conversation_id)
     return await redis_client.llen(key)
+
+
+async def clear_conversation_state(conversation_id: str) -> None:
+    """Drop the processing lock and any queued situations for a conversation.
+
+    Used when resetting a session (new scenario start) so stale locks/queues
+    from a previous game don't linger and block or mix with the new one.
+    """
+    await redis_client.delete(_lock_key(conversation_id))
+    await redis_client.delete(_queue_key(conversation_id))

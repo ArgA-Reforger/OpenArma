@@ -2,9 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Path, Query, Request
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.conversation.model.conversation import Conversation
+from backend.app.open.model.battle_snapshot import BattleSnapshot
 from backend.app.open.model.command_pool import CommandPool
 from backend.app.open.model.situation_log import SituationLog
 from backend.app.project.crud.crud_project import project_dao
@@ -21,7 +21,7 @@ async def _get_arma_conversation_ids(db, project_id: int) -> list[str]:
     stmt = select(Conversation.id).where(
         Conversation.project_id == project_id,
         Conversation.source == 'arma',
-        Conversation.del_flag == False,  # noqa: E712
+        Conversation.del_flag == False,  # ruff: ignore[true-false-comparison]
     )
     result = await db.execute(stmt)
     return [str(cid) for cid in result.scalars().all()]
@@ -33,7 +33,7 @@ async def _get_group_conversation_ids(db, project_id: int, group_id: int) -> lis
         Conversation.project_id == project_id,
         Conversation.conversation_group_id == group_id,
         Conversation.source == 'arma',
-        Conversation.del_flag == False,  # noqa: E712
+        Conversation.del_flag == False,  # ruff: ignore[true-false-comparison]
     )
     result = await db.execute(stmt)
     return [str(cid) for cid in result.scalars().all()]
@@ -61,9 +61,7 @@ async def list_commands(
         return response_base.success(data={'items': [], 'total': 0})
 
     stmt = select(CommandPool).where(CommandPool.conversation_id.in_(conv_ids))
-    count_stmt = select(func.count()).select_from(CommandPool).where(
-        CommandPool.conversation_id.in_(conv_ids)
-    )
+    count_stmt = select(func.count()).select_from(CommandPool).where(CommandPool.conversation_id.in_(conv_ids))
 
     if status:
         stmt = stmt.where(CommandPool.status == status)
@@ -114,9 +112,7 @@ async def list_situation_logs(
         return response_base.success(data={'items': [], 'total': 0})
 
     stmt = select(SituationLog).where(SituationLog.conversation_id.in_(conv_ids))
-    count_stmt = select(func.count()).select_from(SituationLog).where(
-        SituationLog.conversation_id.in_(conv_ids)
-    )
+    count_stmt = select(func.count()).select_from(SituationLog).where(SituationLog.conversation_id.in_(conv_ids))
 
     if priority:
         stmt = stmt.where(SituationLog.priority == priority)
@@ -157,41 +153,39 @@ async def get_latest_situation(
     if not project or project.owner_id != request.user.id:
         raise errors.NotFoundError(msg='Project not found')
 
-    conv_ids = await _get_arma_conversation_ids(db, project_id)
-    if not conv_ids:
-        return response_base.success(data=None)
-
     stmt = (
-        select(SituationLog)
-        .where(SituationLog.conversation_id.in_(conv_ids))
-        .order_by(SituationLog.created_time.desc())
+        select(BattleSnapshot)
+        .where(BattleSnapshot.project_id == project_id)
+        .order_by(BattleSnapshot.request_id.desc())
         .limit(1)
     )
     result = await db.execute(stmt)
     latest = result.scalar_one_or_none()
 
-    if not latest or not latest.situation_json:
+    if not latest:
         return response_base.success(data=None)
 
-    sit = latest.situation_json
-    groups = sit.get('groups', [])
+    groups = latest.groups or []
     llm_groups = [g for g in groups if g.get('control', 'llm') == 'llm']
     other_groups = [g for g in groups if g.get('control', 'llm') != 'llm']
 
-    pending_stmt = (
-        select(func.count())
-        .select_from(CommandPool)
-        .where(
-            CommandPool.conversation_id.in_(conv_ids),
-            CommandPool.status == 'pending',
+    conv_ids = await _get_arma_conversation_ids(db, project_id)
+    pending_count = 0
+    if conv_ids:
+        pending_stmt = (
+            select(func.count())
+            .select_from(CommandPool)
+            .where(
+                CommandPool.conversation_id.in_(conv_ids),
+                CommandPool.status == 'pending',
+            )
         )
-    )
-    pending_count = (await db.execute(pending_stmt)).scalar() or 0
+        pending_count = (await db.execute(pending_stmt)).scalar() or 0
 
     data = {
         'request_id': latest.request_id,
-        'timestamp': sit.get('timestamp'),
-        'game_state': sit.get('game_state', {}),
+        'timestamp': latest.timestamp,
+        'game_state': latest.game_state or {},
         'llm_groups': llm_groups,
         'other_groups': other_groups,
         'total_groups': len(groups),
@@ -234,7 +228,7 @@ async def generate_ao_briefing_endpoint(
     if not project or project.owner_id != request.user.id:
         raise errors.NotFoundError(msg='Project not found')
 
-    map_id = project.map_id if project.map_id else None
+    map_id = project.map_id or None
     if not map_id:
         raise errors.NotFoundError(msg='No map configured — set map in Project Settings → Map tab')
 
@@ -242,11 +236,13 @@ async def generate_ao_briefing_endpoint(
 
     if conversation_id:
         from sqlalchemy import select as sa_select
+
         from backend.app.conversation.model import Conversation
+
         conv_stmt = (
             sa_select(Conversation.mission_objective)
             .where(Conversation.id == conversation_id)
-            .where(Conversation.del_flag == False)  # noqa: E712
+            .where(Conversation.del_flag == False)  # ruff: ignore[true-false-comparison]
         )
         conv_result = await db.execute(conv_stmt)
         conv_mission = conv_result.scalar_one_or_none()
@@ -255,6 +251,7 @@ async def generate_ao_briefing_endpoint(
 
     if not mission:
         from backend.app.open.crud.crud_arma_config import arma_config_dao
+
         arma_config = None
         if group_id:
             arma_config = await arma_config_dao.get_by_conversation_group(db, group_id)
@@ -266,13 +263,15 @@ async def generate_ao_briefing_endpoint(
 
         if not mission and arma_config:
             from sqlalchemy import select as sa_select
+
             from backend.app.conversation.model import Conversation
+
             group_id_val = arma_config.conversation_group_id
             if group_id_val:
                 conv_stmt = (
                     sa_select(Conversation.mission_objective)
                     .where(Conversation.conversation_group_id == group_id_val)
-                    .where(Conversation.del_flag == False)  # noqa: E712
+                    .where(Conversation.del_flag == False)  # ruff: ignore[true-false-comparison]
                     .where(Conversation.mission_objective.isnot(None))
                     .limit(1)
                 )
@@ -295,15 +294,19 @@ async def generate_ao_briefing_endpoint(
             raise errors.NotFoundError(msg='No AO or mission targets configured')
 
     from backend.app.map.crud.crud_map import map_dao
+
     game_map = await map_dao.get(db, map_id)
     if not game_map:
         raise errors.NotFoundError(msg='Map not found')
 
     from backend.app.map.service.ao_briefing import cache_briefing, generate_ao_briefing
+
     briefing = await generate_ao_briefing(db, game_map, ao_config)
     await cache_briefing(project_id, briefing)
 
-    return response_base.success(data={
-        'briefing_length': len(briefing),
-        'briefing_preview': briefing[:500] + '...' if len(briefing) > 500 else briefing,
-    })
+    return response_base.success(
+        data={
+            'briefing_length': len(briefing),
+            'briefing_preview': briefing[:500] + '...' if len(briefing) > 500 else briefing,
+        }
+    )

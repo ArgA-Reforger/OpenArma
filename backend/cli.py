@@ -1,4 +1,5 @@
 import asyncio
+import os
 import re
 import secrets
 import subprocess
@@ -302,7 +303,7 @@ async def init(db: AsyncSession, redis: RedisCli) -> None:
         console.print('Initialization cancelled', style='yellow')
 
 
-def run(host: str, port: int, reload: bool, workers: int) -> None:  # noqa: FBT001
+def run(host: str, port: int, reload: bool, workers: int) -> None:  # ruff: ignore[boolean-type-hint-positional-argument]
     url = f'http://{host}:{port}'
     docs_url = url + settings.FASTAPI_DOCS_URL
     redoc_url = url + settings.FASTAPI_REDOC_URL
@@ -347,8 +348,13 @@ def run(host: str, port: int, reload: bool, workers: int) -> None:  # noqa: FBT0
 
 
 def run_celery_worker(log_level: Literal['info', 'debug']) -> None:
+    env = os.environ.copy()
+    env['CELERY_CUSTOM_WORKER_POOL'] = 'celery_aio_pool.pool:AsyncIOPool'
     try:
-        subprocess.run(['celery', '-A', 'backend.app.task.celery', 'worker', '-l', f'{log_level}', '-P', 'gevent'])
+        subprocess.run(
+            ['celery', '-A', 'backend.app.task.celery', 'worker', '-l', f'{log_level}', '--pool=custom'],
+            env=env,
+        )
     except KeyboardInterrupt:
         pass
 
@@ -377,7 +383,7 @@ def run_celery_flower(port: int, basic_auth: str) -> None:
 async def install_plugin(
     path: str,
     repo_url: str,
-    no_sql: bool,  # noqa: FBT001
+    no_sql: bool,  # ruff: ignore[boolean-type-hint-positional-argument]
     db_type: DataBaseType,
     pk_type: PrimaryKeyType,
 ) -> None:

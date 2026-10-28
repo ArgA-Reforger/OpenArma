@@ -1,7 +1,8 @@
 import json
-from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Header, Query, Request
 from sqlalchemy import select as sa_select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,8 +32,8 @@ router = APIRouter()
 
 
 async def _resolve_api_key(
-    x_api_key: Optional[str] = Header(None, alias='X-API-Key'),
-    api_key: Optional[str] = Query(None),
+    x_api_key: str | None = Header(None, alias='X-API-Key'),
+    api_key: str | None = Query(None),
 ) -> str:
     key = x_api_key or api_key
     if not key:
@@ -54,6 +55,28 @@ def _build_config_block(config: ArmaConfig | None) -> ArmaConfigBlock:
     return ArmaConfigBlock()
 
 
+async def _reset_previous_session(db: AsyncSession, project_id: int, conversation_ids: list[int]) -> None:
+    """Wipe the previous game session's messages, snapshots, and pending commands
+    on scenario (re)start, so a new session's context doesn't mix with the last one."""
+    from sqlalchemy import delete as sa_delete
+    from sqlalchemy import update as sa_update
+
+    from backend.app.open.model.command_pool import CommandPool
+    from backend.app.open.service.message_queue import clear_conversation_state
+
+    if conversation_ids:
+        await db.execute(
+            sa_update(Message)
+            .where(Message.conversation_id.in_(conversation_ids), Message.del_flag == False)  # ruff: ignore[true-false-comparison]
+            .values(del_flag=True)
+        )
+    await db.execute(sa_delete(BattleSnapshot).where(BattleSnapshot.project_id == project_id))
+    await db.execute(sa_delete(CommandPool).where(CommandPool.project_id == project_id))
+
+    for conv_id in conversation_ids:
+        await clear_conversation_state(str(conv_id))
+
+
 async def _get_or_create_arma_conversation(
     db: AsyncSession,
     project_id: int,
@@ -68,14 +91,11 @@ async def _get_or_create_arma_conversation(
         Conversation.project_id == project_id,
         Conversation.source == 'arma',
         Conversation.status == 'active',
-        Conversation.del_flag == False,  # noqa: E712
+        Conversation.del_flag == False,  # ruff: ignore[true-false-comparison]
     )
     if group_id:
         stmt = stmt.where(Conversation.conversation_group_id == group_id)
-    if side is not None:
-        stmt = stmt.where(Conversation.side == side)
-    else:
-        stmt = stmt.where(Conversation.side.is_(None))
+    stmt = stmt.where(Conversation.side == side) if side is not None else stmt.where(Conversation.side.is_(None))
 
     stmt = stmt.order_by(Conversation.created_time.desc()).limit(1)
     result = await db.execute(stmt)
@@ -99,8 +119,14 @@ async def _get_or_create_arma_conversation(
         db.add(conv)
         await db.flush()
         await db.refresh(conv)
-        log.info('Created Arma conversation: id=%s, project=%s, side=%s, agent=%s, group=%s',
-                 conv.id, project_id, side, agent_id, group_id)
+        log.info(
+            'Created Arma conversation: id=%s, project=%s, side=%s, agent=%s, group=%s',
+            conv.id,
+            project_id,
+            side,
+            agent_id,
+            group_id,
+        )
     elif conv.agent_id is None and is_llm_side:
         agent_id = await _find_agent_for_owner(db, owner_id)
         if agent_id:
@@ -114,14 +140,20 @@ async def _get_or_create_arma_conversation(
 async def _find_agent_for_owner(db: AsyncSession, owner_id: int) -> int | None:
     """Find the first usable agent for this user (default first, then any)."""
     from backend.app.agent.crud.crud_agent import agent_dao
+
     default_agent = await agent_dao.get_default(db, owner_id)
     if default_agent:
         return default_agent.id
     from backend.app.agent.model.agent import Agent
-    stmt = sa_select(Agent.id).where(
-        Agent.user_id == owner_id,
-        Agent.del_flag == False,  # noqa: E712
-    ).limit(1)
+
+    stmt = (
+        sa_select(Agent.id)
+        .where(
+            Agent.user_id == owner_id,
+            Agent.del_flag == False,  # ruff: ignore[true-false-comparison]
+        )
+        .limit(1)
+    )
     result = await db.execute(stmt)
     row = result.scalar_one_or_none()
     return row
@@ -134,7 +166,7 @@ async def _get_pending_web_messages(db: AsyncSession, conversation_id: int, limi
         .where(
             Message.conversation_id == conversation_id,
             Message.role == 'user',
-            Message.del_flag == False,  # noqa: E712
+            Message.del_flag == False,  # ruff: ignore[true-false-comparison]
         )
         .order_by(Message.created_time.desc())
         .limit(limit)
@@ -195,20 +227,22 @@ def _extract_all_known_enemies(groups: list[dict]) -> list[dict]:
         enemies = g.get('known_enemies', [])
         if not isinstance(enemies, list):
             continue
-        for e in enemies:
-            result.append({
+        result.extend(
+            {
                 'observer_group_id': group_id,
                 'observer_faction': faction,
                 **e,
-            })
+            }
+            for e in enemies
+        )
     return result
 
 
 @router.post('/command', response_model=CommandResponse)
 async def submit_situation_report(
     raw_request: Request,
-    db: AsyncSession = Depends(get_db),
-    api_key: str = Depends(_resolve_api_key),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    api_key: Annotated[str, Depends(_resolve_api_key)],
 ):
     """
     Submit a battlefield situation report and receive pending orders + config.
@@ -242,16 +276,23 @@ async def submit_situation_report(
 
     llm_faction_set = {s['faction'] for s in llm_sides}
     cfg_group_id = arma_config.conversation_group_id if arma_config else None
+    side_convs = []
     for side_cfg in sides:
-        await _get_or_create_arma_conversation(
-            db, project.id, project.owner_id, side=side_cfg['faction'],
+        conv = await _get_or_create_arma_conversation(
+            db,
+            project.id,
+            project.owner_id,
+            side=side_cfg['faction'],
             is_llm_side=side_cfg['faction'] in llm_faction_set,
             group_id=cfg_group_id,
         )
+        side_convs.append(conv)
 
     primary_side = llm_sides[0]['faction'] if llm_sides else (sides[0]['faction'] if sides else None)
     primary_conv = await _get_or_create_arma_conversation(
-        db, project.id, project.owner_id,
+        db,
+        project.id,
+        project.owner_id,
         side=primary_side,
         is_llm_side=primary_side in llm_faction_set if primary_side else False,
         group_id=cfg_group_id,
@@ -259,6 +300,8 @@ async def submit_situation_report(
     conversation_id = str(primary_conv.id)
 
     if is_init:
+        conv_ids = list({c.id for c in side_convs} | {primary_conv.id})
+        await _reset_previous_session(db, project.id, conv_ids)
         await db.commit()
         return CommandResponse(
             ack=True,
@@ -305,7 +348,10 @@ async def submit_situation_report(
     all_web_messages: list[dict] = []
     for side_cfg in llm_sides:
         conv = await _get_or_create_arma_conversation(
-            db, project.id, project.owner_id, side=side_cfg['faction'],
+            db,
+            project.id,
+            project.owner_id,
+            side=side_cfg['faction'],
             is_llm_side=True,
             group_id=cfg_group_id,
         )
@@ -316,7 +362,10 @@ async def submit_situation_report(
         for side_cfg in llm_sides:
             faction = side_cfg['faction']
             conv = await _get_or_create_arma_conversation(
-                db, project.id, project.owner_id, side=faction,
+                db,
+                project.id,
+                project.owner_id,
+                side=faction,
                 is_llm_side=True,
                 group_id=cfg_group_id,
             )

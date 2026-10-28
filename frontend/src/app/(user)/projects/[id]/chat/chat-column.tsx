@@ -88,6 +88,8 @@ export function ChatColumn({ pid, conversationId, title, showTitle = false, comp
     staleTime: 30_000,
   })
 
+  const isArmaConv = readonly ? externalSource === 'arma' : convDetail?.source === 'arma'
+
   const { data: agentsList } = useQuery({
     queryKey: ['agents-conv-settings'],
     queryFn: () => api.get<PageData<{ id: number; name: string; model_name?: string | null }>>('/agents'),
@@ -242,17 +244,24 @@ export function ChatColumn({ pid, conversationId, title, showTitle = false, comp
     async (cid: number | string) => {
       try {
         const lastId = lastMsgIdRef.current
-        if (!lastId) return
+        if (!lastId) {
+          await loadMessages(cid)
+          return
+        }
         const data = await api.get<PageData<Message>>(
           `/projects/${pid}/conversations/${cid}/messages?size=100&after=${lastId}`,
         )
         const newItems = data.items || []
         if (newItems.length > 0) {
-          setMessages(prev => [...prev, ...newItems])
+          setMessages(prev => {
+            const existingIds = new Set(prev.map(m => m.id))
+            const filtered = newItems.filter(m => !existingIds.has(m.id))
+            return filtered.length > 0 ? [...prev, ...filtered] : prev
+          })
         }
       } catch { /* silent */ }
     },
-    [api, pid],
+    [api, pid, loadMessages],
   )
 
   const loadOlderMessages = useCallback(
@@ -294,16 +303,31 @@ export function ChatColumn({ pid, conversationId, title, showTitle = false, comp
     }
   }, [convId, loadMessages, readonly])
 
-  useEffect(() => {
-    if (readonly || !convId) return
+  const isArmaConversation = useMemo(() => {
+    if (isArmaConv || convDetail?.source === 'arma') return true
     const convs = queryClient.getQueryData<PageData<{ id: number; source?: string }>>(['conversations', pid])
     const conv = convs?.items?.find((c) => String(c.id) === String(convId))
-    if (conv?.source !== 'arma') return
+    return conv?.source === 'arma'
+  }, [isArmaConv, convDetail?.source, queryClient, pid, convId])
+
+  useEffect(() => {
+    if (readonly || !convId || !isArmaConversation) return
     const timer = setInterval(() => {
       pollNewMessages(convId)
-    }, 10_000)
-    return () => clearInterval(timer)
-  }, [convId, queryClient, pid, pollNewMessages, readonly])
+    }, 3_000)
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        pollNewMessages(convId)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [convId, isArmaConversation, pollNewMessages, readonly])
 
   useEffect(() => {
     if (readonly || !convId || !streamState) return
@@ -567,7 +591,6 @@ export function ChatColumn({ pid, conversationId, title, showTitle = false, comp
     return null
   }
 
-  const isArmaConv = readonly ? externalSource === 'arma' : convDetail?.source === 'arma'
   const displayTitle = title || convDetail?.title || t('chat.untitled')
 
   const handleSettingsUpdated = useCallback(() => {

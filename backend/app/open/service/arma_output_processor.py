@@ -55,15 +55,44 @@ def _try_parse_json(text: str) -> dict | None:
             return result
     except (json.JSONDecodeError, TypeError):
         pass
+
+    # Repair common LLM JSON syntax defects:
+    repaired = text
+
+    # Defect A: Missing closing bracket ']' on 'orders' array before root keys
+    # e.g.: ..., {"pos": [x,y,z]}]}, "briefing": ... instead of ...]}]}, "briefing": ...
+    repaired = re.sub(
+        r'(\}\s*),\s*"(briefing|assessment|priority_targets)"',
+        r'\1], "\2"',
+        repaired,
+    )
+
+    # Defect B: Trailing comma before closing brackets or braces
+    repaired = re.sub(r',\s*([\]\}])', r'\1', repaired)
+
+    try:
+        result = json.loads(repaired)
+        if isinstance(result, dict):
+            return result
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # Defect C: Unclosed root object
+    if not repaired.rstrip().endswith('}'):
+        try:
+            result = json.loads(repaired.rstrip() + '}')
+            if isinstance(result, dict):
+                return result
+        except (json.JSONDecodeError, TypeError):
+            pass
+
     return None
 
 
 def _has_valid_orders(data: dict) -> bool:
     """Check if parsed JSON has a meaningful orders list."""
     orders = data.get('orders')
-    if not isinstance(orders, list):
-        return False
-    return True
+    return isinstance(orders, list)
 
 
 def _normalize(data: dict, full_text: str) -> dict:
