@@ -202,6 +202,9 @@ export function LLMProvidersPage({ embedded, addDialogOpen, onAddDialogOpenChang
     return presets[idx] ?? null
   }, [selectedPreset, presets])
 
+  const isClaudeSdkPreset = activePreset?.provider_type === 'claude_sdk'
+  const isClaudeSdkEdit = editTarget?.provider_type === 'claude_sdk'
+
   useEffect(() => {
     if (activePreset) {
       setApiBase(activePreset.api_base)
@@ -251,8 +254,8 @@ export function LLMProvidersPage({ embedded, addDialogOpen, onAddDialogOpenChang
     return {
       name,
       provider_type: activePreset?.provider_type || '',
-      api_base: apiBase || undefined,
-      api_key: apiKey || undefined,
+      api_base: isClaudeSdkPreset ? undefined : apiBase || undefined,
+      api_key: isClaudeSdkPreset ? undefined : apiKey || undefined,
       models: createModels.length > 0 ? createModels.map((m) => ({ name: m.name, verified_at: m.verified_at, verified_ok: m.verified_ok })) : undefined,
       rpm_limit: rpmEl?.value ? parseInt(rpmEl.value, 10) : undefined,
       tpm_limit: tpmEl?.value ? parseInt(tpmEl.value, 10) : undefined,
@@ -440,8 +443,8 @@ export function LLMProvidersPage({ embedded, addDialogOpen, onAddDialogOpenChang
   async function handleEditVerify(modelName: string) {
     if (!editTarget) return
     const body: Record<string, unknown> = { name: editName }
-    if (editApiBase) body.api_base = editApiBase
-    if (editApiKey) body.api_key = editApiKey
+    if (editApiBase && !isClaudeSdkEdit) body.api_base = editApiBase
+    if (editApiKey && !isClaudeSdkEdit) body.api_key = editApiKey
     body.models = editModels.length > 0
       ? editModels.map((m) => ({ name: m.name, verified_at: m.verified_at, verified_ok: m.verified_ok }))
       : null
@@ -463,8 +466,8 @@ export function LLMProvidersPage({ embedded, addDialogOpen, onAddDialogOpenChang
     setFetchingModels(true)
 
     const body: Record<string, unknown> = { name: editName }
-    if (editApiBase) body.api_base = editApiBase
-    if (editApiKey) body.api_key = editApiKey
+    if (editApiBase && !isClaudeSdkEdit) body.api_base = editApiBase
+    if (editApiKey && !isClaudeSdkEdit) body.api_key = editApiKey
     body.models = editModels.length > 0
       ? editModels.map((m) => ({ name: m.name, verified_at: m.verified_at, verified_ok: m.verified_ok }))
       : null
@@ -611,19 +614,25 @@ export function LLMProvidersPage({ embedded, addDialogOpen, onAddDialogOpenChang
                 <Label htmlFor="name">{t('llm.providerName')}</Label>
                 <Input ref={nameRef} id="name" name="name" required placeholder={t('llm.namePlaceholder')} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="api_base">{t('llm.apiBase')}</Label>
-                <Input
-                  id="api_base"
-                  value={apiBase}
-                  onChange={(e) => setApiBase(e.target.value)}
-                  placeholder={t('llm.apiBasePlaceholder')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create_api_key">{t('llm.apiKey')}</Label>
-                <Input id="create_api_key" type="password" placeholder="sk-..." />
-              </div>
+              {isClaudeSdkPreset ? (
+                <p className="text-sm text-muted-foreground">{t('llm.claudeSdkHint')}</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="api_base">{t('llm.apiBase')}</Label>
+                    <Input
+                      id="api_base"
+                      value={apiBase}
+                      onChange={(e) => setApiBase(e.target.value)}
+                      placeholder={t('llm.apiBasePlaceholder')}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="create_api_key">{t('llm.apiKey')}</Label>
+                    <Input id="create_api_key" type="password" placeholder="sk-..." />
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -751,8 +760,8 @@ export function LLMProvidersPage({ embedded, addDialogOpen, onAddDialogOpenChang
               e.preventDefault()
               if (!editTarget) return
               const body: Record<string, unknown> = { name: editName }
-              if (editApiBase) body.api_base = editApiBase
-              if (editApiKey) body.api_key = editApiKey
+              if (editApiBase && !isClaudeSdkEdit) body.api_base = editApiBase
+              if (editApiKey && !isClaudeSdkEdit) body.api_key = editApiKey
               body.models = editModels.length > 0 ? editModels.map((m) => ({ name: m.name, verified_at: m.verified_at, verified_ok: m.verified_ok })) : null
               body.rpm_limit = editRpm ? parseInt(editRpm, 10) : null
               body.tpm_limit = editTpm ? parseInt(editTpm, 10) : null
@@ -764,23 +773,29 @@ export function LLMProvidersPage({ embedded, addDialogOpen, onAddDialogOpenChang
               <Label>{t('llm.providerName')}</Label>
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} required />
             </div>
-            <div className="space-y-2">
-              <Label>{t('llm.apiBase')}</Label>
-              <Input
-                value={editApiBase}
-                onChange={(e) => setEditApiBase(e.target.value)}
-                placeholder={t('llm.apiBasePlaceholder')}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('llm.apiKey')}</Label>
-              <Input
-                type="password"
-                value={editApiKey}
-                onChange={(e) => setEditApiKey(e.target.value)}
-                placeholder={editTarget?.api_key_masked || 'sk-...'}
-              />
-            </div>
+            {isClaudeSdkEdit ? (
+              <p className="text-sm text-muted-foreground">{t('llm.claudeSdkHint')}</p>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>{t('llm.apiBase')}</Label>
+                  <Input
+                    value={editApiBase}
+                    onChange={(e) => setEditApiBase(e.target.value)}
+                    placeholder={t('llm.apiBasePlaceholder')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('llm.apiKey')}</Label>
+                  <Input
+                    type="password"
+                    value={editApiKey}
+                    onChange={(e) => setEditApiKey(e.target.value)}
+                    placeholder={editTarget?.api_key_masked || 'sk-...'}
+                  />
+                </div>
+              </>
+            )}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>{t('llm.modelList')}</Label>

@@ -815,6 +815,7 @@
     "apiBase": "URL base de la API",
     "apiBasePlaceholder": "https://api.openai.com/v1 (opcional)",
     "apiKey": "API Key",
+    "claudeSdkHint": "Usa su suscripción de Claude mediante el SDK de Claude Agent. Ejecute `claude login` en la máquina donde corre el worker del backend. No se necesita clave de API ni URL base.",
     "adding": "Añadiendo...",
     "add": "Añadir",
     "added": "Proveedor añadido",
