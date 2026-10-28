@@ -5,6 +5,7 @@ import time
 
 from collections import deque
 from collections.abc import AsyncGenerator, Generator
+from typing import Any
 
 import litellm
 
@@ -101,9 +102,21 @@ async def acompletion(
     provider_id: int | None = None,
     rpm_limit: int | None = None,
     **kwargs,
-):
+) -> Any:
     """Asynchronous LLM call interface, automatically respects RPM rate limiting."""
     await _wait_for_rpm(provider_id, rpm_limit)
+
+    if provider_type == 'claude_sdk':
+        from backend.app.conversation.engine.claude_sdk import claude_sdk_completion
+
+        return await claude_sdk_completion(
+            model_name=model_name,
+            messages=messages,
+            stream=stream,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
 
     api_key = _decrypt_api_key(api_key_encrypted) if api_key_encrypted else None
     model = _build_model_string(provider_type, model_name)
