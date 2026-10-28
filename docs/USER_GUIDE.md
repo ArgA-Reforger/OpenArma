@@ -35,6 +35,15 @@ OpenArma utiliza LiteLLM para soportar múltiples proveedores comerciales y loca
    - **Locales/Auto-hospedados:** Ollama, vLLM, LocalAI (ingresando la URL base, ej: `http://localhost:11434`).
 4. Ingresa tu **API Key** y selecciona los modelos a habilitar (ej. `gpt-4o`, `deepseek-chat`, `claude-3-5-sonnet`).
 
+**Alternativa: Claude con tu suscripción (`Claude (Subscription)`)**
+Este proveedor usa el SDK de Claude Agent con tu suscripción de Claude, sin API Key ni URL base:
+- **Requisito:** el CLI de Claude Code debe estar instalado y con la sesión iniciada (`claude login`) en la misma máquina y con el mismo usuario que ejecutan el backend y el worker de Celery. No funciona en contenedores sin esa sesión.
+- **Modelos:** el botón de descarga de modelos consulta al SDK (no consume mensajes). Los preconfigurados son `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5` y `claude-fable-5-1`.
+- **Verificar:** el botón de verificación envía una consulta mínima real y consume un poco de tu cuota.
+- **Límites:** `temperature`, `top_p`, penalizaciones y `max_tokens` se ignoran (el log lo avisa una vez). Las herramientas (Tools) del agente no se ejecutan con este proveedor.
+- **Variables opcionales en `backend/.env`:** `CLAUDE_SDK_THINK` (por defecto `false`), `CLAUDE_SDK_EFFORT` (`low`, `medium`, `high`, `xhigh` o `max`; sin definir deja que decida el SDK) y `CLAUDE_SDK_TIMEOUT_SECONDS` (por defecto `300`). Reinicia el backend y el worker tras cambiarlas.
+- **Latencia y cuota:** cada consulta arranca el CLI de Claude (unos 2,5 s de arranque). Un ciclo del comandante consume la ventana de uso de tu suscripción; revisa que los términos de tu plan permitan este uso automatizado.
+
 #### Paso 2.2: Configurar Comandantes de IA (`/agents`)
 1. Ve a **Agentes** en el menú lateral.
 2. Crea un nuevo agente o selecciona uno existente para personalizarlo:
@@ -135,6 +144,15 @@ Once OpenArma is running (backend at `http://localhost:28000` and frontend at `h
 2. Click **New Provider** (or edit preconfigured providers).
 3. Select your provider (OpenAI, Anthropic, Gemini, DeepSeek, or local Ollama / vLLM).
 4. Enter your **API Key** and enable target models (e.g. `gpt-4o`, `deepseek-chat`).
+
+**Alternative: Claude on your subscription (`Claude (Subscription)`)**
+This provider uses the Claude Agent SDK with your Claude subscription, with no API key or base URL:
+- **Requirement:** the Claude Code CLI must be installed and logged in (`claude login`) on the same machine and user that run the backend and the Celery worker. It does not work in containers without that session.
+- **Models:** the fetch-models button asks the SDK (it sends no prompt). The presets are `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5` and `claude-fable-5-1`.
+- **Verify:** the verify button sends one tiny real query and uses a little of your quota.
+- **Limits:** `temperature`, `top_p`, penalties and `max_tokens` are ignored (the log warns once). Agent Tools are not executed with this provider.
+- **Optional variables in `backend/.env`:** `CLAUDE_SDK_THINK` (default `false`), `CLAUDE_SDK_EFFORT` (`low`, `medium`, `high`, `xhigh` or `max`; unset lets the SDK decide) and `CLAUDE_SDK_TIMEOUT_SECONDS` (default `300`). Restart the backend and the worker after changing them.
+- **Latency and quota:** every query starts the Claude CLI (about 2.5 s of startup). A commander cycle consumes your subscription usage window; check that your plan's terms allow this automated use.
 
 #### Step 2.2: Configure AI Commanders (`/agents`)
 1. Navigate to **Agents** in the sidebar.
