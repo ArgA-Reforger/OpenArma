@@ -10,9 +10,9 @@ Supported node types:
 """
 
 import asyncio
-import json
 import logging
 import time
+
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any
@@ -24,11 +24,8 @@ from backend.app.conversation.engine.graph import (
     ConversationState,
     _agent_llm_with_tool_loop,
     _build_messages_for_agent,
-    _build_openai_tools,
     _execute_tool_call,
     _push_event,
-    agent_node,
-    tool_node,
 )
 from backend.app.conversation.engine.llm import acompletion
 
@@ -53,7 +50,7 @@ class TopologyEdge:
 
 
 class TopologyValidationError(Exception):
-    def __init__(self, errors: list[str]):
+    def __init__(self, errors: list[str]) -> None:
         self.errors = errors
         super().__init__(f'Topology validation failed: {"; ".join(errors)}')
 
@@ -133,7 +130,7 @@ def validate_topology(topology: dict) -> list[str]:
 
 
 def _is_dag(node_ids: set[str], edges: list[dict]) -> bool:
-    in_degree: dict[str, int] = {nid: 0 for nid in node_ids}
+    in_degree: dict[str, int] = dict.fromkeys(node_ids, 0)
     adj: dict[str, list[str]] = {nid: [] for nid in node_ids}
 
     for e in edges:
@@ -388,6 +385,7 @@ def _make_dag_coordinator_node(
                 stream_options={'include_usage': True},
                 provider_id=cfg.llm_provider_id,
                 rpm_limit=cfg.rpm_limit,
+                **({'think': cfg.think, 'effort': cfg.effort} if cfg.provider_type == 'claude_sdk' else {}),
             )
 
             async for chunk in response:
@@ -427,6 +425,7 @@ def _make_dag_coordinator_node(
                     stream=False,
                     provider_id=cfg.llm_provider_id,
                     rpm_limit=cfg.rpm_limit,
+                    **({'think': cfg.think, 'effort': cfg.effort} if cfg.provider_type == 'claude_sdk' else {}),
                 )
                 content = fallback.choices[0].message.content or ''
                 if content:
@@ -518,6 +517,7 @@ def _make_dag_condition_node(
                 max_tokens=50,
                 provider_id=cfg.llm_provider_id,
                 rpm_limit=cfg.rpm_limit,
+                **({'think': cfg.think, 'effort': cfg.effort} if cfg.provider_type == 'claude_sdk' else {}),
             )
             chosen = (response.choices[0].message.content or '').strip()
             if chosen not in downstream:
@@ -621,7 +621,7 @@ def build_dag_graph(
     nodes, edges = parse_topology(topology)
     topo_order = _topological_sort(nodes, edges)
 
-    node_map = {n.id: n for n in nodes}
+    {n.id: n for n in nodes}
     agent_config_map = {cfg['agent_id']: cfg for cfg in agent_configs}
 
     adj: dict[str, list[str]] = defaultdict(list)

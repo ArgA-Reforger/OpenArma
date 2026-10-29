@@ -75,6 +75,8 @@ class ChatService:
             'tpm_limit': provider.tpm_limit,
             'builtin_tool_handlers': builtin_handlers,
             'enable_sub_agents': bool(agent.enable_sub_agents),
+            'think': agent.think,
+            'effort': agent.effort,
         }
 
     @staticmethod
@@ -366,6 +368,8 @@ class ChatService:
                 'api_base': agent_configs[0].get('api_base'),
                 'api_key_encrypted': agent_configs[0].get('api_key_encrypted'),
                 'model_name': agent_configs[0]['model_name'],
+                'think': agent_configs[0].get('think'),
+                'effort': agent_configs[0].get('effort'),
             }
             history = await ChatService._get_history_messages(
                 db,
@@ -426,6 +430,8 @@ class ChatService:
                 max_tokens=cfg.max_tokens,
                 presence_penalty=cfg.presence_penalty,
                 frequency_penalty=cfg.frequency_penalty,
+                think=cfg.think,
+                effort=cfg.effort,
                 llm_provider_id=cfg.llm_provider_id,
                 rpm_limit=cfg.rpm_limit,
                 tpm_limit=cfg.tpm_limit,
@@ -755,6 +761,7 @@ class ChatService:
                 messages=prompt_messages,
                 temperature=0.3,
                 max_tokens=50,
+                **({'think': cfg['think'], 'effort': cfg['effort']} if cfg['provider_type'] == 'claude_sdk' else {}),
             )
             title = (response.choices[0].message.content or '').strip().strip('"\'')
             if not title:

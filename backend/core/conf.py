@@ -294,6 +294,11 @@ class Settings(BaseSettings):
     WEB_SEARCH_PROVIDER: str = 'auto'
 
     ##################################################
+    # Claude SDK
+    ##################################################
+    CLAUDE_SDK_TIMEOUT_SECONDS: int  # per query, required (e.g. 300 for 5 minutes); think and effort are per agent
+
+    ##################################################
     # [ App ] task
     ##################################################
     # .env Redis

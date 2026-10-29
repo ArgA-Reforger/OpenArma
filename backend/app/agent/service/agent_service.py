@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.agent.crud.crud_agent import agent_dao
 from backend.app.agent.model import Agent
 from backend.app.agent.schema.agent import CreateAgentParam, UpdateAgentParam
+from backend.app.llm.crud.crud_llm_provider import llm_provider_dao
 from backend.common.exception import errors
 from backend.common.pagination import paging_data
 
@@ -23,7 +24,21 @@ class AgentService:
         return await paging_data(db, agent_select)
 
     @staticmethod
+    async def _validate_claude_sdk_settings(
+        *, db: AsyncSession, llm_provider_id: int | None, think: bool | None, effort: str | None
+    ) -> None:
+        """Claude SDK agents must set think and effort explicitly; other providers ignore both"""
+        if llm_provider_id is None:
+            return
+        provider = await llm_provider_dao.get(db, llm_provider_id)
+        if provider and provider.provider_type == 'claude_sdk' and (think is None or effort is None):
+            raise errors.RequestError(msg='think and effort are required for claude_sdk agents')
+
+    @staticmethod
     async def create(*, db: AsyncSession, obj: CreateAgentParam, user_id: int) -> Agent:
+        await AgentService._validate_claude_sdk_settings(
+            db=db, llm_provider_id=obj.llm_provider_id, think=obj.think, effort=obj.effort
+        )
         return await agent_dao.create(db, obj, user_id=user_id)
 
     @staticmethod
@@ -31,6 +46,13 @@ class AgentService:
         agent = await agent_dao.get(db, pk)
         if not agent or agent.user_id != user_id:
             raise errors.NotFoundError(msg='Agent does not exist')
+        changes = obj.model_dump(exclude_unset=True)
+        await AgentService._validate_claude_sdk_settings(
+            db=db,
+            llm_provider_id=changes.get('llm_provider_id', agent.llm_provider_id),
+            think=changes.get('think', agent.think),
+            effort=changes.get('effort', agent.effort),
+        )
         return await agent_dao.update(db, pk, obj)
 
     @staticmethod
@@ -72,6 +94,8 @@ class AgentService:
             visibility='private',
             builtin_tools=source.builtin_tools,
             enable_sub_agents=source.enable_sub_agents,
+            think=source.think,
+            effort=source.effort,
         )
         return await agent_dao.create(db, clone_data, user_id=user_id)
 

@@ -21,6 +21,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { HelpCircle, Copy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useResourceCRUD } from '@/hooks/use-resource-crud'
@@ -30,6 +31,10 @@ import type { EmbeddedProps, PageData, LLMProviderBase } from '@/types/resources
 interface BuiltinToolConfig {
   enabled: boolean
 }
+
+type AgentEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+
+const CLAUDE_SDK_EFFORTS: AgentEffort[] = ['low', 'medium', 'high', 'xhigh', 'max']
 
 interface Agent {
   id: number
@@ -47,6 +52,8 @@ interface Agent {
   visibility: string
   builtin_tools: Record<string, BuiltinToolConfig> | null
   enable_sub_agents: boolean
+  think: boolean | null
+  effort: AgentEffort | null
   created_time: string
 }
 
@@ -128,6 +135,10 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
   const [showEditAdvanced, setShowEditAdvanced] = useState(false)
   const [createParamEnabled, setCreateParamEnabled] = useState<Record<string, boolean>>({})
   const [editParamEnabled, setEditParamEnabled] = useState<Record<string, boolean>>({})
+  const [createThink, setCreateThink] = useState(false)
+  const [editThink, setEditThink] = useState(false)
+  const [createEffort, setCreateEffort] = useState<string>('')
+  const [editEffort, setEditEffort] = useState<string>('')
   const { t } = useI18n()
 
   const {
@@ -142,6 +153,8 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
       setCreateBuiltinTools({})
       setCreateSubAgents(false)
       setCreateRules([])
+      setCreateThink(false)
+      setCreateEffort('')
     },
     onUpdateSuccess: () => {
       setEditOpen(false)
@@ -153,6 +166,9 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
     queryKey: ['llm-providers'],
     queryFn: () => api.get<PageData<LLMProviderBase>>('/llm-providers'),
   })
+
+  const isClaudeSdkProvider = (providerId: string) =>
+    providers?.items?.find((p) => String(p.id) === providerId)?.provider_type === 'claude_sdk'
 
   const { data: builtinTools } = useQuery({
     queryKey: ['builtin-tools-active'],
@@ -173,6 +189,11 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
 
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    const isClaudeSdk = isClaudeSdkProvider(providerType)
+    if (isClaudeSdk && !createEffort) {
+      toast.error(t('agent.effortRequired'))
+      return
+    }
     const fd = new FormData(e.currentTarget)
     const topP = fd.get('top_p') as string
     const maxTokens = fd.get('max_tokens') as string
@@ -194,12 +215,19 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
       visibility: (fd.get('visibility') as string) || 'private',
       builtin_tools: buildBuiltinToolsPayload(createBuiltinTools),
       enable_sub_agents: createSubAgents,
+      think: isClaudeSdk ? createThink : null,
+      effort: isClaudeSdk ? (createEffort as AgentEffort) : null,
     })
   }
 
   function handleEdit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!editingAgent) return
+    const isClaudeSdk = isClaudeSdkProvider(editProviderType)
+    if (isClaudeSdk && !editEffort) {
+      toast.error(t('agent.effortRequired'))
+      return
+    }
     const fd = new FormData(e.currentTarget)
     const topP = fd.get('top_p') as string
     const maxTokens = fd.get('max_tokens') as string
@@ -223,6 +251,8 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
         visibility: (fd.get('visibility') as string) || 'private',
         builtin_tools: buildBuiltinToolsPayload(editBuiltinTools),
         enable_sub_agents: editSubAgents,
+        think: isClaudeSdk ? editThink : null,
+        effort: isClaudeSdk ? (editEffort as AgentEffort) : null,
       },
     })
   }
@@ -238,6 +268,8 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
     }
     setEditBuiltinTools(toggles)
     setEditSubAgents(agent.enable_sub_agents ?? false)
+    setEditThink(agent.think ?? false)
+    setEditEffort(agent.effort ?? '')
     setEditRules(Array.isArray(agent.rules) ? [...agent.rules] : [])
     setEditParamEnabled({
       top_p: agent.top_p != null,
@@ -382,6 +414,36 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
     )
   }
 
+  function renderClaudeSdkOptions(providerId: string, prefix: string, think: boolean, setThink: (v: boolean) => void, effort: string, setEffort: (v: string) => void) {
+    if (!isClaudeSdkProvider(providerId)) return null
+    return (
+      <div className="space-y-3 rounded-md border p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor={`${prefix}-think`}>{t('agent.thinking')}</Label>
+            <p className="text-xs text-muted-foreground">{t('agent.thinkingHelp')}</p>
+          </div>
+          <Switch id={`${prefix}-think`} checked={think} onCheckedChange={setThink} />
+        </div>
+        <div className="space-y-2">
+          <Label>{t('agent.effort')}</Label>
+          <Select value={effort} onValueChange={setEffort}>
+            <SelectTrigger>
+              <SelectValue placeholder={t('agent.selectEffort')} />
+            </SelectTrigger>
+            <SelectContent>
+              {CLAUDE_SDK_EFFORTS.map((level) => (
+                <SelectItem key={level} value={level}>{level}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">{t('agent.effortHelp')}</p>
+          {!effort && <p className="text-xs text-destructive">{t('agent.effortRequired')}</p>}
+        </div>
+      </div>
+    )
+  }
+
   function renderSubAgentsToggle(checked: boolean, onChange: (v: boolean) => void) {
     return (
       <div className="flex items-center justify-between rounded-md border p-3">
@@ -424,6 +486,7 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
               </div>
               {renderRulesSection(createRules, setCreateRules)}
               {renderProviderModelSelects(providerType, setProviderType)}
+              {renderClaudeSdkOptions(providerType, 'c', createThink, setCreateThink, createEffort, setCreateEffort)}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
@@ -448,7 +511,7 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
               {renderAdvancedParams(showAdvanced, setShowAdvanced, createParamEnabled, setCreateParamEnabled, 'c')}
               {renderBuiltinToolsSection(createBuiltinTools, setCreateBuiltinTools)}
               {renderSubAgentsToggle(createSubAgents, setCreateSubAgents)}
-              <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+              <Button type="submit" className="w-full" disabled={createMutation.isPending || (isClaudeSdkProvider(providerType) && !createEffort)}>
                 {createMutation.isPending ? t('common.loading') : t('common.create')}
               </Button>
             </form>
@@ -476,6 +539,7 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
               </div>
               {renderRulesSection(editRules, setEditRules)}
               {renderProviderModelSelects(editProviderType, setEditProviderType, editingAgent.model_name)}
+              {renderClaudeSdkOptions(editProviderType, 'e', editThink, setEditThink, editEffort, setEditEffort)}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
@@ -501,7 +565,7 @@ export function AgentsPage({ embedded, addDialogOpen, onAddDialogOpenChange }: E
               {renderBuiltinToolsSection(editBuiltinTools, setEditBuiltinTools)}
               {renderSubAgentsToggle(editSubAgents, setEditSubAgents)}
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1" disabled={updateMutation.isPending}>
+                <Button type="submit" className="flex-1" disabled={updateMutation.isPending || (isClaudeSdkProvider(editProviderType) && !editEffort)}>
                   {updateMutation.isPending ? t('common.saving') : t('common.save')}
                 </Button>
                 <Button type="button" variant="destructive" onClick={() => setDeleteTarget(editingAgent)}>

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import ConfigDict, Field
 
@@ -23,6 +24,10 @@ class AgentSchemaBase(SchemaBase):
     visibility: str = Field('private', description='Visibility private/public/official')
     builtin_tools: dict | None = Field(None, description='Builtin tools configuration')
     enable_sub_agents: bool = Field(False, description='Allow dynamic sub-agent generation')
+    think: bool | None = Field(None, description='Claude SDK thinking switch, required for claude_sdk')
+    effort: Literal['low', 'medium', 'high', 'xhigh', 'max'] | None = Field(
+        None, description='Claude SDK effort level, required for claude_sdk'
+    )
 
 
 class CreateAgentParam(AgentSchemaBase):
@@ -47,6 +52,10 @@ class UpdateAgentParam(SchemaBase):
     visibility: str | None = Field(None, description='Visibility private/public/official')
     builtin_tools: dict | None = Field(None, description='Builtin tools configuration')
     enable_sub_agents: bool | None = Field(None, description='Allow dynamic sub-agent generation')
+    think: bool | None = Field(None, description='Claude SDK thinking switch, required for claude_sdk')
+    effort: Literal['low', 'medium', 'high', 'xhigh', 'max'] | None = Field(
+        None, description='Claude SDK effort level, required for claude_sdk'
+    )
 
 
 class GetAgentDetail(AgentSchemaBase):

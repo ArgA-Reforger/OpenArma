@@ -1,5 +1,7 @@
 import sqlalchemy as sa
+
 from sqlalchemy.orm import Mapped, mapped_column
+
 from backend.common.model import Base, SoftDeleteMixin, UniversalText, id_key
 
 
@@ -29,3 +31,5 @@ class Agent(Base, SoftDeleteMixin):
     enable_sub_agents: Mapped[bool] = mapped_column(
         sa.Boolean, default=False, comment='Allow dynamic sub-agent generation'
     )
+    think: Mapped[bool | None] = mapped_column(sa.Boolean, default=None, comment='Claude SDK thinking switch')
+    effort: Mapped[str | None] = mapped_column(sa.String(16), default=None, comment='Claude SDK effort level')

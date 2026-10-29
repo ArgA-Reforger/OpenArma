@@ -106,6 +106,46 @@ LLM_PRESETS: list[dict] = [
         ],
     },
     {
+        'provider_type': 'claude_sdk',
+        'label': 'Claude (Subscription)',
+        'api_base': '',
+        'currency': 'USD',
+        'models': [
+            {
+                'name': 'claude-haiku-5-5',
+                'label': 'Claude Haiku 5.5',
+                'context_length': 200000,
+                'input_price': 0,
+                'cached_input_price': 0,
+                'output_price': 0,
+            },
+            {
+                'name': 'claude-sonnet-5-5',
+                'label': 'Claude Sonnet 5.5',
+                'context_length': 200000,
+                'input_price': 0,
+                'cached_input_price': 0,
+                'output_price': 0,
+            },
+            {
+                'name': 'claude-opus-5-5',
+                'label': 'Claude Opus 5.5',
+                'context_length': 200000,
+                'input_price': 0,
+                'cached_input_price': 0,
+                'output_price': 0,
+            },
+            {
+                'name': 'claude-fable-5-1',
+                'label': 'Claude Fable 5.1',
+                'context_length': 200000,
+                'input_price': 0,
+                'cached_input_price': 0,
+                'output_price': 0,
+            },
+        ],
+    },
+    {
         'provider_type': 'openai_compatible',
         'label': 'Google Gemini (OpenAI Compatible)',
         'api_base': 'https://generativelanguage.googleapis.com/v1beta/openai/',
@@ -302,7 +342,7 @@ def get_pricing_map() -> dict[str, dict]:
     result: dict[str, dict] = {}
     for preset in LLM_PRESETS:
         for model in preset['models']:
-            key = f"{preset['provider_type']}:{model['name']}"
+            key = f'{preset["provider_type"]}:{model["name"]}'
             result[key] = {
                 'input_price': model['input_price'],
                 'cached_input_price': model.get('cached_input_price', model['input_price'] * 0.5),
