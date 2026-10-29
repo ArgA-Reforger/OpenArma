@@ -120,6 +120,8 @@ class Settings(BaseSettings):
 
     # Login
     LOGIN_CAPTCHA_ENABLED: bool = True
+    LOGIN_PASSWORD_BYPASS: bool = False  # DEV ONLY: skip the password and captcha checks and auto-login
+    LOGIN_PASSWORD_BYPASS_USERNAME: str = 'admin'  # user the login page signs in as when the bypass is on
     LOGIN_CAPTCHA_REDIS_PREFIX: str = 'fba:login:captcha'
     LOGIN_CAPTCHA_EXPIRE_SECONDS: int = 60 * 5  # 5 minutes
     LOGIN_FAILURE_PREFIX: str = 'fba:login:failure'

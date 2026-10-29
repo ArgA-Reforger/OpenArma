@@ -31,9 +31,10 @@ async def get_captcha(db: CurrentSession) -> ResponseSchemaModel[GetCaptchaDetai
         ex=settings.LOGIN_CAPTCHA_EXPIRE_SECONDS,
     )
     data = GetCaptchaDetail(
-        is_enabled=settings.LOGIN_CAPTCHA_ENABLED,
+        is_enabled=settings.LOGIN_CAPTCHA_ENABLED and not settings.LOGIN_PASSWORD_BYPASS,
         expire_seconds=settings.LOGIN_CAPTCHA_EXPIRE_SECONDS,
         uuid=captcha_uuid,
         image=img,
+        bypass_username=settings.LOGIN_PASSWORD_BYPASS_USERNAME if settings.LOGIN_PASSWORD_BYPASS else None,
     )
     return response_base.success(data=data)

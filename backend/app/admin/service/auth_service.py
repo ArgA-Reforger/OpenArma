@@ -50,7 +50,9 @@ class AuthService:
 
         await password_security_service.check_status(user.id, user.status)
 
-        if user.password is None or not password_verify(password, user.password):
+        if settings.LOGIN_PASSWORD_BYPASS:
+            log.warning(f'LOGIN_PASSWORD_BYPASS is enabled: password check skipped for {username}')
+        elif user.password is None or not password_verify(password, user.password):
             await password_security_service.handle_login_failure(db, user.id)
             raise errors.AuthorizationError(msg='Incorrect username or password')
 
@@ -100,7 +102,7 @@ class AuthService:
         user = None
         try:
             await load_login_config(db)
-            if settings.LOGIN_CAPTCHA_ENABLED:
+            if settings.LOGIN_CAPTCHA_ENABLED and not settings.LOGIN_PASSWORD_BYPASS:
                 if not obj.uuid or not obj.captcha:
                     raise errors.RequestError(msg=t('error.captcha.invalid'))
                 captcha_code = await redis_client.get(f'{settings.LOGIN_CAPTCHA_REDIS_PREFIX}:{obj.uuid}')
