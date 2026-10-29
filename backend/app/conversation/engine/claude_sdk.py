@@ -1,11 +1,12 @@
 """Claude Agent SDK provider: runs single-turn Claude queries behind a LiteLLM-shaped interface."""
 
 import asyncio
+import sys
 
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, TypeVar, cast
 
 from claude_agent_sdk import (
     AssistantMessage,
@@ -22,6 +23,8 @@ from claude_agent_sdk import (
 
 from backend.common.log import log
 from backend.core.conf import settings
+
+_T = TypeVar('_T')
 
 RATE_LIMIT_ASSISTANT_ERROR = 'rate_limit'
 RATE_LIMIT_HTTP_STATUS = 429
@@ -96,18 +99,45 @@ async def claude_sdk_completion(
     _warn_ignored_parameters(ignored)
     system_prompt, prompt = build_claude_prompt(messages)
     timeout_seconds = settings.CLAUDE_SDK_TIMEOUT_SECONDS
-    try:
-        text, result_usage = await asyncio.wait_for(
-            _query_text(model_name=model_name, system_prompt=system_prompt, prompt=prompt, think=think, effort=effort),
-            timeout=timeout_seconds,
-        )
-    except asyncio.TimeoutError as exception:
-        raise ClaudeSdkError(f'Claude query exceeded the timeout of {timeout_seconds}s') from exception
+
+    async def run_query() -> tuple[str, dict[str, Any]]:
+        try:
+            return await asyncio.wait_for(
+                _query_text(
+                    model_name=model_name, system_prompt=system_prompt, prompt=prompt, think=think, effort=effort
+                ),
+                timeout=timeout_seconds,
+            )
+        except asyncio.TimeoutError as exception:
+            raise ClaudeSdkError(f'Claude query exceeded the timeout of {timeout_seconds}s') from exception
+
+    text, result_usage = await _run_with_subprocess_support(run_query)
 
     usage = _build_usage(result_usage)
     if stream:
         return _stream_chunks(text=text, usage=usage)
     return _non_stream_response(text=text, usage=usage)
+
+
+async def _run_with_subprocess_support(run: Callable[[], Awaitable[_T]]) -> _T:
+    """
+    Run a coroutine on a loop that can spawn the Claude CLI subprocess
+
+    On Windows the Celery CLI loads the flower plugin, which switches the process to the selector event loop
+    policy, and selector loops cannot start subprocesses. In that case the coroutine runs on a Proactor loop
+    in a worker thread. Everywhere else it runs on the current loop.
+    """
+    if sys.platform != 'win32' or isinstance(asyncio.get_running_loop(), asyncio.ProactorEventLoop):
+        return await run()
+
+    def run_on_proactor_loop() -> _T:
+        loop = asyncio.ProactorEventLoop()
+        try:
+            return loop.run_until_complete(run())
+        finally:
+            loop.close()
+
+    return await asyncio.get_running_loop().run_in_executor(None, run_on_proactor_loop)
 
 
 async def list_claude_models() -> list[str]:
