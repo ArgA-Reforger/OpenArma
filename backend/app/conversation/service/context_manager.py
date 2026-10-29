@@ -158,6 +158,11 @@ async def _generate_summary(
             messages=messages,
             temperature=0.3,
             max_tokens=600,
+            **(
+                {'think': llm_config.get('think'), 'effort': llm_config.get('effort')}
+                if llm_config['provider_type'] == 'claude_sdk'
+                else {}
+            ),
         )
         summary = (response.choices[0].message.content or '').strip()
         if summary:

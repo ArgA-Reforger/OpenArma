@@ -296,9 +296,7 @@ class Settings(BaseSettings):
     ##################################################
     # Claude SDK
     ##################################################
-    CLAUDE_SDK_THINK: bool = False  # enable model thinking; False sends thinking disabled
-    CLAUDE_SDK_EFFORT: Literal['low', 'medium', 'high', 'xhigh', 'max'] | None = None  # unset lets the SDK decide
-    CLAUDE_SDK_TIMEOUT_SECONDS: int = 300  # per query, 5 minutes
+    CLAUDE_SDK_TIMEOUT_SECONDS: int  # per query, required (e.g. 300 for 5 minutes); think and effort are per agent
 
     ##################################################
     # [ App ] task

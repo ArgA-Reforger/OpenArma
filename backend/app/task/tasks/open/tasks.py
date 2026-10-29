@@ -609,6 +609,8 @@ async def process_situation_task(
                     'api_base': agent_configs[0].get('api_base'),
                     'api_key_encrypted': agent_configs[0].get('api_key_encrypted'),
                     'model_name': agent_configs[0]['model_name'],
+                    'think': agent_configs[0].get('think'),
+                    'effort': agent_configs[0].get('effort'),
                 }
                 history = await build_history(
                     db,
@@ -658,6 +660,8 @@ async def process_situation_task(
                     max_tokens=cfg.max_tokens,
                     presence_penalty=cfg.presence_penalty,
                     frequency_penalty=cfg.frequency_penalty,
+                    think=cfg.think,
+                    effort=cfg.effort,
                     llm_provider_id=cfg.llm_provider_id,
                     rpm_limit=cfg.rpm_limit,
                     tpm_limit=cfg.tpm_limit,

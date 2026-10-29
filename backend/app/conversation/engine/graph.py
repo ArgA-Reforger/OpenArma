@@ -69,6 +69,8 @@ class AgentConfig:
     tpm_limit: int | None = None
     builtin_tool_handlers: dict = field(default_factory=dict)
     enable_sub_agents: bool = False
+    think: bool | None = None
+    effort: str | None = None
 
 
 @dataclass
@@ -90,6 +92,8 @@ class ConversationState:
     llm_provider_id: int | None = None
     rpm_limit: int | None = None
     tpm_limit: int | None = None
+    think: bool | None = None
+    effort: str | None = None
 
     history: list[dict] = field(default_factory=list)
     user_input: str = ''
@@ -139,7 +143,10 @@ def _build_system_message_from_parts(system_prompt: str, rules: list[str], rag_c
 
 
 def _optional_llm_params(obj: AgentConfig | ConversationState) -> dict:
-    """Extract optional LLM parameters (top_p, presence_penalty, frequency_penalty) as kwargs."""
+    """Extract optional LLM parameters (top_p, presence_penalty, frequency_penalty) as kwargs.
+
+    think and effort are per-agent settings, sent only to claude_sdk where None is rejected at call time.
+    """
     params: dict = {}
     if obj.top_p is not None:
         params['top_p'] = obj.top_p
@@ -147,6 +154,9 @@ def _optional_llm_params(obj: AgentConfig | ConversationState) -> dict:
         params['presence_penalty'] = obj.presence_penalty
     if obj.frequency_penalty is not None:
         params['frequency_penalty'] = obj.frequency_penalty
+    if obj.provider_type == 'claude_sdk':
+        params['think'] = obj.think
+        params['effort'] = obj.effort
     if obj.provider_type == 'ollama':
         # Ollama defaults num_ctx to whatever the Modelfile declares (often 4096),
         # which is too small for Arma situation reports + history. Ask for more room.
@@ -465,6 +475,8 @@ async def _execute_tool_call(
             top_p=state.top_p,
             presence_penalty=state.presence_penalty,
             frequency_penalty=state.frequency_penalty,
+            think=state.think,
+            effort=state.effort,
         )
         result = await execute_dynamic_sub_agent(parent_cfg, arguments, state)
         _log_tool_call(state, tool_name, 'spawn_agent', arguments, result, int((time.monotonic() - t0) * 1000))
@@ -1208,6 +1220,8 @@ async def execute_dynamic_sub_agent(
         top_p=parent_cfg.top_p,
         presence_penalty=parent_cfg.presence_penalty,
         frequency_penalty=parent_cfg.frequency_penalty,
+        think=parent_cfg.think,
+        effort=parent_cfg.effort,
         llm_provider_id=parent_cfg.llm_provider_id,
         rpm_limit=parent_cfg.rpm_limit,
         tpm_limit=parent_cfg.tpm_limit,

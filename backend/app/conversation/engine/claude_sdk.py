@@ -12,6 +12,7 @@ from claude_agent_sdk import (
     ClaudeAgentOptions,
     ClaudeSDKClient,
     ClaudeSDKError,
+    EffortLevel,
     Message,
     RateLimitEvent,
     ResultMessage,
@@ -72,6 +73,8 @@ async def claude_sdk_completion(
     *,
     model_name: str,
     messages: list[dict],
+    think: bool | None,
+    effort: EffortLevel | None,
     stream: bool = False,
     **ignored: Any,
 ) -> Any:
@@ -80,16 +83,22 @@ async def claude_sdk_completion(
 
     :param model_name: Claude model name, e.g. claude-haiku-5-5
     :param messages: OpenAI-style chat messages
+    :param think: per-agent thinking switch, required
+    :param effort: per-agent effort level, required
     :param stream: return an async iterator of chunks instead of a full response
     :param ignored: unsupported LiteLLM parameters, reported and dropped
     :return: response object with choices and usage
     """
+    if think is None:
+        raise ClaudeSdkError("'think' is required for claude_sdk agents")
+    if effort is None:
+        raise ClaudeSdkError("'effort' is required for claude_sdk agents")
     _warn_ignored_parameters(ignored)
     system_prompt, prompt = build_claude_prompt(messages)
     timeout_seconds = settings.CLAUDE_SDK_TIMEOUT_SECONDS
     try:
         text, result_usage = await asyncio.wait_for(
-            _query_text(model_name=model_name, system_prompt=system_prompt, prompt=prompt),
+            _query_text(model_name=model_name, system_prompt=system_prompt, prompt=prompt, think=think, effort=effort),
             timeout=timeout_seconds,
         )
     except asyncio.TimeoutError as exception:
@@ -123,11 +132,13 @@ async def list_claude_models() -> list[str]:
     return sorted(name for name in names if name)
 
 
-async def _query_text(*, model_name: str, system_prompt: str, prompt: str) -> tuple[str, dict[str, Any]]:
+async def _query_text(
+    *, model_name: str, system_prompt: str, prompt: str, think: bool, effort: EffortLevel
+) -> tuple[str, dict[str, Any]]:
     text_fragments: list[str] = []
     result_usage: dict[str, Any] = {}
     latest_rate_limit_event: RateLimitEvent | None = None
-    options = _build_options(model_name=model_name, system_prompt=system_prompt)
+    options = _build_options(model_name=model_name, system_prompt=system_prompt, think=think, effort=effort)
 
     try:
         message_source = cast('AsyncGenerator[Message, None]', query(prompt=prompt, options=options))
@@ -159,8 +170,8 @@ def _warn_ignored_parameters(ignored: dict[str, Any]) -> None:
         log.warning(f'claude_sdk ignores unsupported parameters: {", ".join(names)}')
 
 
-def _build_options(*, model_name: str, system_prompt: str) -> ClaudeAgentOptions:
-    # Thinking is disabled unless CLAUDE_SDK_THINK is set; effort stays None (SDK default) unless configured
+def _build_options(*, model_name: str, system_prompt: str, think: bool, effort: EffortLevel) -> ClaudeAgentOptions:
+    # Thinking is disabled unless the agent enables think; effort comes from the agent
     return ClaudeAgentOptions(
         model=model_name,
         system_prompt=system_prompt,
@@ -168,8 +179,8 @@ def _build_options(*, model_name: str, system_prompt: str) -> ClaudeAgentOptions
         max_turns=1,
         setting_sources=[],
         env=_RESTRICTED_SDK_ENV,
-        thinking=None if settings.CLAUDE_SDK_THINK else {'type': 'disabled'},
-        effort=settings.CLAUDE_SDK_EFFORT,
+        thinking=None if think else {'type': 'disabled'},
+        effort=effort,
     )
 
 

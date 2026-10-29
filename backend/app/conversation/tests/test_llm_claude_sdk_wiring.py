@@ -66,6 +66,8 @@ def test_acompletion_routes_claude_sdk_without_key_decryption_or_litellm(monkeyp
             max_tokens=512,
             stream=True,
             top_p=0.9,
+            think=True,
+            effort='high',
         )
     )
 
@@ -75,6 +77,8 @@ def test_acompletion_routes_claude_sdk_without_key_decryption_or_litellm(monkeyp
             'model_name': 'claude-haiku-5-5',
             'messages': MESSAGES,
             'stream': True,
+            'think': True,
+            'effort': 'high',
             'temperature': 0.2,
             'max_tokens': 512,
             'top_p': 0.9,

@@ -85,8 +85,12 @@ def _rate_limit_event(status: RateLimitStatus) -> RateLimitEvent:
     return RateLimitEvent(rate_limit_info=rate_limit_info, uuid='uuid', session_id='session')
 
 
-def _complete(**kwargs: Any) -> Any:
-    return asyncio.run(claude_sdk.claude_sdk_completion(model_name='claude-haiku-5-5', messages=MESSAGES, **kwargs))
+def _complete(*, think: bool | None = False, effort: str | None = 'high', **kwargs: Any) -> Any:
+    return asyncio.run(
+        claude_sdk.claude_sdk_completion(
+            model_name='claude-haiku-5-5', messages=MESSAGES, think=think, effort=effort, **kwargs
+        )
+    )
 
 
 def _set_claude_sdk_settings(monkeypatch: pytest.MonkeyPatch, **overrides: Any) -> None:
@@ -155,6 +159,7 @@ def test_claude_sdk_completion_builds_restricted_query_options(monkeypatch: pyte
     assert options.max_turns == 1
     assert options.setting_sources == []
     assert options.thinking == {'type': 'disabled'}
+    assert options.effort == 'high'
     assert options.env == {'ANTHROPIC_API_KEY': '', 'ENABLE_CLAUDEAI_MCP_SERVERS': 'false'}
 
 
@@ -189,7 +194,9 @@ def test_claude_sdk_stream_emits_whole_text_then_empty_choices_usage_chunk(monke
     _install_fake_query(monkeypatch, [_assistant_message('hello'), _result_message()])
 
     async def collect_chunks() -> list[Any]:
-        stream = await claude_sdk.claude_sdk_completion(model_name='claude-haiku-5-5', messages=MESSAGES, stream=True)
+        stream = await claude_sdk.claude_sdk_completion(
+            model_name='claude-haiku-5-5', messages=MESSAGES, think=False, effort='high', stream=True
+        )
         return [chunk async for chunk in stream]
 
     chunks = asyncio.run(collect_chunks())
@@ -400,53 +407,56 @@ def test_claude_sdk_completion_stays_silent_without_ignored_parameters(monkeypat
     assert recording_log.warnings == []
 
 
-def test_claude_sdk_settings_defaults_keep_existing_deployments_unchanged() -> None:
+def test_claude_sdk_settings_drop_think_and_effort_and_require_timeout() -> None:
     fields = Settings.model_fields
 
-    assert 'CLAUDE_SDK_THINK' in fields
-    assert fields['CLAUDE_SDK_THINK'].default is False
-    assert 'CLAUDE_SDK_EFFORT' in fields
-    assert fields['CLAUDE_SDK_EFFORT'].default is None
+    assert 'CLAUDE_SDK_THINK' not in fields
+    assert 'CLAUDE_SDK_EFFORT' not in fields
     assert 'CLAUDE_SDK_TIMEOUT_SECONDS' in fields
-    assert fields['CLAUDE_SDK_TIMEOUT_SECONDS'].default == 300
+    assert fields['CLAUDE_SDK_TIMEOUT_SECONDS'].is_required()
 
 
 def test_claude_sdk_completion_passes_no_thinking_option_when_think_is_enabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _set_claude_sdk_settings(monkeypatch, CLAUDE_SDK_THINK=True)
     fake_query = _install_fake_query(monkeypatch, [_assistant_message(), _result_message()])
 
-    _complete()
+    _complete(think=True)
 
     assert fake_query.calls[0]['options'].thinking is None
 
 
 def test_claude_sdk_completion_disables_thinking_when_think_is_off(monkeypatch: pytest.MonkeyPatch) -> None:
-    _set_claude_sdk_settings(monkeypatch, CLAUDE_SDK_THINK=False)
     fake_query = _install_fake_query(monkeypatch, [_assistant_message(), _result_message()])
 
-    _complete()
+    _complete(think=False)
 
     assert fake_query.calls[0]['options'].thinking == {'type': 'disabled'}
 
 
-def test_claude_sdk_completion_passes_configured_effort(monkeypatch: pytest.MonkeyPatch) -> None:
-    _set_claude_sdk_settings(monkeypatch, CLAUDE_SDK_EFFORT='high')
+def test_claude_sdk_completion_passes_requested_effort(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_query = _install_fake_query(monkeypatch, [_assistant_message(), _result_message()])
 
-    _complete()
+    _complete(effort='max')
 
-    assert fake_query.calls[0]['options'].effort == 'high'
+    assert fake_query.calls[0]['options'].effort == 'max'
 
 
-def test_claude_sdk_completion_leaves_effort_unset_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
-    _set_claude_sdk_settings(monkeypatch, CLAUDE_SDK_EFFORT=None)
+@pytest.mark.parametrize('field', ['think', 'effort'])
+def test_claude_sdk_completion_rejects_unset_think_or_effort_before_querying(
+    monkeypatch: pytest.MonkeyPatch, field: str
+) -> None:
     fake_query = _install_fake_query(monkeypatch, [_assistant_message(), _result_message()])
 
-    _complete()
+    with pytest.raises(claude_sdk.ClaudeSdkError, match=f"'{field}' is required"):
+        _complete(**{field: None})
 
-    assert fake_query.calls[0]['options'].effort is None
+    assert fake_query.calls == []
+
+
+def test_claude_sdk_completion_requires_think_and_effort_as_keyword_arguments() -> None:
+    with pytest.raises(TypeError, match='think'):
+        asyncio.run(claude_sdk.claude_sdk_completion(model_name='claude-haiku-5-5', messages=MESSAGES))
 
 
 def test_claude_sdk_completion_takes_timeout_from_settings(monkeypatch: pytest.MonkeyPatch) -> None:
