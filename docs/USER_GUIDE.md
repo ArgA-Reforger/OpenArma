@@ -41,7 +41,8 @@ Este proveedor usa el SDK de Claude Agent con tu suscripción de Claude, sin API
 - **Modelos:** el botón de descarga de modelos consulta al SDK (no consume mensajes). Los preconfigurados son `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5` y `claude-fable-5-1`.
 - **Verificar:** el botón de verificación envía una consulta mínima real y consume un poco de tu cuota.
 - **Límites:** `temperature`, `top_p`, penalizaciones y `max_tokens` se ignoran (el log lo avisa una vez). Las herramientas (Tools) del agente no se ejecutan con este proveedor.
-- **Variables opcionales en `backend/.env`:** `CLAUDE_SDK_THINK` (por defecto `false`), `CLAUDE_SDK_EFFORT` (`low`, `medium`, `high`, `xhigh` o `max`; sin definir deja que decida el SDK) y `CLAUDE_SDK_TIMEOUT_SECONDS` (por defecto `300`). Reinicia el backend y el worker tras cambiarlas.
+- **Variable obligatoria en `backend/.env`:** `CLAUDE_SDK_TIMEOUT_SECONDS` (por ejemplo `300`, sin valor por defecto: el backend no arranca sin ella). Reinicia el backend y el worker tras cambiarla.
+- **Pensamiento y esfuerzo por agente:** al elegir este proveedor en un agente, el formulario pide **Pensamiento** (activado o desactivado) y **Esfuerzo** (`low`, `medium`, `high`, `xhigh` o `max`). Ambos son obligatorios y no tienen valor por defecto. Si ya tenías la base de datos creada, añade las columnas una vez: `ALTER TABLE oa_agent ADD COLUMN think BOOLEAN, ADD COLUMN effort VARCHAR(16);`
 - **Latencia y cuota:** cada consulta arranca el CLI de Claude (unos 2,5 s de arranque). Un ciclo del comandante consume la ventana de uso de tu suscripción; revisa que los términos de tu plan permitan este uso automatizado.
 
 #### Paso 2.2: Configurar Comandantes de IA (`/agents`)
@@ -151,7 +152,8 @@ This provider uses the Claude Agent SDK with your Claude subscription, with no A
 - **Models:** the fetch-models button asks the SDK (it sends no prompt). The presets are `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5` and `claude-fable-5-1`.
 - **Verify:** the verify button sends one tiny real query and uses a little of your quota.
 - **Limits:** `temperature`, `top_p`, penalties and `max_tokens` are ignored (the log warns once). Agent Tools are not executed with this provider.
-- **Optional variables in `backend/.env`:** `CLAUDE_SDK_THINK` (default `false`), `CLAUDE_SDK_EFFORT` (`low`, `medium`, `high`, `xhigh` or `max`; unset lets the SDK decide) and `CLAUDE_SDK_TIMEOUT_SECONDS` (default `300`). Restart the backend and the worker after changing them.
+- **Required variable in `backend/.env`:** `CLAUDE_SDK_TIMEOUT_SECONDS` (for example `300`, no default: the backend does not start without it). Restart the backend and the worker after changing it.
+- **Thinking and effort per agent:** when an agent uses this provider, the form asks for **Thinking** (on or off) and **Effort** (`low`, `medium`, `high`, `xhigh` or `max`). Both are required and have no default. If your database already exists, add the columns once: `ALTER TABLE oa_agent ADD COLUMN think BOOLEAN, ADD COLUMN effort VARCHAR(16);`
 - **Latency and quota:** every query starts the Claude CLI (about 2.5 s of startup). A commander cycle consumes your subscription usage window; check that your plan's terms allow this automated use.
 
 #### Step 2.2: Configure AI Commanders (`/agents`)
