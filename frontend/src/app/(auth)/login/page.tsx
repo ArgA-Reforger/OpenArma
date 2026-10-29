@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ interface CaptchaResponse {
   expire_seconds: number
   uuid: string
   image: string
+  bypass_username?: string | null
 }
 
 interface LoginResponse {
@@ -37,6 +38,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [captcha, setCaptcha] = useState<CaptchaResponse | null>(null)
   const [captchaLoading, setCaptchaLoading] = useState(false)
+  const [autoLoginFailed, setAutoLoginFailed] = useState(false)
+  const autoLoginStarted = useRef(false)
 
   const fetchCaptcha = useCallback(async () => {
     setCaptchaLoading(true)
@@ -53,6 +56,24 @@ export default function LoginPage() {
   useEffect(() => {
     fetchCaptcha()
   }, [fetchCaptcha])
+
+  // Dev only: when the backend runs with LOGIN_PASSWORD_BYPASS it names the user to sign in as,
+  // so the login form is skipped. If the auto-login fails the regular form is shown.
+  useEffect(() => {
+    const bypassUsername = captcha?.bypass_username
+    if (!bypassUsername || autoLoginStarted.current) return
+    autoLoginStarted.current = true
+    api.post<LoginResponse>('/auth/login', { username: bypassUsername, password: '' })
+      .then((data) => {
+        setAuth(data.access_token, data.user)
+        router.replace('/projects')
+      })
+      .catch((err: unknown) => {
+        toast.error(err instanceof Error ? err.message : t('auth.loginFailed'))
+        setAutoLoginFailed(true)
+        fetchCaptcha()
+      })
+  }, [captcha, fetchCaptcha, router, setAuth, t])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -79,6 +100,10 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (captcha?.bypass_username && !autoLoginFailed) {
+    return <div className="min-h-screen bg-background" />
   }
 
   return (
